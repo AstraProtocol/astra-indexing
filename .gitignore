@@ -16,3 +16,4 @@
 
 .idea
 config/config.yaml
+.env
