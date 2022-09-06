@@ -41,11 +41,11 @@ index_service:
   cronjob:
     enables: [ ]
   cosmos_version_enabled_height:
-    v0_42_7: 0
+    v0_45_7: 0
   github_api:
     # For `username` and `token`, please generate your own `Personal access tokens` in Github.
-    username: "hoanguyenkh"
-    token: "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"
+    username: ""
+    token: ""
     migration_repo_ref: ""
 
 http_service:
