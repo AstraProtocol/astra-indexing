@@ -44,8 +44,8 @@ index_service:
     v0_42_7: 0
   github_api:
     # For `username` and `token`, please generate your own `Personal access tokens` in Github.
-    username: "public"
-    token: "token"
+    username: "hoanguyenkh"
+    token: "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"
     migration_repo_ref: ""
 
 http_service:
@@ -60,7 +60,7 @@ http_service:
   cors_allowed_headers: [ "Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time" ]
 
 tendermint_app:
-  http_rpc_url: "https://167.71.207.84:26657"
+  http_rpc_url: "http://167.71.207.84:26657"
   insecure: false
   # When strict_genesis_parsing enabled, genssi parsing will reject any non-Cosmos SDK built-in module
   # inside genesis file.
@@ -75,12 +75,11 @@ debug:
   pprof_listening_address: "0.0.0.0:3000"
 
 postgres:
-  host: "localhost"
-  port: 5432
+  host: "astra-safe-do-user-1468358-0.b.db.ondigitalocean.com"
+  port: 25060
   username: "indexing"
   # password can only be provided through CLI or Environment variable `DB_PASSWORD`
-  password: "postgres"
-  name: "postgres"
+  name: "indexing"
   schema: "public"
   ssl: true
   pool_max_conns: 100
@@ -96,7 +95,7 @@ logger:
 
 prometheus:
   enable: true
-  exportpath: "/metrics"
+  export_path: "/metrics"
   port: "9090"
 
 # Custom config for example

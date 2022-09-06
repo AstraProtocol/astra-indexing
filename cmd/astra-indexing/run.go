@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/AstraProtocol/astra-indexing/cmd/astra-indexing/routes"
 	"os"
 	"path/filepath"
 
-	"github.com/AstraProtocol/astra-indexing/app/routes"
 	"github.com/AstraProtocol/astra-indexing/internal/filereader/yaml"
 	"github.com/crypto-com/chain-indexing/bootstrap"
 	configuration "github.com/crypto-com/chain-indexing/bootstrap/config"

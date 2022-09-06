@@ -93,5 +93,5 @@ make build
 #### Run binary
 
 ```bash
-env DB_PASSWORD=your_postgresql_password ./example-app
+env DB_PASSWORD=your_postgresql_password ./example-cmd
 ```

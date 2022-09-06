@@ -10,7 +10,7 @@ require github.com/urfave/cli/v2 v2.3.0
 
 require (
 	github.com/crypto-com/chain-indexing v1.5.0
-	github.com/ettle/strcase v0.1.1
+	github.com/crypto-com/chain-indexing/example v0.0.0-20220831080122-9c84e702c7c2
 	github.com/valyala/fasthttp v1.17.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -54,6 +54,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/dvsekhvalnov/jose2go v0.0.0-20200901110807-248326c1351b // indirect
 	github.com/ethereum/go-ethereum v1.10.3 // indirect
+	github.com/ettle/strcase v0.1.1 // indirect
 	github.com/fasthttp/router v1.3.3 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-kit/kit v0.10.0 // indirect
