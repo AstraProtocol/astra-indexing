@@ -44,7 +44,7 @@ index_service:
     v0_45_7: 0
   github_api:
     # For `username` and `token`, please generate your own `Personal access tokens` in Github.
-    username: ""
+    username: "hoanguyenkh"
     token: ""
     migration_repo_ref: ""
 
