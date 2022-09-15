@@ -45,7 +45,7 @@ index_service:
   github_api:
     # For `username` and `token`, please generate your own `Personal access tokens` in Github.
     username: "hoanguyenkh"
-    token: ""
+    token: "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"
     migration_repo_ref: ""
 
 http_service:
@@ -60,7 +60,7 @@ http_service:
   cors_allowed_headers: [ "Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time" ]
 
 tendermint_app:
-  http_rpc_url: "http://167.71.207.84:26657"
+  http_rpc_url: "http://157.245.150.232:26657"
   insecure: false
   # When strict_genesis_parsing enabled, genssi parsing will reject any non-Cosmos SDK built-in module
   # inside genesis file.
@@ -90,7 +90,7 @@ postgres:
 
 logger:
   # Comma separated log levels. possible values: debug,info,error,panic
-  level: "debug"
+  level: "info"
   color: false
 
 prometheus:
