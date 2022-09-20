@@ -1027,8 +1027,8 @@ github.com/hashicorp/serf v0.8.2/go.mod h1:6hOLApaqBFA1NXqRQAsxw9QxuDEvNxSQRwA/J
 github.com/hashicorp/serf v0.9.5/go.mod h1:UWDWwZeL5cuWDJdl0C6wrvrUwEqtQ4ZKBKKENpqIUyk=
 github.com/hdevalence/ed25519consensus v0.0.0-20210204194344-59a8610d2b87 h1:uUjLpLt6bVvZ72SQc/B4dXcPBw4Vgd7soowdRl52qEM=
 github.com/hdevalence/ed25519consensus v0.0.0-20210204194344-59a8610d2b87/go.mod h1:XGsKKeXxeRr95aEOgipvluMPlgjr7dGlk9ZTWOjcUcg=
-github.com/hoanguyenkh/chain-indexing v0.0.2 h1:bmt/RmVmv8Mr0pIdm9GSQ3cUnrrjwNohsy+AFIYi1RI=
-github.com/hoanguyenkh/chain-indexing v0.0.2/go.mod h1:287hRdbwPdQbUXdltALiyLSTRYo4fsr07UXOfwUCjAo=
+github.com/hoanguyenkh/chain-indexing v0.0.5 h1:lrvb8wtFhKBGMqr64C3WxC0vx3n2q8O03EvKqTzBvHc=
+github.com/hoanguyenkh/chain-indexing v0.0.5/go.mod h1:287hRdbwPdQbUXdltALiyLSTRYo4fsr07UXOfwUCjAo=
 github.com/holiman/bloomfilter/v2 v2.0.3 h1:73e0e/V0tCydx14a0SCYS/EWCxgwLZ18CZcZKVu0fao=
 github.com/holiman/bloomfilter/v2 v2.0.3/go.mod h1:zpoh+gs7qcpqrHr3dB55AMiJwo0iURXE7ZOP9L9hSkA=
 github.com/holiman/uint256 v1.1.1/go.mod h1:y4ga/t+u+Xwd7CpDgZESaRcWy0I7XMlTMA25ApIH5Jw=

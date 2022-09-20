@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/crypto-com/chain-indexing/projection/blockevent"
 	"strings"
 
 	"github.com/crypto-com/chain-indexing/appinterface/cosmosapp"
@@ -16,7 +17,6 @@ import (
 	"github.com/crypto-com/chain-indexing/projection/account_message"
 	"github.com/crypto-com/chain-indexing/projection/account_transaction"
 	"github.com/crypto-com/chain-indexing/projection/block"
-	"github.com/crypto-com/chain-indexing/projection/blockevent"
 	"github.com/crypto-com/chain-indexing/projection/chainstats"
 	"github.com/crypto-com/chain-indexing/projection/ibc_channel"
 	"github.com/crypto-com/chain-indexing/projection/ibc_channel_message"
@@ -96,31 +96,29 @@ func InitProjection(name string, params InitProjectionParams) projection_entity.
 		MigrationRepoRef: params.MigrationRepoRef,
 		ConnString:       connString,
 	}
-
+	sourceURL := github_migrationhelper.GenerateDefaultSourceURL(name, githubMigrationHelperConfig)
+	databaseURL := migrationhelper.GenerateDefaultDatabaseURL(name, connString)
+	migrationHelper := github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
 	switch name {
 	case "Account":
-		sourceURL := github_migrationhelper.GenerateDefaultSourceURL(name, githubMigrationHelperConfig)
-		databaseURL := migrationhelper.GenerateDefaultDatabaseURL(name, connString)
-		migrationHelper := github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
-
+		if params.GithubAPIToken == "" {
+			return account.NewAccount(params.Logger, params.RdbConn, params.CosmosAppClient, nil)
+		}
 		return account.NewAccount(params.Logger, params.RdbConn, params.CosmosAppClient, migrationHelper)
 	case "AccountTransaction":
-		sourceURL := github_migrationhelper.GenerateDefaultSourceURL(name, githubMigrationHelperConfig)
-		databaseURL := migrationhelper.GenerateDefaultDatabaseURL(name, connString)
-		migrationHelper := github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
-
+		if params.GithubAPIToken == "" {
+			return account_transaction.NewAccountTransaction(params.Logger, params.RdbConn, params.AccountAddressPrefix, nil)
+		}
 		return account_transaction.NewAccountTransaction(params.Logger, params.RdbConn, params.AccountAddressPrefix, migrationHelper)
 	case "AccountMessage":
-		sourceURL := github_migrationhelper.GenerateDefaultSourceURL(name, githubMigrationHelperConfig)
-		databaseURL := migrationhelper.GenerateDefaultDatabaseURL(name, connString)
-		migrationHelper := github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
-
+		if params.GithubAPIToken == "" {
+			return account_message.NewAccountMessage(params.Logger, params.RdbConn, params.AccountAddressPrefix, nil)
+		}
 		return account_message.NewAccountMessage(params.Logger, params.RdbConn, params.AccountAddressPrefix, migrationHelper)
 	case "Block":
-		sourceURL := github_migrationhelper.GenerateDefaultSourceURL(name, githubMigrationHelperConfig)
-		databaseURL := migrationhelper.GenerateDefaultDatabaseURL(name, connString)
-		migrationHelper := github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
-
+		if params.GithubAPIToken == "" {
+			return block.NewBlock(params.Logger, params.RdbConn, nil)
+		}
 		return block.NewBlock(params.Logger, params.RdbConn, migrationHelper)
 	case "BlockEvent":
 		sourceURL := github_migrationhelper.GenerateSourceURL(
@@ -132,58 +130,57 @@ func InitProjection(name string, params InitProjectionParams) projection_entity.
 		)
 		databaseURL := migrationhelper.GenerateDefaultDatabaseURL(name, connString)
 		migrationHelper := github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
-
+		if params.GithubAPIToken == "" {
+			return blockevent.NewBlockEvent(params.Logger, params.RdbConn, nil)
+		}
 		return blockevent.NewBlockEvent(params.Logger, params.RdbConn, migrationHelper)
 	case "ChainStats":
-		sourceURL := github_migrationhelper.GenerateSourceURL(
+		sourceURL = github_migrationhelper.GenerateSourceURL(
 			github_migrationhelper.MIGRATION_GITHUB_URL_FORMAT,
 			params.GithubAPIUser,
 			params.GithubAPIToken,
 			chainstats.MIGRATION_DIRECOTRY,
 			params.MigrationRepoRef,
 		)
-		databaseURL := migrationhelper.GenerateDefaultDatabaseURL(name, connString)
-		migrationHelper := github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
-
+		databaseURL = migrationhelper.GenerateDefaultDatabaseURL(name, connString)
+		migrationHelper = github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
+		if params.GithubAPIToken == "" {
+			return chainstats.NewChainStats(params.Logger, params.RdbConn, nil)
+		}
 		return chainstats.NewChainStats(params.Logger, params.RdbConn, migrationHelper)
 	case "Proposal":
-		sourceURL := github_migrationhelper.GenerateDefaultSourceURL(name, githubMigrationHelperConfig)
-		databaseURL := migrationhelper.GenerateDefaultDatabaseURL(name, connString)
-		migrationHelper := github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
-
+		if params.GithubAPIToken == "" {
+			return proposal.NewProposal(params.Logger, params.RdbConn, params.ConsNodeAddressPrefix, nil)
+		}
 		return proposal.NewProposal(params.Logger, params.RdbConn, params.ConsNodeAddressPrefix, migrationHelper)
 	case "Transaction":
-		sourceURL := github_migrationhelper.GenerateDefaultSourceURL(name, githubMigrationHelperConfig)
-		databaseURL := migrationhelper.GenerateDefaultDatabaseURL(name, connString)
-		migrationHelper := github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
-
+		if params.GithubAPIToken == "" {
+			return transaction.NewTransaction(params.Logger, params.RdbConn, nil)
+		}
 		return transaction.NewTransaction(params.Logger, params.RdbConn, migrationHelper)
 	case "Validator":
-		sourceURL := github_migrationhelper.GenerateDefaultSourceURL(name, githubMigrationHelperConfig)
-		databaseURL := migrationhelper.GenerateDefaultDatabaseURL(name, connString)
-		migrationHelper := github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
-
+		if params.GithubAPIToken == "" {
+			return validator.NewValidator(params.Logger, params.RdbConn, params.ConsNodeAddressPrefix, nil)
+		}
 		return validator.NewValidator(params.Logger, params.RdbConn, params.ConsNodeAddressPrefix, migrationHelper)
 	case "ValidatorStats":
-		sourceURL := github_migrationhelper.GenerateSourceURL(
+		sourceURL = github_migrationhelper.GenerateSourceURL(
 			github_migrationhelper.MIGRATION_GITHUB_URL_FORMAT,
 			params.GithubAPIUser,
 			params.GithubAPIToken,
 			validatorstats.MIGRATION_DIRECOTRY,
 			params.MigrationRepoRef,
 		)
-		databaseURL := migrationhelper.GenerateDatabaseURL(
+		databaseURL = migrationhelper.GenerateDatabaseURL(
 			connString,
 			validatorstats.MIGRATION_TABLE_NAME,
 		)
-		migrationHelper := github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
-
+		migrationHelper = github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
+		if params.GithubAPIToken == "" {
+			return validatorstats.NewValidatorStats(params.Logger, params.RdbConn, nil)
+		}
 		return validatorstats.NewValidatorStats(params.Logger, params.RdbConn, migrationHelper)
 	case "IBCChannel":
-		sourceURL := github_migrationhelper.GenerateDefaultSourceURL(name, githubMigrationHelperConfig)
-		databaseURL := migrationhelper.GenerateDefaultDatabaseURL(name, connString)
-		migrationHelper := github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
-
 		return ibc_channel.NewIBCChannel(
 			params.Logger,
 			params.RdbConn,
@@ -193,19 +190,28 @@ func InitProjection(name string, params InitProjectionParams) projection_entity.
 			migrationHelper,
 		)
 	case "IBCChannelTxMsgTrace":
-		sourceURL := github_migrationhelper.GenerateSourceURL(
+		sourceURL = github_migrationhelper.GenerateSourceURL(
 			github_migrationhelper.MIGRATION_GITHUB_URL_FORMAT,
 			params.GithubAPIUser,
 			params.GithubAPIToken,
 			ibc_channel.MIGRATION_DIRECOTRY,
 			params.MigrationRepoRef,
 		)
-		databaseURL := migrationhelper.GenerateDatabaseURL(
+		databaseURL = migrationhelper.GenerateDatabaseURL(
 			connString,
 			ibc_channel.MIGRATION_TABLE_NAME,
 		)
-		migrationHelper := github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
-
+		migrationHelper = github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
+		if params.GithubAPIToken == "" {
+			return ibc_channel.NewIBCChannel(
+				params.Logger,
+				params.RdbConn,
+				&ibc_channel.Config{
+					EnableTxMsgTrace: true,
+				},
+				nil,
+			)
+		}
 		return ibc_channel.NewIBCChannel(
 			params.Logger,
 			params.RdbConn,
@@ -215,10 +221,9 @@ func InitProjection(name string, params InitProjectionParams) projection_entity.
 			migrationHelper,
 		)
 	case "IBCChannelMessage":
-		sourceURL := github_migrationhelper.GenerateDefaultSourceURL(name, githubMigrationHelperConfig)
-		databaseURL := migrationhelper.GenerateDefaultDatabaseURL(name, connString)
-		migrationHelper := github_migrationhelper.NewGithubMigrationHelper(sourceURL, databaseURL)
-
+		if params.GithubAPIToken == "" {
+			return ibc_channel_message.NewIBCChannelMessage(params.Logger, params.RdbConn, nil)
+		}
 		return ibc_channel_message.NewIBCChannelMessage(params.Logger, params.RdbConn, migrationHelper)
 	}
 
