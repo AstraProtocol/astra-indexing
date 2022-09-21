@@ -18,14 +18,14 @@ index_service:
   window_size: 2
   projection:
     enables: [
-#        "AccountMessage",
-#        "AccountTransaction",
-#        "Block",
-#        "ChainStats",
-#        "Proposal",
+        "AccountMessage",
+        "AccountTransaction",
+        "Block",
+        "ChainStats",
+        "Proposal",
         "Transaction",
-#        "Validator",
-#        "ValidatorStats",
+        "Validator",
+        "ValidatorStats",
         # "IBCChannel",
         # "IBCChannelTxMsgTrace",
         # "IBCChannelMessage",
