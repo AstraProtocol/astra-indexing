@@ -4,12 +4,12 @@ go 1.18
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
 
-replace github.com/crypto-com/chain-indexing => github.com/hoanguyenkh/chain-indexing v0.0.5
+replace github.com/crypto-com/chain-indexing => github.com/hoanguyenkh/chain-indexing v0.1.0
 
 require (
-	github.com/crypto-com/chain-indexing v0.0.5
+	github.com/crypto-com/chain-indexing v0.1.0
 	github.com/urfave/cli/v2 v2.3.0
-	github.com/valyala/fasthttp v1.17.0
+	github.com/valyala/fasthttp v1.30.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -21,7 +21,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.0 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/VictoriaMetrics/fastcache v1.6.0 // indirect
-	github.com/andybalholm/brotli v1.0.0 // indirect
+	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/armon/go-metrics v0.4.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
@@ -30,7 +30,7 @@ require (
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce // indirect
 	github.com/calvinlauyh/cosmosutils v0.1.0 // indirect
-	github.com/cenkalti/backoff/v4 v4.1.1 // indirect
+	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/confio/ics23/go v0.7.0 // indirect
@@ -45,7 +45,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/crypto-org-chain/chain-main/v3 v3.0.0-croeseid // indirect
 	github.com/crypto-org-chain/cronos v0.6.0-testnet // indirect
-	github.com/danieljoos/wincred v1.0.2 // indirect
+	github.com/danieljoos/wincred v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
@@ -68,7 +68,7 @@ require (
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
 	github.com/gogo/protobuf v1.3.3 // indirect
 	github.com/golang-migrate/migrate/v4 v4.15.1 // indirect
-	github.com/golang/glog v0.0.0-20210429001901-424d2337a529 // indirect
+	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/btree v1.0.1 // indirect
@@ -157,8 +157,8 @@ require (
 	github.com/tendermint/go-amino v0.16.0 // indirect
 	github.com/tendermint/tendermint v0.34.21 // indirect
 	github.com/tendermint/tm-db v0.6.7 // indirect
-	github.com/tklauser/go-sysconf v0.3.9 // indirect
-	github.com/tklauser/numcpus v0.3.0 // indirect
+	github.com/tklauser/go-sysconf v0.3.10 // indirect
+	github.com/tklauser/numcpus v0.4.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/zondax/hid v0.9.0 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect

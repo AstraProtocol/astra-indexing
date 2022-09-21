@@ -15,17 +15,17 @@ index_service:
   # TENDERMINT_DIRECT mode: synced blocks are parsed to events and are replayed directly by projections.
   mode: "TENDERMINT_DIRECT"
   # Number of sync jobs running in parallel
-  window_size: 10
+  window_size: 2
   projection:
     enables: [
-        "AccountMessage",
-        "AccountTransaction",
-        "Block",
-        "ChainStats",
-        "Proposal",
+#        "AccountMessage",
+#        "AccountTransaction",
+#        "Block",
+#        "ChainStats",
+#        "Proposal",
         "Transaction",
-        "Validator",
-        "ValidatorStats",
+#        "Validator",
+#        "ValidatorStats",
         # "IBCChannel",
         # "IBCChannelTxMsgTrace",
         # "IBCChannelMessage",
