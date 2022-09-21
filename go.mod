@@ -4,10 +4,10 @@ go 1.18
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
 
-replace github.com/crypto-com/chain-indexing => github.com/hoanguyenkh/chain-indexing v0.1.0
+replace github.com/crypto-com/chain-indexing => github.com/hoanguyenkh/chain-indexing v0.1.1
 
 require (
-	github.com/crypto-com/chain-indexing v0.1.0
+	github.com/crypto-com/chain-indexing v0.1.1
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/valyala/fasthttp v1.30.0
 	gopkg.in/yaml.v2 v2.4.0
