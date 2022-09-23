@@ -15,7 +15,7 @@ index_service:
   # TENDERMINT_DIRECT mode: synced blocks are parsed to events and are replayed directly by projections.
   mode: "TENDERMINT_DIRECT"
   # Number of sync jobs running in parallel
-  window_size: 2
+  window_size: 5
   projection:
     enables: [
         "AccountMessage",
@@ -89,7 +89,7 @@ postgres:
 
 logger:
   # Comma separated log levels. possible values: debug,info,error,panic
-  level: "info"
+  level: "error"
   color: false
 
 prometheus:
