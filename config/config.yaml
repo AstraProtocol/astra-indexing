@@ -22,7 +22,7 @@ index_service:
         "AccountMessage",
         "AccountTransaction",
         "Block",
-        "ChainStats",
+        # "ChainStats",
         "Proposal",
         "Transaction",
         "Validator",
