@@ -5,12 +5,13 @@ go 1.18
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
 
 // replace github.com/crypto-com/chain-indexing => /Users/lap02341/resource/AstraProject/chain-indexing
-replace github.com/crypto-com/chain-indexing => github.com/hoanguyenkh/chain-indexing v0.1.9
+
+replace github.com/crypto-com/chain-indexing => github.com/hoanguyenkh/chain-indexing v0.1.10
 
 replace github.com/calvinlauyh/cosmosutils => github.com/hoanguyenkh/cosmosutils v0.2.0
 
 require (
-	github.com/crypto-com/chain-indexing v0.1.9
+	github.com/crypto-com/chain-indexing v0.1.10
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/valyala/fasthttp v1.40.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -84,8 +85,10 @@ require (
 	github.com/gtank/merlin v0.1.1 // indirect
 	github.com/gtank/ristretto255 v0.1.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

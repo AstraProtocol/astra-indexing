@@ -37,15 +37,9 @@ func initProjections(
 	}
 
 	var cosmosAppClient cosmosapp.Client
-	if config.CosmosApp.Insecure {
-		cosmosAppClient = cosmosapp_infrastructure.NewInsecureHTTPClient(
-			config.CosmosApp.HTTPRPCUrl, config.Blockchain.BondingDenom,
-		)
-	} else {
-		cosmosAppClient = cosmosapp_infrastructure.NewHTTPClient(
-			config.CosmosApp.HTTPRPCUrl, config.Blockchain.BondingDenom,
-		)
-	}
+	cosmosAppClient = cosmosapp_infrastructure.NewHTTPClient(
+		config.CosmosApp.HTTPRPCUrl, config.Blockchain.BondingDenom,
+	)
 
 	projections := make([]projection_entity.Projection, 0, len(config.IndexService.Projection.Enables))
 	initParams := InitProjectionParams{

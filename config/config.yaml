@@ -90,7 +90,7 @@ postgres:
 
 logger:
   # Comma separated log levels. possible values: debug,info,error,panic
-  level: "info"
+  level: "error"
   color: false
 
 prometheus:

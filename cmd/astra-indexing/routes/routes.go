@@ -18,17 +18,11 @@ func InitRouteRegistry(
 	config *config.Config,
 ) bootstrap.RouteRegistry {
 	var cosmosAppClient cosmosapp.Client
-	if config.CosmosApp.Insecure {
-		cosmosAppClient = cosmosapp_infrastructure.NewInsecureHTTPClient(
-			config.CosmosApp.HTTPRPCUrl,
-			config.Blockchain.BondingDenom,
-		)
-	} else {
-		cosmosAppClient = cosmosapp_infrastructure.NewHTTPClient(
-			config.CosmosApp.HTTPRPCUrl,
-			config.Blockchain.BondingDenom,
-		)
-	}
+
+	cosmosAppClient = cosmosapp_infrastructure.NewHTTPClient(
+		config.CosmosApp.HTTPRPCUrl,
+		config.Blockchain.BondingDenom,
+	)
 
 	var tendermintClient tendermint.Client
 	if config.TendermintApp.Insecure {
