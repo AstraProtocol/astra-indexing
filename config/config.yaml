@@ -16,6 +16,7 @@ index_service:
   mode: "TENDERMINT_DIRECT"
   # Number of sync jobs running in parallel
   window_size: 5
+  concurrency: 10
   projection:
     enables: [
         "AccountMessage",
@@ -89,12 +90,12 @@ postgres:
 
 logger:
   # Comma separated log levels. possible values: debug,info,error,panic
-  level: "error"
+  level: "info"
   color: false
 
 prometheus:
   enable: true
-  export_path: "/metrics"
+  export_path: "/"
   port: "9090"
 
 # Custom config for example
