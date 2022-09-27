@@ -6,7 +6,7 @@ replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alp
 
 // replace github.com/crypto-com/chain-indexing => /Users/lap02341/resource/AstraProject/chain-indexing
 
-replace github.com/crypto-com/chain-indexing => github.com/hoanguyenkh/chain-indexing v0.1.11
+replace github.com/crypto-com/chain-indexing => github.com/hoanguyenkh/chain-indexing v0.2.1
 
 replace github.com/calvinlauyh/cosmosutils => github.com/hoanguyenkh/cosmosutils v0.2.0
 
@@ -127,6 +127,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/orcaman/concurrent-map/v2 v2.0.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.2 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect

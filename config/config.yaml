@@ -67,7 +67,7 @@ tendermint_app:
   strict_genesis_parsing: false
 
 cosmos_app:
-  http_rpc_url: "http://159.223.36.174:1317"
+  http_rpc_url: "http://157.245.150.232:1317"
   insecure: false
 
 debug:
