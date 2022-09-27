@@ -6,12 +6,12 @@ replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alp
 
 // replace github.com/crypto-com/chain-indexing => /Users/lap02341/resource/AstraProject/chain-indexing
 
-replace github.com/crypto-com/chain-indexing => github.com/hoanguyenkh/chain-indexing v0.1.10
+replace github.com/crypto-com/chain-indexing => github.com/hoanguyenkh/chain-indexing v0.1.11
 
 replace github.com/calvinlauyh/cosmosutils => github.com/hoanguyenkh/cosmosutils v0.2.0
 
 require (
-	github.com/crypto-com/chain-indexing v0.1.10
+	github.com/crypto-com/chain-indexing v0.1.11
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/valyala/fasthttp v1.40.0
 	gopkg.in/yaml.v2 v2.4.0
