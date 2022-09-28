@@ -122,20 +122,6 @@ func InitRouteRegistry(
 		},
 	)
 
-	blockEventHandler := httpapi_handlers.NewBlockEvents(logger, rdbConn.ToHandle())
-	routes = append(routes,
-		Route{
-			Method:  GET,
-			path:    "api/v1/events",
-			handler: blockEventHandler.List,
-		},
-		Route{
-			Method:  GET,
-			path:    "api/v1/events/{id}",
-			handler: blockEventHandler.FindById,
-		},
-	)
-
 	proposalsHandler := httpapi_handlers.NewProposals(
 		logger,
 		rdbConn.ToHandle(),
