@@ -25,17 +25,10 @@ func InitRouteRegistry(
 	)
 
 	var tendermintClient tendermint.Client
-	if config.TendermintApp.Insecure {
-		tendermintClient = tendermint_infrastructure.NewInsecureHTTPClient(
-			config.TendermintApp.HTTPRPCUrl,
-			config.TendermintApp.StrictGenesisParsing,
-		)
-	} else {
-		tendermintClient = tendermint_infrastructure.NewHTTPClient(
-			config.TendermintApp.HTTPRPCUrl,
-			config.TendermintApp.StrictGenesisParsing,
-		)
-	}
+	tendermintClient = tendermint_infrastructure.NewHTTPClient(
+		config.TendermintApp.HTTPRPCUrl,
+		config.TendermintApp.StrictGenesisParsing,
+	)
 
 	validatorAddressPrefix := config.Blockchain.ValidatorAddressPrefix
 	conNodeAddressPrefix := config.Blockchain.ConNodeAddressPrefix
