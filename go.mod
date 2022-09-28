@@ -8,10 +8,10 @@ replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alp
 
 replace github.com/crypto-com/chain-indexing => github.com/hoanguyenkh/chain-indexing v0.2.3
 
-// replace github.com/calvinlauyh/cosmosutils => github.com/hoanguyenkh/cosmosutils v0.2.0
+replace github.com/calvinlauyh/cosmosutils => github.com/hoanguyenkh/cosmosutils v0.2.0
 
 require (
-	github.com/crypto-com/chain-indexing v0.2.2
+	github.com/crypto-com/chain-indexing v0.2.3
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/valyala/fasthttp v1.40.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -43,12 +43,10 @@ require (
 	github.com/cosmos/go-bip39 v1.0.0 // indirect
 	github.com/cosmos/gorocksdb v1.2.0 // indirect
 	github.com/cosmos/iavl v0.19.1 // indirect
-	github.com/cosmos/ibc-go v1.0.0 // indirect
 	github.com/cosmos/ibc-go/v3 v3.2.0 // indirect
 	github.com/cosmos/ledger-cosmos-go v0.11.1 // indirect
 	github.com/cosmos/ledger-go v0.9.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
-	github.com/crypto-org-chain/chain-main/v3 v3.0.0-croeseid // indirect
 	github.com/danieljoos/wincred v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
