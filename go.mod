@@ -6,7 +6,7 @@ replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alp
 
 // replace github.com/crypto-com/chain-indexing => /Users/lap02341/resource/AstraProject/chain-indexing
 
-replace github.com/crypto-com/chain-indexing => github.com/hoanguyenkh/chain-indexing v0.2.7
+replace github.com/crypto-com/chain-indexing => github.com/hoanguyenkh/chain-indexing v0.2.8
 
 replace github.com/calvinlauyh/cosmosutils => github.com/hoanguyenkh/cosmosutils v0.2.0
 
