@@ -67,16 +67,6 @@ func InitRouteRegistry(
 			path:    "api/v1/blocks/{height}/transactions",
 			handler: blocksHandler.ListTransactionsByHeight,
 		},
-		Route{
-			Method:  GET,
-			path:    "api/v1/blocks/{height}/events",
-			handler: blocksHandler.ListEventsByHeight,
-		},
-		Route{
-			Method:  GET,
-			path:    "api/v1/blocks/{height}/commitments",
-			handler: blocksHandler.ListCommitmentsByHeight,
-		},
 	)
 
 	accountsHandlers := httpapi_handlers.NewAccounts(
