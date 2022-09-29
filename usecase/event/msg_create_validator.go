@@ -1,0 +1,71 @@
+package event
+
+import (
+	"bytes"
+
+	"github.com/AstraProtocol/astra-indexing/usecase/coin"
+	"github.com/AstraProtocol/astra-indexing/usecase/model"
+
+	entity_event "github.com/AstraProtocol/astra-indexing/entity/event"
+	jsoniter "github.com/json-iterator/go"
+	"github.com/luci/go-render/render"
+)
+
+const MSG_CREATE_VALIDATOR = "/cosmos.staking.v1beta1.MsgCreateValidator"
+const MSG_CREATE_VALIDATOR_CREATED = "/cosmos.staking.v1beta1.MsgCreateValidator.Created"
+const MSG_CREATE_VALIDATOR_FAILED = "/cosmos.staking.v1beta1.MsgCreateValidator.Failed"
+
+type MsgCreateValidator struct {
+	MsgBase
+
+	Description       model.ValidatorDescription `json:"description"`
+	CommissionRates   model.ValidatorCommission  `json:"commissionRates"`
+	MinSelfDelegation string                     `json:"minSelfDelegation"`
+	DelegatorAddress  string                     `json:"delegatorAddress"`
+	ValidatorAddress  string                     `json:"validatorAddress"`
+	TendermintPubkey  string                     `json:"tendermintPubkey"`
+	Amount            coin.Coin                  `json:"amount"`
+}
+
+func NewMsgCreateValidator(msgCommonParams MsgCommonParams, params model.MsgCreateValidatorParams) *MsgCreateValidator {
+	return &MsgCreateValidator{
+		NewMsgBase(MsgBaseParams{
+			MsgName:         MSG_CREATE_VALIDATOR,
+			Version:         1,
+			MsgCommonParams: msgCommonParams,
+		}),
+		params.Description,
+		params.Commission,
+		params.MinSelfDelegation,
+		params.DelegatorAddress,
+		params.ValidatorAddress,
+		params.TendermintPubkey,
+		params.Amount,
+	}
+}
+
+// ToJSON encodes the event into JSON string payload
+func (event *MsgCreateValidator) ToJSON() (string, error) {
+	encoded, err := jsoniter.Marshal(event)
+	if err != nil {
+		return "", err
+	}
+
+	return string(encoded), nil
+}
+
+func (event *MsgCreateValidator) String() string {
+	return render.Render(event)
+}
+
+func DecodeMsgCreateValidator(encoded []byte) (entity_event.Event, error) {
+	jsonDecoder := jsoniter.NewDecoder(bytes.NewReader(encoded))
+	jsonDecoder.DisallowUnknownFields()
+
+	var event *MsgCreateValidator
+	if err := jsonDecoder.Decode(&event); err != nil {
+		return nil, err
+	}
+
+	return event, nil
+}

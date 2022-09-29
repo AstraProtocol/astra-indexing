@@ -1,0 +1,35 @@
+package command
+
+import (
+	entity_event "github.com/AstraProtocol/astra-indexing/entity/event"
+	"github.com/AstraProtocol/astra-indexing/usecase/event"
+	"github.com/AstraProtocol/astra-indexing/usecase/model"
+)
+
+type CreateMsgGrant struct {
+	msgCommonParams event.MsgCommonParams
+	params          model.MsgGrantParams
+}
+
+func NewCreateMsgGrant(
+	msgCommonParams event.MsgCommonParams,
+	params model.MsgGrantParams,
+) *CreateMsgGrant {
+	return &CreateMsgGrant{
+		msgCommonParams,
+		params,
+	}
+}
+
+func (*CreateMsgGrant) Name() string {
+	return "/cosmos.authz.v1beta1.MsgGrant.Create"
+}
+
+func (*CreateMsgGrant) Version() int {
+	return 1
+}
+
+func (cmd *CreateMsgGrant) Exec() (entity_event.Event, error) {
+	event := event.NewMsgGrant(cmd.msgCommonParams, cmd.params)
+	return event, nil
+}

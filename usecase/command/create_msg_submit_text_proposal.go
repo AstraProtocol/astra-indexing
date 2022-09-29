@@ -1,0 +1,38 @@
+package command
+
+import (
+	entity_event "github.com/AstraProtocol/astra-indexing/entity/event"
+	"github.com/AstraProtocol/astra-indexing/usecase/event"
+	"github.com/AstraProtocol/astra-indexing/usecase/model"
+)
+
+type CreateMsgSubmitTextProposal struct {
+	msgCommonParams event.MsgCommonParams
+	params          model.MsgSubmitTextProposalParams
+}
+
+func NewCreateMsgSubmitTextProposal(
+	msgCommonParams event.MsgCommonParams,
+	params model.MsgSubmitTextProposalParams,
+) *CreateMsgSubmitTextProposal {
+	return &CreateMsgSubmitTextProposal{
+		msgCommonParams,
+		params,
+	}
+}
+
+// Name returns name of command
+func (*CreateMsgSubmitTextProposal) Name() string {
+	return "/cosmos.gov.v1beta1.TextProposal.Create"
+}
+
+// Version returns version of command
+func (*CreateMsgSubmitTextProposal) Version() int {
+	return 1
+}
+
+// Exec process the command data and return the event accordingly
+func (cmd *CreateMsgSubmitTextProposal) Exec() (entity_event.Event, error) {
+	event := event.NewMsgSubmitTextProposal(cmd.msgCommonParams, cmd.params)
+	return event, nil
+}

@@ -1,15 +1,15 @@
 package routes
 
 import (
-	"github.com/crypto-com/chain-indexing/appinterface/cosmosapp"
-	"github.com/crypto-com/chain-indexing/appinterface/rdb"
-	"github.com/crypto-com/chain-indexing/appinterface/tendermint"
-	"github.com/crypto-com/chain-indexing/bootstrap"
-	"github.com/crypto-com/chain-indexing/bootstrap/config"
-	applogger "github.com/crypto-com/chain-indexing/external/logger"
-	cosmosapp_infrastructure "github.com/crypto-com/chain-indexing/infrastructure/cosmosapp"
-	httpapi_handlers "github.com/crypto-com/chain-indexing/infrastructure/httpapi/handlers"
-	tendermint_infrastructure "github.com/crypto-com/chain-indexing/infrastructure/tendermint"
+	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
+	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	"github.com/AstraProtocol/astra-indexing/appinterface/tendermint"
+	"github.com/AstraProtocol/astra-indexing/bootstrap"
+	"github.com/AstraProtocol/astra-indexing/bootstrap/config"
+	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	cosmosapp_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/cosmosapp"
+	httpapi_handlers "github.com/AstraProtocol/astra-indexing/infrastructure/httpapi/handlers"
+	tendermint_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/tendermint"
 )
 
 func InitRouteRegistry(

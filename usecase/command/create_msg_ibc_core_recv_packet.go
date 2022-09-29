@@ -1,0 +1,63 @@
+package command
+
+import (
+	entity_event "github.com/AstraProtocol/astra-indexing/entity/event"
+	"github.com/AstraProtocol/astra-indexing/usecase/event"
+	ibc_model "github.com/AstraProtocol/astra-indexing/usecase/model/ibc"
+)
+
+type CreateMsgIBCRecvPacket struct {
+	msgCommonParams event.MsgCommonParams
+	params          ibc_model.MsgRecvPacketParams
+}
+
+func NewCreateMsgIBCRecvPacket(
+	msgCommonParams event.MsgCommonParams,
+	params ibc_model.MsgRecvPacketParams,
+) *CreateMsgIBCRecvPacket {
+	return &CreateMsgIBCRecvPacket{
+		msgCommonParams,
+		params,
+	}
+}
+
+func (*CreateMsgIBCRecvPacket) Name() string {
+	return "/ibc.core.channel.v1.MsgRecvPacket.Create"
+}
+
+func (*CreateMsgIBCRecvPacket) Version() int {
+	return 1
+}
+
+func (cmd *CreateMsgIBCRecvPacket) Exec() (entity_event.Event, error) {
+	event := event.NewMsgIBCRecvPacket(cmd.msgCommonParams, cmd.params)
+	return event, nil
+}
+
+type CreateMsgAlreadyRelayedIBCRecvPacket struct {
+	msgCommonParams event.MsgCommonParams
+	params          ibc_model.MsgAlreadyRelayedRecvPacketParams
+}
+
+func NewCreateMsgAlreadyRelayedIBCRecvPacket(
+	msgCommonParams event.MsgCommonParams,
+	params ibc_model.MsgAlreadyRelayedRecvPacketParams,
+) *CreateMsgAlreadyRelayedIBCRecvPacket {
+	return &CreateMsgAlreadyRelayedIBCRecvPacket{
+		msgCommonParams,
+		params,
+	}
+}
+
+func (*CreateMsgAlreadyRelayedIBCRecvPacket) Name() string {
+	return "CreateMsgAlreadyRelayedIBCRecvPacket"
+}
+
+func (*CreateMsgAlreadyRelayedIBCRecvPacket) Version() int {
+	return 1
+}
+
+func (cmd *CreateMsgAlreadyRelayedIBCRecvPacket) Exec() (entity_event.Event, error) {
+	event := event.NewMsgAlreadyRelayedIBCRecvPacket(cmd.msgCommonParams, cmd.params)
+	return event, nil
+}

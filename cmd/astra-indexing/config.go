@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/crypto-com/chain-indexing/bootstrap/config"
+	"github.com/AstraProtocol/astra-indexing/bootstrap/config"
 )
 
 type CustomConfig struct {
