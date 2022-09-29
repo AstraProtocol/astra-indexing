@@ -2,6 +2,7 @@ package chain
 
 import (
 	"fmt"
+	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	"sync"
 	"time"
 
@@ -71,7 +72,7 @@ func (tracker *BlockHeightTracker) Run() {
 			tracker.rwMutex.Lock()
 			tracker.latestBlockHeight = &height
 			tracker.rwMutex.Unlock()
-
+			prometheus.RecordProjectionLatestHeight("LatestBlockHeight", height)
 			tracker.logger.Infof("updated chain latest block height: %d", height)
 			<-time.After(tracker.pollingInterval)
 			return nil

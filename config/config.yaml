@@ -19,14 +19,14 @@ index_service:
   concurrency: 10
   projection:
     enables: [
-#        "AccountMessage",
-#        "AccountTransaction",
-#        "Block",
-#        # "ChainStats",
-#        "Proposal",
-#        "Transaction",
+        "AccountMessage",
+        "AccountTransaction",
+        "Block",
+        # "ChainStats",
+        "Proposal",
+        "Transaction",
         "Validator",
-#        "ValidatorStats",
+        "ValidatorStats",
         # "IBCChannel",
         # "IBCChannelTxMsgTrace",
         # "IBCChannelMessage",
