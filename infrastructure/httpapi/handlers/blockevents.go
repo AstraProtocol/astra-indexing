@@ -1,0 +1,84 @@
+package handlers
+
+import (
+	"errors"
+	"strconv"
+
+	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
+	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+
+	"github.com/valyala/fasthttp"
+
+	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
+	blockevents_view "github.com/AstraProtocol/astra-indexing/projection/blockevent/view"
+)
+
+type BlockEvents struct {
+	logger applogger.Logger
+
+	blockEventsView *blockevents_view.BlockEvents
+}
+
+func NewBlockEvents(logger applogger.Logger, rdbHandle *rdb.Handle) *BlockEvents {
+	return &BlockEvents{
+		logger.WithFields(applogger.LogFields{
+			"module": "BlockEventsHandler",
+		}),
+
+		blockevents_view.NewBlockEvents(rdbHandle),
+	}
+}
+
+func (handler *BlockEvents) FindById(ctx *fasthttp.RequestCtx) {
+	idParam, idParamOk := URLValueGuard(ctx, handler.logger, "id")
+	if !idParamOk {
+		return
+	}
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		httpapi.BadRequest(ctx, errors.New("invalid event id"))
+		return
+	}
+	blockEvents, err := handler.blockEventsView.FindById(id)
+	if err != nil {
+		if errors.Is(err, rdb.ErrNoRows) {
+			httpapi.NotFound(ctx)
+			return
+		}
+		handler.logger.Errorf("error finding event by id: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	httpapi.Success(ctx, blockEvents)
+}
+
+func (handler *BlockEvents) List(ctx *fasthttp.RequestCtx) {
+	pagination, err := httpapi.ParsePagination(ctx)
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		return
+	}
+
+	heightOrder := view.ORDER_ASC
+	queryArgs := ctx.QueryArgs()
+	if queryArgs.Has("order") {
+		if string(queryArgs.Peek("order")) == "height.desc" {
+			heightOrder = view.ORDER_DESC
+		}
+	}
+
+	blockEvents, paginationResult, err := handler.blockEventsView.List(blockevents_view.BlockEventsListFilter{
+		MaybeBlockHeight: nil,
+	}, blockevents_view.BlockEventsListOrder{
+		Height: heightOrder,
+	}, pagination)
+	if err != nil {
+		handler.logger.Errorf("error listing events: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	httpapi.SuccessWithPagination(ctx, blockEvents, paginationResult)
+}

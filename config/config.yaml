@@ -19,25 +19,18 @@ index_service:
   concurrency: 10
   projection:
     enables: [
-#        "AccountMessage",
-#        "AccountTransaction",
-#        "Block",
-#        # "ChainStats",
-#        "Proposal",
-#        "Transaction",
+        "AccountMessage",
+        "AccountTransaction",
+        "Block",
+        # "ChainStats",
+        "Proposal",
+        "Transaction",
         "Validator",
-#        "ValidatorStats",
+        "ValidatorStats",
         # "IBCChannel",
         # "IBCChannelTxMsgTrace",
         # "IBCChannelMessage",
     ]
-    extra_configs:
-      BridgePendingActivity:
-        this_chain_id: "testnet-croeseid-4"
-        this_chain_name: "Crypto.org-Chain"
-        counterparty_chain_name: "Cronos"
-        channel_id: "channel-131"
-        starting_height: 899374
   cronjob:
     enables: [ ]
   cosmos_version_enabled_height:
@@ -67,7 +60,7 @@ tendermint_app:
   strict_genesis_parsing: false
 
 cosmos_app:
-  http_rpc_url: "http://157.245.150.232:1317"
+  http_rpc_url: "https://api.astranaut.dev"
   insecure: false
 
 debug:

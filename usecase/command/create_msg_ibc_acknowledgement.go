@@ -1,0 +1,63 @@
+package command
+
+import (
+	entity_event "github.com/AstraProtocol/astra-indexing/entity/event"
+	"github.com/AstraProtocol/astra-indexing/usecase/event"
+	ibc_model "github.com/AstraProtocol/astra-indexing/usecase/model/ibc"
+)
+
+type CreateMsgIBCAcknowledgement struct {
+	msgCommonParams event.MsgCommonParams
+	params          ibc_model.MsgAcknowledgementParams
+}
+
+func NewCreateMsgIBCAcknowledgement(
+	msgCommonParams event.MsgCommonParams,
+	params ibc_model.MsgAcknowledgementParams,
+) *CreateMsgIBCAcknowledgement {
+	return &CreateMsgIBCAcknowledgement{
+		msgCommonParams,
+		params,
+	}
+}
+
+func (*CreateMsgIBCAcknowledgement) Name() string {
+	return "/ibc.core.channel.v1.MsgAcknowledgement.Create"
+}
+
+func (*CreateMsgIBCAcknowledgement) Version() int {
+	return 1
+}
+
+func (cmd *CreateMsgIBCAcknowledgement) Exec() (entity_event.Event, error) {
+	event := event.NewMsgIBCAcknowledgement(cmd.msgCommonParams, cmd.params)
+	return event, nil
+}
+
+type CreateMsgAlreadyRelayedIBCAcknowledgement struct {
+	msgCommonParams event.MsgCommonParams
+	params          ibc_model.MsgAlreadyRelayedAcknowledgementParams
+}
+
+func NewCreateMsgAlreadyRelayedIBCAcknowledgement(
+	msgCommonParams event.MsgCommonParams,
+	params ibc_model.MsgAlreadyRelayedAcknowledgementParams,
+) *CreateMsgAlreadyRelayedIBCAcknowledgement {
+	return &CreateMsgAlreadyRelayedIBCAcknowledgement{
+		msgCommonParams,
+		params,
+	}
+}
+
+func (*CreateMsgAlreadyRelayedIBCAcknowledgement) Name() string {
+	return "CreateMsgAlreadyRelayedIBCAcknowledgement"
+}
+
+func (*CreateMsgAlreadyRelayedIBCAcknowledgement) Version() int {
+	return 1
+}
+
+func (cmd *CreateMsgAlreadyRelayedIBCAcknowledgement) Exec() (entity_event.Event, error) {
+	event := event.NewMsgAlreadyRelayedIBCAcknowledgement(cmd.msgCommonParams, cmd.params)
+	return event, nil
+}

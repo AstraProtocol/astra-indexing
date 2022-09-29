@@ -3,17 +3,16 @@ package main
 import (
 	"fmt"
 	"github.com/AstraProtocol/astra-indexing/cmd/astra-indexing/routes"
+	"github.com/urfave/cli/v2"
 	"os"
 	"path/filepath"
 
+	"github.com/AstraProtocol/astra-indexing/bootstrap"
+	configuration "github.com/AstraProtocol/astra-indexing/bootstrap/config"
+	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	"github.com/AstraProtocol/astra-indexing/external/primptr"
+	"github.com/AstraProtocol/astra-indexing/infrastructure"
 	"github.com/AstraProtocol/astra-indexing/internal/filereader/yaml"
-	"github.com/crypto-com/chain-indexing/bootstrap"
-	configuration "github.com/crypto-com/chain-indexing/bootstrap/config"
-	"github.com/urfave/cli/v2"
-
-	applogger "github.com/crypto-com/chain-indexing/external/logger"
-	"github.com/crypto-com/chain-indexing/external/primptr"
-	"github.com/crypto-com/chain-indexing/infrastructure"
 )
 
 func run(args []string) error {

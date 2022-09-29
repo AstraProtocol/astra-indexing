@@ -1,0 +1,35 @@
+package command
+
+import (
+	entity_event "github.com/AstraProtocol/astra-indexing/entity/event"
+	"github.com/AstraProtocol/astra-indexing/usecase/event"
+	ibc_model "github.com/AstraProtocol/astra-indexing/usecase/model/ibc"
+)
+
+type CreateMsgIBCTransferTransfer struct {
+	msgCommonParams event.MsgCommonParams
+	params          ibc_model.MsgTransferParams
+}
+
+func NewCreateMsgIBCTransferTransfer(
+	msgCommonParams event.MsgCommonParams,
+	params ibc_model.MsgTransferParams,
+) *CreateMsgIBCTransferTransfer {
+	return &CreateMsgIBCTransferTransfer{
+		msgCommonParams,
+		params,
+	}
+}
+
+func (*CreateMsgIBCTransferTransfer) Name() string {
+	return "/ibc.applications.transfer.v1.MsgTransfer.Create"
+}
+
+func (*CreateMsgIBCTransferTransfer) Version() int {
+	return 1
+}
+
+func (cmd *CreateMsgIBCTransferTransfer) Exec() (entity_event.Event, error) {
+	event := event.NewMsgIBCTransferTransfer(cmd.msgCommonParams, cmd.params)
+	return event, nil
+}

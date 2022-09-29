@@ -3,7 +3,7 @@ package routes
 import (
 	"fmt"
 
-	"github.com/crypto-com/chain-indexing/infrastructure/httpapi"
+	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
 	"github.com/valyala/fasthttp"
 )
 
