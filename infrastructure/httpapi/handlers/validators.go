@@ -3,13 +3,11 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	"math/big"
-	"strings"
-	"time"
-
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/primptr"
 	"github.com/AstraProtocol/astra-indexing/projection/chainstats"
+	"math/big"
+	"strings"
 
 	"github.com/valyala/fasthttp"
 
@@ -46,9 +44,6 @@ type Validators struct {
 	validatorActivitiesView *validator_view.ValidatorActivities
 	chainStatsView          *chainstats_view.ChainStats
 	blockView               *block_view.Blocks
-
-	globalAPY              *big.Float
-	globalAPYLastUpdatedAt time.Time
 }
 
 func NewValidators(
@@ -73,9 +68,6 @@ func NewValidators(
 		validator_view.NewValidatorActivities(rdbHandle),
 		chainstats_view.NewChainStats(rdbHandle),
 		block_view.NewBlocks(rdbHandle),
-
-		nil,
-		time.Unix(int64(0), int64(0)),
 	}
 }
 
@@ -174,39 +166,16 @@ func (handler *Validators) List(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	if handler.globalAPYLastUpdatedAt.Add(1 * time.Hour).Before(time.Now()) {
-		handler.logger.Info("going to fetch latest global APY")
-		handler.globalAPY, err = handler.getGlobalAPY()
-		if err != nil {
-			handler.logger.Errorf("error getting global APY: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
-		}
-		handler.globalAPYLastUpdatedAt = time.Now()
-	}
 	validatorsWithAPY := make([]validatorRowWithAPY, 0, len(validators))
 	for _, validator := range validators {
 		if validator.Status != constants.BONDED {
 			validatorsWithAPY = append(validatorsWithAPY, validatorRowWithAPY{
 				validator,
-				"0",
 			})
 			continue
 		}
-		commissionRate, commissionRateOk := new(big.Float).SetString(validator.CommissionRate)
-		if !commissionRateOk {
-			handler.logger.Errorf("error parsing validator commission rate: %s", validator.CommissionRate)
-			httpapi.InternalServerError(ctx)
-			return
-		}
-		afterCommission := new(big.Float).Sub(
-			new(big.Float).SetInt64(int64(1)),
-			commissionRate,
-		)
-		apy := new(big.Float).Mul(handler.globalAPY, afterCommission)
 		validatorsWithAPY = append(validatorsWithAPY, validatorRowWithAPY{
 			validator,
-			apy.Text('f', -1),
 		})
 	}
 
@@ -215,63 +184,6 @@ func (handler *Validators) List(ctx *fasthttp.RequestCtx) {
 
 type validatorRowWithAPY struct {
 	validator_view.ListValidatorRow
-
-	APY string `json:"apy"`
-}
-
-func (handler *Validators) getGlobalAPY() (*big.Float, error) {
-	var err error
-
-	// TODO: should use annual provisions and total bonded from validator and validatorstats
-	annualProvisions, err := handler.cosmosAppClient.AnnualProvisions()
-	if err != nil {
-		return nil, fmt.Errorf("error fetching annual provisions: %v", err)
-	}
-
-	totalBonded, err := handler.cosmosAppClient.TotalBondedBalance()
-	if err != nil {
-		return nil, fmt.Errorf("error fetching total bonded: %v", err)
-	}
-
-	// estimated APY = expected APY * estimated block count / actual block count
-	genesis, err := handler.tendermintClient.Genesis()
-	if err != nil {
-		return nil, fmt.Errorf("error fetching genesis: %v", err)
-	}
-	blockPerYearParam, blockPerYearParamOk := new(big.Float).SetString(genesis.AppState.Mint.Params.BlocksPerYear)
-	if !blockPerYearParamOk {
-		return nil, fmt.Errorf("error parsing block per year param: %s", genesis.AppState.Mint.Params.BlocksPerYear)
-	}
-
-	averageBlockTime, err := handler.getAverageBlockTime()
-	if err != nil {
-		return nil, fmt.Errorf("error fetching average block time: %v", err)
-	}
-
-	totalSecondsPerYear := big.NewFloat(31556952)
-	estimatedBlockPerYear := new(big.Float).Quo(
-		totalSecondsPerYear,
-		averageBlockTime,
-	)
-
-	annualProvisionsBigFloat, annualProvisionsOk := new(big.Float).SetString(annualProvisions.Amount.String())
-	if !annualProvisionsOk {
-		return nil, fmt.Errorf("error parsing annual provisions: %s", annualProvisions.Amount.String())
-	}
-	expectedAPY := new(big.Float).Quo(
-		annualProvisionsBigFloat,
-		new(big.Float).SetInt(totalBonded.Amount.BigInt()),
-	)
-
-	estimatedAPY := new(big.Float).Mul(
-		expectedAPY,
-		new(big.Float).Quo(
-			estimatedBlockPerYear,
-			blockPerYearParam,
-		),
-	)
-
-	return estimatedAPY, nil
 }
 
 func (handler *Validators) getAverageBlockTime() (*big.Float, error) {
