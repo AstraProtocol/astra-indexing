@@ -186,3 +186,5 @@ replace github.com/rs/zerolog => github.com/rs/zerolog v1.23.0
 replace github.com/evmos/evmos/v6 => github.com/AstraProtocol/evmos/v6 v6.0.3-astra
 
 replace github.com/calvinlauyh/cosmosutils => github.com/hoanguyenkh/cosmosutils v0.2.0
+
+replace github.com/slok/go-http-metrics => github.com/hoanguyenkh/go-http-metrics v0.0.1
