@@ -40,7 +40,7 @@ func NewHTTPAPIServer(logger applogger.Logger, config *config.Config) *HTTPAPISe
 			AllowedOrigins: config.HTTPService.CorsAllowedOrigins,
 			AllowedMethods: config.HTTPService.CorsAllowedMethods,
 			AllowedHeaders: config.HTTPService.CorsAllowedHeaders,
-			Debug:          true,
+			Debug:          false,
 		})
 	}
 
