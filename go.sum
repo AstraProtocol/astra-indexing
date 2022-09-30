@@ -722,8 +722,8 @@ github.com/hdevalence/ed25519consensus v0.0.0-20210204194344-59a8610d2b87 h1:uUj
 github.com/hdevalence/ed25519consensus v0.0.0-20210204194344-59a8610d2b87/go.mod h1:XGsKKeXxeRr95aEOgipvluMPlgjr7dGlk9ZTWOjcUcg=
 github.com/hoanguyenkh/cosmosutils v0.2.0 h1:K8vAC0V0UZXagAy827jOcrEv0f7BYJoiJjb/Ruw93Q4=
 github.com/hoanguyenkh/cosmosutils v0.2.0/go.mod h1:hG9tl+fstOB+hTQ6h5otFjmfR3sQyvoLAhtcJ6zfr0E=
-github.com/hoanguyenkh/go-http-metrics v0.0.1 h1:qVFLYg14DQjkVacoNiACj7+Sx9PHptSu4V5uCS2/U6w=
-github.com/hoanguyenkh/go-http-metrics v0.0.1/go.mod h1:5sT8/6eX/kHdFv5zPO+nreyVCBPjiuGMBAYtuYBIzY8=
+github.com/hoanguyenkh/go-http-metrics v0.0.2 h1:HMoN0xza+0aojuaf8u4da+aneJmEB+2oUXwMa9nc0VA=
+github.com/hoanguyenkh/go-http-metrics v0.0.2/go.mod h1:5sT8/6eX/kHdFv5zPO+nreyVCBPjiuGMBAYtuYBIzY8=
 github.com/holiman/bloomfilter/v2 v2.0.3 h1:73e0e/V0tCydx14a0SCYS/EWCxgwLZ18CZcZKVu0fao=
 github.com/holiman/bloomfilter/v2 v2.0.3/go.mod h1:zpoh+gs7qcpqrHr3dB55AMiJwo0iURXE7ZOP9L9hSkA=
 github.com/holiman/uint256 v1.2.0 h1:gpSYcPLWGv4sG43I2mVLiDZCNDh/EpGjSk8tmtxitHM=

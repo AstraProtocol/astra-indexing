@@ -187,4 +187,6 @@ replace github.com/evmos/evmos/v6 => github.com/AstraProtocol/evmos/v6 v6.0.3-as
 
 replace github.com/calvinlauyh/cosmosutils => github.com/hoanguyenkh/cosmosutils v0.2.0
 
-replace github.com/slok/go-http-metrics => github.com/hoanguyenkh/go-http-metrics v0.0.1
+// replace github.com/slok/go-http-metrics => /Users/lap02341/resource/go-project/go-http-metrics
+
+replace github.com/slok/go-http-metrics => github.com/hoanguyenkh/go-http-metrics v0.0.2
