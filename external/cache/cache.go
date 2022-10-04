@@ -13,6 +13,7 @@ type AstraCache struct {
 
 func NewCache() *AstraCache {
 	cache := ttlcache.New[string, []byte]()
+	go cache.Start() // starts automatic expired item deletion
 	return &AstraCache{astraCache: cache}
 }
 
