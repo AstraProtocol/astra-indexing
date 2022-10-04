@@ -21,7 +21,7 @@ func Success(ctx *fasthttp.RequestCtx, result interface{}) {
 func SuccessWithPagination(
 	ctx *fasthttp.RequestCtx,
 	result interface{},
-	paginationResult *pagination_interface.PaginationResult,
+	paginationResult *pagination_interface.Result,
 ) {
 	ctx.Response.Header.Set("Content-Type", "application/json")
 	err := jsoniter.NewEncoder(ctx.Response.BodyWriter()).Encode(PagedResponse{
@@ -93,7 +93,7 @@ type PaginationOffsetResponse struct {
 }
 
 func OptPaginationOffsetResponseFromResult(
-	offsetResult *pagination_interface.PaginationOffsetResult,
+	offsetResult *pagination_interface.OffsetResult,
 ) *PaginationOffsetResponse {
 	if offsetResult == nil {
 		return nil

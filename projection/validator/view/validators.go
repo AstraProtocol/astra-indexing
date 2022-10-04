@@ -487,7 +487,7 @@ func (validatorsView *Validators) List(
 	filter ValidatorsListFilter,
 	order ValidatorsListOrder,
 	pagination *pagination_interface.Pagination,
-) ([]ListValidatorRow, *pagination.PaginationResult, error) {
+) ([]ListValidatorRow, *pagination.Result, error) {
 	if pagination.Type() != pagination_interface.PAGINATION_OFFSET {
 		panic(fmt.Sprintf("unsupported pagination type: %s", pagination.Type()))
 	}

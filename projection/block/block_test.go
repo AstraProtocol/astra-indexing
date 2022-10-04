@@ -49,7 +49,7 @@ var _ = Describe("Block", func() {
 			reset()
 		})
 
-		It("should project Blocks view when event is BlockCreated", func() {
+		It("should project TransactionRows view when event is BlockCreated", func() {
 			blocksView := block_view.NewBlocks(pgxConn.ToHandle())
 
 			anyHeight := int64(1)

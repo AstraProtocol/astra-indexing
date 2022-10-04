@@ -35,10 +35,10 @@ func (transactionsView *MockTransactionsView) List(
 	filter TransactionsListFilter,
 	order TransactionsListOrder,
 	pagination *pagination_interface.Pagination,
-) ([]TransactionRow, *pagination_interface.PaginationResult, error) {
+) ([]TransactionRow, *pagination_interface.Result, error) {
 	mockArgs := transactionsView.Called(filter, order, pagination)
 	rows, _ := mockArgs.Get(0).([]TransactionRow)
-	paginationResult, _ := mockArgs.Get(1).(*pagination_interface.PaginationResult)
+	paginationResult, _ := mockArgs.Get(1).(*pagination_interface.Result)
 	return rows, paginationResult, mockArgs.Error(2)
 }
 

@@ -28,9 +28,9 @@ func (accountsView *MockAccountsView) FindBy(identity *AccountIdentity) (*Accoun
 func (accountsView *MockAccountsView) List(
 	order AccountsListOrder,
 	paginate *pagination.Pagination,
-) ([]AccountRow, *pagination.PaginationResult, error) {
+) ([]AccountRow, *pagination.Result, error) {
 	mockArgs := accountsView.Called(order, paginate)
 	result0, _ := mockArgs.Get(0).([]AccountRow)
-	result1, _ := mockArgs.Get(1).(*pagination.PaginationResult)
+	result1, _ := mockArgs.Get(1).(*pagination.Result)
 	return result0, result1, mockArgs.Error(2)
 }

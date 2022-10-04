@@ -27,7 +27,7 @@ type Depositors interface {
 		pagination *pagination.Pagination,
 	) (
 		[]DepositorWithMonikerRow,
-		*pagination.PaginationResult,
+		*pagination.Result,
 		error,
 	)
 }
@@ -83,7 +83,7 @@ func (depositorsView *DepositorsView) ListByProposalId(
 	proposalId string,
 	order DepositorListOrder,
 	pagination *pagination.Pagination,
-) ([]DepositorWithMonikerRow, *pagination.PaginationResult, error) {
+) ([]DepositorWithMonikerRow, *pagination.Result, error) {
 	stmtBuilder := depositorsView.rdb.StmtBuilder.Select(
 		fmt.Sprintf("%s.proposal_id", DEPOSITORS_TABLE_NAME),
 		fmt.Sprintf("%s.depositor_address", DEPOSITORS_TABLE_NAME),

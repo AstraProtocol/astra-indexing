@@ -18,12 +18,12 @@ import (
 )
 
 type BlocksPaginationResult struct {
-	Blocks           []block_view.Block          `json:"blocks"`
-	PaginationResult pagination.PaginationResult `json:"paginationResult"`
+	Blocks           []block_view.Block `json:"blocks"`
+	PaginationResult pagination.Result  `json:"paginationResult"`
 }
 
 func NewBlocksPaginationResult(blocks []block_view.Block,
-	paginationResult pagination.PaginationResult) *BlocksPaginationResult {
+	paginationResult pagination.Result) *BlocksPaginationResult {
 	return &BlocksPaginationResult{
 		blocks,
 		paginationResult,
@@ -115,7 +115,7 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 		httpapi.InternalServerError(ctx)
 		return
 	}
-	err = handler.astraCache.Set(blockPaginationKey, NewBlocksPaginationResult(blocks, *paginationResult), 2)
+	_ = handler.astraCache.Set(blockPaginationKey, NewBlocksPaginationResult(blocks, *paginationResult), 2)
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
 

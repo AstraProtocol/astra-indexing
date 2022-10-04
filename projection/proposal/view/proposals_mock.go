@@ -51,11 +51,11 @@ func (proposalsView *MockProposalsView) List(
 	pagination *pagination2.Pagination,
 ) (
 	[]ProposalWithMonikerRow,
-	*pagination2.PaginationResult,
+	*pagination2.Result,
 	error,
 ) {
 	mockArgs := proposalsView.Called(filter, order, pagination)
 	result1, _ := mockArgs.Get(0).([]ProposalWithMonikerRow)
-	result2, _ := mockArgs.Get(1).(*pagination2.PaginationResult)
+	result2, _ := mockArgs.Get(1).(*pagination2.Result)
 	return result1, result2, mockArgs.Error(2)
 }

@@ -10,7 +10,7 @@ type AstraCache struct {
 }
 
 func NewCache() *AstraCache {
-	cacheSize := 10 * 1024 * 1024 // 10 MB
+	cacheSize := 1024 * 1024 * 1024 // 50 MB
 	cache := freecache.NewCache(cacheSize)
 	return &AstraCache{astraCache: cache}
 }

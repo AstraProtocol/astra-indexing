@@ -15,7 +15,7 @@ import (
 
 type AccountMessages interface {
 	Insert(*AccountMessageRow, []string) error
-	List(AccountMessagesListFilter, AccountMessagesListOrder, *pagination_interface.Pagination) ([]AccountMessageRow, *pagination_interface.PaginationResult, error)
+	List(AccountMessagesListFilter, AccountMessagesListOrder, *pagination_interface.Pagination) ([]AccountMessageRow, *pagination_interface.Result, error)
 }
 
 // BlockTransactions projection view implemented by relational database
@@ -83,7 +83,7 @@ func (accountMessagesView *AccountMessagesView) List(
 	filter AccountMessagesListFilter,
 	order AccountMessagesListOrder,
 	pagination *pagination_interface.Pagination,
-) ([]AccountMessageRow, *pagination_interface.PaginationResult, error) {
+) ([]AccountMessageRow, *pagination_interface.Result, error) {
 	stmtBuilder := accountMessagesView.rdb.StmtBuilder.Select(
 		"view_account_messages.account",
 		"view_account_messages.block_height",

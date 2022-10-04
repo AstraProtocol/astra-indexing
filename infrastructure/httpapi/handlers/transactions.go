@@ -21,8 +21,16 @@ type Transactions struct {
 }
 
 type TransactionsPaginationResult struct {
-	Blocks           []transactionView.TransactionRow `json:"blocks"`
-	PaginationResult pagination.PaginationResult      `json:"paginationResult"`
+	TransactionRows  []transactionView.TransactionRow `json:"transactionRows"`
+	PaginationResult pagination.Result                `json:"paginationResult"`
+}
+
+func NewTransactionsPaginationResult(transactionRows []transactionView.TransactionRow,
+	paginationResult pagination.Result) *TransactionsPaginationResult {
+	return &TransactionsPaginationResult{
+		transactionRows,
+		paginationResult,
+	}
 }
 
 func NewTransactions(logger applogger.Logger, rdbHandle *rdb.Handle) *Transactions {
@@ -75,7 +83,7 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 	tmpTransactions := TransactionsPaginationResult{}
 	err = handler.astraCache.Get(transactionPaginationKey, &tmpTransactions)
 	if err == nil {
-		httpapi.SuccessWithPagination(ctx, tmpTransactions.Blocks, &tmpTransactions.PaginationResult)
+		httpapi.SuccessWithPagination(ctx, tmpTransactions.TransactionRows, &tmpTransactions.PaginationResult)
 		return
 	}
 	blocks, paginationResult, err := handler.transactionsView.List(transactionView.TransactionsListFilter{
@@ -88,9 +96,7 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 		httpapi.InternalServerError(ctx)
 		return
 	}
-	_ = handler.astraCache.Set(transactionPaginationKey, TransactionsPaginationResult{
-		Blocks:           blocks,
-		PaginationResult: *paginationResult,
-	}, 2)
+	_ = handler.astraCache.Set(transactionPaginationKey,
+		NewTransactionsPaginationResult(blocks, *paginationResult), 2)
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
