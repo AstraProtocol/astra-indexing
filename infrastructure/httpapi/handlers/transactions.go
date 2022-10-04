@@ -5,6 +5,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
 	"github.com/AstraProtocol/astra-indexing/external/cache"
 	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
+	"time"
 
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/valyala/fasthttp"
@@ -40,7 +41,7 @@ func NewTransactions(logger applogger.Logger, rdbHandle *rdb.Handle) *Transactio
 		}),
 
 		transactionView.NewTransactionsView(rdbHandle),
-		cache.NewCache(1000 * 1024 * 1024),
+		cache.NewCache(),
 	}
 }
 
@@ -97,6 +98,6 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	_ = handler.astraCache.Set(transactionPaginationKey,
-		NewTransactionsPaginationResult(blocks, *paginationResult), 2)
+		NewTransactionsPaginationResult(blocks, *paginationResult), 2400*time.Millisecond)
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }

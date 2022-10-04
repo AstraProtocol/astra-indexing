@@ -2,34 +2,33 @@ package cache
 
 import (
 	"encoding/json"
-	"github.com/coocood/freecache"
+	"fmt"
+	"github.com/jellydator/ttlcache/v3"
+	"time"
 )
 
 type AstraCache struct {
-	astraCache *freecache.Cache
+	astraCache *ttlcache.Cache[string, []byte]
 }
 
-func NewCache(size int) *AstraCache {
-	cacheSize := 10 * 1024 * 1024 // 10 MB
-	if size > 0 {
-		cacheSize = size
-	}
-	cache := freecache.NewCache(cacheSize)
+func NewCache() *AstraCache {
+	cache := ttlcache.New[string, []byte]()
 	return &AstraCache{astraCache: cache}
 }
 
-func (ac *AstraCache) Set(key string, value interface{}, expireAt int) error {
+func (ac *AstraCache) Set(key string, value interface{}, expireAt time.Duration) error {
 	tmpValue, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
-	return ac.astraCache.Set([]byte(key), tmpValue, expireAt)
+	ac.astraCache.Set(key, tmpValue, expireAt)
+	return nil
 }
 
 func (ac *AstraCache) Get(key string, valueOutput interface{}) error {
-	tmpData, err := ac.astraCache.Get([]byte(key))
-	if err != nil {
-		return err
+	tmpData := ac.astraCache.Get(key)
+	if tmpData != nil {
+		return json.Unmarshal(tmpData.Value(), &valueOutput)
 	}
-	return json.Unmarshal(tmpData, &valueOutput)
+	return fmt.Errorf("not found")
 }

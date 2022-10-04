@@ -3,6 +3,7 @@ package cache
 import (
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 	"github.com/AstraProtocol/astra-indexing/projection/block/view"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -10,7 +11,7 @@ import (
 
 func TestSet(t *testing.T) {
 	cache := NewCache()
-	err := cache.Set("123", "nguyen khanh hoa", 100)
+	err := cache.Set("123", "nguyen khanh hoa", time.Minute)
 	assert.Equal(t, nil, err)
 
 	output := ""
@@ -35,7 +36,7 @@ func TestCacheBlock(t *testing.T) {
 	//	},
 	//	*pr,
 	//}
-	err := cache.Set("123", block, 100)
+	err := cache.Set("123", block, time.Minute)
 	assert.Equal(t, nil, err)
 
 	output := view.Block{}

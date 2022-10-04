@@ -114,7 +114,7 @@ func NewHTTPClient(rpcUrl string, bondingDenom string, cacheSize int) *HTTPClien
 		httpClient,
 		strings.TrimSuffix(rpcUrl, "/"),
 		bondingDenom,
-		cache.NewCache(cacheSize),
+		cache.NewCache(),
 	}
 }
 
@@ -727,7 +727,7 @@ func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, e
 
 func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	txResult := model.Tx{}
-	err := client.httpCache.Get(hash, txResult)
+	err := client.httpCache.Get(hash, &txResult)
 	if err == nil {
 		return &txResult, nil
 	}
@@ -747,7 +747,7 @@ func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error parsing Tx(%s): %v", hash, err)
 	}
-	_ = client.httpCache.Set(hash, tx, 60)
+	_ = client.httpCache.Set(hash, tx, time.Minute)
 	return tx, nil
 }
 

@@ -15,6 +15,7 @@ import (
 	validator_view "github.com/AstraProtocol/astra-indexing/projection/validator/view"
 	"github.com/valyala/fasthttp"
 	"strconv"
+	"time"
 )
 
 type BlocksPaginationResult struct {
@@ -50,7 +51,7 @@ func NewBlocks(logger applogger.Logger, rdbHandle *rdb.Handle) *Blocks {
 		transaction_view.NewTransactionsView(rdbHandle),
 		blockevent_view.NewBlockEvents(rdbHandle),
 		validator_view.NewValidatorBlockCommitments(rdbHandle),
-		cache.NewCache(1024 * 1024 * 1024),
+		cache.NewCache(),
 	}
 }
 
@@ -104,6 +105,7 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 	tmpBlockPage := BlocksPaginationResult{}
 	err = handler.astraCache.Get(blockPaginationKey, &tmpBlockPage)
 	if err == nil {
+		fmt.Println("cache hit")
 		httpapi.SuccessWithPagination(ctx, tmpBlockPage.Blocks, &tmpBlockPage.PaginationResult)
 		return
 	}
@@ -115,7 +117,8 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 		httpapi.InternalServerError(ctx)
 		return
 	}
-	_ = handler.astraCache.Set(blockPaginationKey, NewBlocksPaginationResult(blocks, *paginationResult), 2)
+	err = handler.astraCache.Set(blockPaginationKey,
+		NewBlocksPaginationResult(blocks, *paginationResult), 2400*time.Millisecond)
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
 
