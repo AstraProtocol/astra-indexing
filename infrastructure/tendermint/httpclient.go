@@ -54,7 +54,7 @@ func NewHTTPClient(tendermintRPCUrl string, strictGenesisParsing bool) *HTTPClie
 		httpClient,
 		strings.TrimSuffix(tendermintRPCUrl, "/"),
 		strictGenesisParsing,
-		cache.NewCache(),
+		cache.NewCache(1024 * 1024 * 1024),
 	}
 }
 
@@ -156,7 +156,7 @@ func (client *HTTPClient) Block(height int64) (*usecase_model.Block, *usecase_mo
 func (client *HTTPClient) BlockResults(height int64) (*usecase_model.BlockResults, error) {
 	cacheBlockResults := usecase_model.BlockResults{}
 	var err error
-	err = client.httpCache.Get(strconv.FormatInt(height, 10), cacheBlockResults)
+	err = client.httpCache.Get(strconv.FormatInt(height, 10), &cacheBlockResults)
 	if err == nil {
 		return &cacheBlockResults, nil
 	}

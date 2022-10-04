@@ -22,6 +22,7 @@ func InitRouteRegistry(
 	cosmosAppClient = cosmosapp_infrastructure.NewHTTPClient(
 		config.CosmosApp.HTTPRPCUrl,
 		config.Blockchain.BondingDenom,
+		0,
 	)
 
 	var tendermintClient tendermint.Client

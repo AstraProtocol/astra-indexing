@@ -9,8 +9,11 @@ type AstraCache struct {
 	astraCache *freecache.Cache
 }
 
-func NewCache() *AstraCache {
-	cacheSize := 1024 * 1024 * 1024 // 50 MB
+func NewCache(size int) *AstraCache {
+	cacheSize := 10 * 1024 * 1024 // 10 MB
+	if size > 0 {
+		cacheSize = size
+	}
 	cache := freecache.NewCache(cacheSize)
 	return &AstraCache{astraCache: cache}
 }
