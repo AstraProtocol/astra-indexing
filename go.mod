@@ -22,7 +22,6 @@ require (
 	github.com/jackc/pgconn v1.8.0
 	github.com/jackc/pgtype v1.6.2
 	github.com/jackc/pgx/v4 v4.10.1
-	github.com/jellydator/ttlcache/v3 v3.0.0
 	github.com/json-iterator/go v1.1.12
 	github.com/lab259/cors v0.2.0
 	github.com/luci/go-render v0.0.0-20160219211803-9a04cc21af0f

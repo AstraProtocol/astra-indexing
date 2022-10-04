@@ -81,8 +81,8 @@ func (handler *Blocks) FindBy(ctx *fasthttp.RequestCtx) {
 	httpapi.Success(ctx, block)
 }
 
-func getKeyBlockPagination(pagination *pagination.Pagination, heightOrder view.ORDER) string {
-	return fmt.Sprintf("%d_%d_%s", pagination.OffsetParams().Page, pagination.OffsetParams().Limit, heightOrder)
+func getKeyPagination(pagination *pagination.Pagination, heightOrder view.ORDER) string {
+	return fmt.Sprintf("pagination_%d_%d_%s", pagination.OffsetParams().Page, pagination.OffsetParams().Limit, heightOrder)
 }
 
 func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
@@ -100,7 +100,7 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	blockPaginationKey := getKeyBlockPagination(paginationInput, heightOrder)
+	blockPaginationKey := getKeyPagination(paginationInput, heightOrder)
 	tmpBlockPage := BlocksPaginationResult{}
 	err = handler.astraCache.Get(blockPaginationKey, &tmpBlockPage)
 	if err == nil {
