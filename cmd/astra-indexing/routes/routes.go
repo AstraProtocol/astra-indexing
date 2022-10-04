@@ -108,7 +108,7 @@ func InitRouteRegistry(
 		},
 	)
 
-	transactionHandler := httpapi_handlers.NewTransactions(logger, rdbConn.ToHandle())
+	transactionHandler := httpapi_handlers.NewTransactions(logger, rdbConn.ToHandle(), config.HTTPService.BlockscoutUrl)
 	routes = append(routes,
 		Route{
 			Method:  GET,
@@ -119,6 +119,11 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/transactions/{hash}",
 			handler: transactionHandler.FindByHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/transactions/evm/{hash}",
+			handler: transactionHandler.FindEvmByHash,
 		},
 	)
 
