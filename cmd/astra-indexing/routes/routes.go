@@ -120,11 +120,6 @@ func InitRouteRegistry(
 			path:    "api/v1/transactions/{hash}",
 			handler: transactionHandler.FindByHash,
 		},
-		Route{
-			Method:  GET,
-			path:    "api/v1/transactions/evm/{hash}",
-			handler: transactionHandler.FindEvmByHash,
-		},
 	)
 
 	proposalsHandler := httpapi_handlers.NewProposals(
