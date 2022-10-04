@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 
+	blockscout_url_handler "github.com/AstraProtocol/astra-indexing/external/explorer/blockscout"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
-	"github.com/AstraProtocol/astra-indexing/usecase/event"
 	"github.com/valyala/fasthttp"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
@@ -16,20 +16,16 @@ import (
 )
 
 type Transactions struct {
-	logger applogger.Logger
-
+	logger           applogger.Logger
 	transactionsView transaction_view.BlockTransactions
-
-	blockscoutUrl string
 }
 
-func NewTransactions(logger applogger.Logger, rdbHandle *rdb.Handle, blockscoutUrl string) *Transactions {
+func NewTransactions(logger applogger.Logger, rdbHandle *rdb.Handle) *Transactions {
 	return &Transactions{
 		logger.WithFields(applogger.LogFields{
 			"module": "TransactionsHandler",
 		}),
 		transaction_view.NewTransactionsView(rdbHandle),
-		blockscoutUrl,
 	}
 }
 
@@ -82,20 +78,9 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	transaction, err := handler.transactionsView.FindByHash(hashParam)
-	if err != nil {
-		if errors.Is(err, rdb.ErrNoRows) {
-			httpapi.NotFound(ctx)
-			return
-		}
-		handler.logger.Errorf("error finding transactions by hash: %v", err)
-		httpapi.InternalServerError(ctx)
-		return
-	}
+	if string(ctx.QueryArgs().Peek("type")) == "evm" {
+		url := blockscout_url_handler.GetInstance().GetDetailEvmTxUrl(hashParam)
 
-	if transaction.Messages[0].Type == event.MSG_ETHEREUM_TX {
-		base_url := handler.blockscoutUrl
-		url := base_url + "/api/v1?module=transaction&action=getTxCosmosInfo&txhash=" + hashParam
 		req := fasthttp.AcquireRequest()
 		req.SetRequestURI(url)
 
@@ -109,11 +94,21 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 		err := json.Unmarshal(bodyBytes, &result)
 		if err != nil {
 			handler.logger.Errorf("error parsing response from endpoint %s: %v", url, err)
-			httpapi.Success(ctx, transaction)
+			httpapi.InternalServerError(ctx)
 			return
 		}
 		httpapi.Success(ctx, result.Result)
 	} else {
+		transaction, err := handler.transactionsView.FindByHash(hashParam)
+		if err != nil {
+			if errors.Is(err, rdb.ErrNoRows) {
+				httpapi.NotFound(ctx)
+				return
+			}
+			handler.logger.Errorf("error finding transactions by hash: %v", err)
+			httpapi.InternalServerError(ctx)
+			return
+		}
 		httpapi.Success(ctx, transaction)
 	}
 }
