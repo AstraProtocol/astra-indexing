@@ -4,34 +4,30 @@ import (
 	"errors"
 	"fmt"
 	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
-	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
-	validator_view "github.com/AstraProtocol/astra-indexing/projection/validator/view"
-	"github.com/jellydator/ttlcache/v3"
-	"github.com/valyala/fasthttp"
-	"strconv"
-	"time"
-
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	"github.com/AstraProtocol/astra-indexing/external/cache"
+	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
 	block_view "github.com/AstraProtocol/astra-indexing/projection/block/view"
 	blockevent_view "github.com/AstraProtocol/astra-indexing/projection/blockevent/view"
 	transaction_view "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
-)
-
-var (
-	cachePage = ttlcache.New[string, BlocksPaginationResult](
-		ttlcache.WithTTL[string, BlocksPaginationResult](2 * time.Second),
-	)
-
-	cacheDetail = ttlcache.New[string, *block_view.Block](
-		ttlcache.WithTTL[string, *block_view.Block](1 * time.Minute),
-	)
+	validator_view "github.com/AstraProtocol/astra-indexing/projection/validator/view"
+	"github.com/valyala/fasthttp"
+	"strconv"
 )
 
 type BlocksPaginationResult struct {
-	blocks           []block_view.Block
-	paginationResult *pagination.PaginationResult
+	Blocks           []block_view.Block          `json:"blocks"`
+	PaginationResult pagination.PaginationResult `json:"paginationResult"`
+}
+
+func NewBlocksPaginationResult(blocks []block_view.Block,
+	paginationResult pagination.PaginationResult) *BlocksPaginationResult {
+	return &BlocksPaginationResult{
+		blocks,
+		paginationResult,
+	}
 }
 
 type Blocks struct {
@@ -41,11 +37,10 @@ type Blocks struct {
 	transactionsView              transaction_view.BlockTransactions
 	blockEventsView               *blockevent_view.BlockEvents
 	validatorBlockCommitmentsView *validator_view.ValidatorBlockCommitments
+	astraCache                    *cache.AstraCache
 }
 
 func NewBlocks(logger applogger.Logger, rdbHandle *rdb.Handle) *Blocks {
-	go cacheDetail.Start()
-	go cachePage.Start()
 	return &Blocks{
 		logger.WithFields(applogger.LogFields{
 			"module": "BlocksHandler",
@@ -55,6 +50,7 @@ func NewBlocks(logger applogger.Logger, rdbHandle *rdb.Handle) *Blocks {
 		transaction_view.NewTransactionsView(rdbHandle),
 		blockevent_view.NewBlockEvents(rdbHandle),
 		validator_view.NewValidatorBlockCommitments(rdbHandle),
+		cache.NewCache(),
 	}
 }
 
@@ -105,10 +101,10 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 	}
 
 	blockPaginationKey := getKeyBlockPagination(paginationInput, heightOrder)
-	tmpBlockPage := cachePage.Get(blockPaginationKey)
-	if tmpBlockPage != nil {
-		tmpBlockPageValue := tmpBlockPage.Value()
-		httpapi.SuccessWithPagination(ctx, tmpBlockPageValue.blocks, tmpBlockPageValue.paginationResult)
+	tmpBlockPage := BlocksPaginationResult{}
+	err = handler.astraCache.Get(blockPaginationKey, &tmpBlockPage)
+	if err == nil {
+		httpapi.SuccessWithPagination(ctx, tmpBlockPage.Blocks, &tmpBlockPage.PaginationResult)
 		return
 	}
 	blocks, paginationResult, err := handler.blocksView.List(block_view.BlocksListOrder{
@@ -119,10 +115,7 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 		httpapi.InternalServerError(ctx)
 		return
 	}
-	cachePage.Set(blockPaginationKey, BlocksPaginationResult{
-		blocks:           blocks,
-		paginationResult: paginationResult,
-	}, 2*time.Second)
+	err = handler.astraCache.Set(blockPaginationKey, NewBlocksPaginationResult(blocks, *paginationResult), 2)
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
 

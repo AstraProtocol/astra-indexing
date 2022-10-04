@@ -8,6 +8,7 @@ require (
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/calvinlauyh/cosmosutils v0.1.0
 	github.com/cenkalti/backoff/v4 v4.1.3
+	github.com/coocood/freecache v1.2.2
 	github.com/cosmos/cosmos-sdk v0.45.8
 	github.com/cosmos/ibc-go/v3 v3.2.0
 	github.com/ettle/strcase v0.1.1

@@ -5,8 +5,8 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"github.com/AstraProtocol/astra-indexing/external/cache"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
-	"github.com/jellydator/ttlcache/v3"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -35,16 +35,13 @@ var (
 	// TLS certificate is not trusted. This error isn't typed
 	// specifically so we resort to matching on the error string.
 	notTrustedErrorRe = regexp.MustCompile(`certificate is not trusted`)
-
-	cacheBlockResult = ttlcache.New[int64, *usecase_model.BlockResults](
-		ttlcache.WithTTL[int64, *usecase_model.BlockResults](1 * time.Minute),
-	)
 )
 
 type HTTPClient struct {
 	httpClient           *retryablehttp.Client
 	tendermintRPCUrl     string
 	strictGenesisParsing bool
+	httpCache            *cache.AstraCache
 }
 
 // NewHTTPClient returns a new HTTPClient for tendermint request
@@ -53,12 +50,11 @@ func NewHTTPClient(tendermintRPCUrl string, strictGenesisParsing bool) *HTTPClie
 	httpClient.Logger = nil
 	httpClient.CheckRetry = defaultRetryPolicy
 
-	go cacheBlockResult.Start()
-
 	return &HTTPClient{
 		httpClient,
 		strings.TrimSuffix(tendermintRPCUrl, "/"),
 		strictGenesisParsing,
+		cache.NewCache(),
 	}
 }
 
@@ -158,11 +154,12 @@ func (client *HTTPClient) Block(height int64) (*usecase_model.Block, *usecase_mo
 }
 
 func (client *HTTPClient) BlockResults(height int64) (*usecase_model.BlockResults, error) {
-	cacheBlockResults := cacheBlockResult.Get(height)
-	if cacheBlockResults != nil {
-		return cacheBlockResults.Value(), nil
-	}
+	cacheBlockResults := usecase_model.BlockResults{}
 	var err error
+	err = client.httpCache.Get(strconv.FormatInt(height, 10), cacheBlockResults)
+	if err == nil {
+		return &cacheBlockResults, nil
+	}
 	rawRespBody, err := client.request("block_results", "height="+strconv.FormatInt(height, 10))
 	if err != nil {
 		return nil, err
@@ -173,7 +170,7 @@ func (client *HTTPClient) BlockResults(height int64) (*usecase_model.BlockResult
 	if err != nil {
 		return nil, err
 	}
-	cacheBlockResult.Set(height, blockResults, time.Minute)
+	_ = client.httpCache.Set(strconv.FormatInt(height, 10), blockResults, 60)
 	return blockResults, nil
 }
 

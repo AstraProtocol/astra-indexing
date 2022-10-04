@@ -4,11 +4,11 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"github.com/AstraProtocol/astra-indexing/external/cache"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 	"github.com/AstraProtocol/astra-indexing/usecase/model"
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/jellydator/ttlcache/v3"
 	jsoniter "github.com/json-iterator/go"
 	"io"
 	"net/http"
@@ -32,19 +32,16 @@ var (
 	// TLS certificate is not trusted. This error isn't typed
 	// specifically so we resort to matching on the error string.
 	notTrustedErrorRe = regexp.MustCompile(`certificate is not trusted`)
-	cache             = ttlcache.New[string, *model.Tx](
-		ttlcache.WithTTL[string, *model.Tx](1 * time.Minute),
-	)
 )
 
 const ERR_CODE_ACCOUNT_NOT_FOUND = 2
 const ERR_CODE_ACCOUNT_NO_DELEGATION = 5
 
 type HTTPClient struct {
-	httpClient *retryablehttp.Client
-	rpcUrl     string
-
+	httpClient   *retryablehttp.Client
+	rpcUrl       string
 	bondingDenom string
+	httpCache    *cache.AstraCache
 }
 
 // DefaultRetryPolicy provides a default callback for Client.CheckRetry, which
@@ -112,13 +109,12 @@ func NewHTTPClient(rpcUrl string, bondingDenom string) *HTTPClient {
 	httpClient := retryablehttp.NewClient()
 	httpClient.Logger = nil
 	httpClient.CheckRetry = defaultRetryPolicy
-	go cache.Start()
 
 	return &HTTPClient{
 		httpClient,
 		strings.TrimSuffix(rpcUrl, "/"),
-
 		bondingDenom,
+		cache.NewCache(),
 	}
 }
 
@@ -730,9 +726,10 @@ func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, e
 }
 
 func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
-	txResult := cache.Get(hash)
-	if txResult != nil {
-		return txResult.Value(), nil
+	txResult := model.Tx{}
+	err := client.httpCache.Get(hash, txResult)
+	if err == nil {
+		return &txResult, nil
 	}
 	rawRespBody, err := client.request(
 		fmt.Sprintf(
@@ -750,7 +747,7 @@ func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error parsing Tx(%s): %v", hash, err)
 	}
-	cache.Set(hash, tx, time.Minute)
+	_ = client.httpCache.Set(hash, tx, 60)
 	return tx, nil
 }
 
