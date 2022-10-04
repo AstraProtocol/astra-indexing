@@ -2,10 +2,14 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
+	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	validator_view "github.com/AstraProtocol/astra-indexing/projection/validator/view"
+	"github.com/jellydator/ttlcache/v3"
 	"github.com/valyala/fasthttp"
 	"strconv"
+	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -14,6 +18,21 @@ import (
 	blockevent_view "github.com/AstraProtocol/astra-indexing/projection/blockevent/view"
 	transaction_view "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 )
+
+var (
+	cachePage = ttlcache.New[string, BlocksPaginationResult](
+		ttlcache.WithTTL[string, BlocksPaginationResult](2 * time.Second),
+	)
+
+	cacheDetail = ttlcache.New[string, *block_view.Block](
+		ttlcache.WithTTL[string, *block_view.Block](1 * time.Minute),
+	)
+)
+
+type BlocksPaginationResult struct {
+	blocks           []block_view.Block
+	paginationResult *pagination.PaginationResult
+}
 
 type Blocks struct {
 	logger applogger.Logger
@@ -25,6 +44,8 @@ type Blocks struct {
 }
 
 func NewBlocks(logger applogger.Logger, rdbHandle *rdb.Handle) *Blocks {
+	go cacheDetail.Start()
+	go cachePage.Start()
 	return &Blocks{
 		logger.WithFields(applogger.LogFields{
 			"module": "BlocksHandler",
@@ -64,8 +85,12 @@ func (handler *Blocks) FindBy(ctx *fasthttp.RequestCtx) {
 	httpapi.Success(ctx, block)
 }
 
+func getKeyBlockPagination(pagination *pagination.Pagination, heightOrder view.ORDER) string {
+	return fmt.Sprintf("%d_%d_%s", pagination.OffsetParams().Page, pagination.OffsetParams().Limit, heightOrder)
+}
+
 func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
-	pagination, err := httpapi.ParsePagination(ctx)
+	paginationInput, err := httpapi.ParsePagination(ctx)
 	if err != nil {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
@@ -79,19 +104,30 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
+	blockPaginationKey := getKeyBlockPagination(paginationInput, heightOrder)
+	tmpBlockPage := cachePage.Get(blockPaginationKey)
+	if tmpBlockPage != nil {
+		tmpBlockPageValue := tmpBlockPage.Value()
+		httpapi.SuccessWithPagination(ctx, tmpBlockPageValue.blocks, tmpBlockPageValue.paginationResult)
+		return
+	}
 	blocks, paginationResult, err := handler.blocksView.List(block_view.BlocksListOrder{
 		Height: heightOrder,
-	}, pagination)
+	}, paginationInput)
 	if err != nil {
 		handler.logger.Errorf("error listing blocks: %v", err)
 		httpapi.InternalServerError(ctx)
 		return
 	}
+	cachePage.Set(blockPaginationKey, BlocksPaginationResult{
+		blocks:           blocks,
+		paginationResult: paginationResult,
+	}, 2*time.Second)
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
 
 func (handler *Blocks) ListTransactionsByHeight(ctx *fasthttp.RequestCtx) {
-	pagination, err := httpapi.ParsePagination(ctx)
+	paginationInput, err := httpapi.ParsePagination(ctx)
 	if err != nil {
 		httpapi.BadRequest(ctx, err)
 		return
@@ -119,7 +155,7 @@ func (handler *Blocks) ListTransactionsByHeight(ctx *fasthttp.RequestCtx) {
 		MaybeBlockHeight: &blockHeight,
 	}, transaction_view.TransactionsListOrder{
 		Height: heightOrder,
-	}, pagination)
+	}, paginationInput)
 	if err != nil {
 		handler.logger.Errorf("error listing transactions: %v", err)
 		httpapi.InternalServerError(ctx)
@@ -130,7 +166,7 @@ func (handler *Blocks) ListTransactionsByHeight(ctx *fasthttp.RequestCtx) {
 }
 
 func (handler *Blocks) ListEventsByHeight(ctx *fasthttp.RequestCtx) {
-	pagination, err := httpapi.ParsePagination(ctx)
+	paginationInput, err := httpapi.ParsePagination(ctx)
 	if err != nil {
 		httpapi.BadRequest(ctx, err)
 		return
@@ -158,7 +194,7 @@ func (handler *Blocks) ListEventsByHeight(ctx *fasthttp.RequestCtx) {
 		MaybeBlockHeight: &blockHeight,
 	}, blockevent_view.BlockEventsListOrder{
 		Height: heightOrder,
-	}, pagination)
+	}, paginationInput)
 	if err != nil {
 		handler.logger.Errorf("error listing events: %v", err)
 		httpapi.InternalServerError(ctx)
@@ -169,7 +205,7 @@ func (handler *Blocks) ListEventsByHeight(ctx *fasthttp.RequestCtx) {
 }
 
 func (handler *Blocks) ListCommitmentsByHeight(ctx *fasthttp.RequestCtx) {
-	pagination, err := httpapi.ParsePagination(ctx)
+	paginationInput, err := httpapi.ParsePagination(ctx)
 	if err != nil {
 		httpapi.BadRequest(ctx, err)
 		return
@@ -188,7 +224,7 @@ func (handler *Blocks) ListCommitmentsByHeight(ctx *fasthttp.RequestCtx) {
 	blocks, paginationResult, err := handler.validatorBlockCommitmentsView.List(
 		validator_view.ValidatorBlockCommitmentsListFilter{
 			MaybeBlockHeight: &blockHeight,
-		}, pagination)
+		}, paginationInput)
 	if err != nil {
 		handler.logger.Errorf("error listing block commitments: %v", err)
 		httpapi.InternalServerError(ctx)
@@ -199,7 +235,7 @@ func (handler *Blocks) ListCommitmentsByHeight(ctx *fasthttp.RequestCtx) {
 }
 
 func (handler *Blocks) ListCommitmentsByConsensusNodeAddress(ctx *fasthttp.RequestCtx) {
-	pagination, err := httpapi.ParsePagination(ctx)
+	paginationInput, err := httpapi.ParsePagination(ctx)
 	if err != nil {
 		httpapi.BadRequest(ctx, err)
 		return
@@ -215,7 +251,7 @@ func (handler *Blocks) ListCommitmentsByConsensusNodeAddress(ctx *fasthttp.Reque
 	blocks, paginationResult, err := handler.validatorBlockCommitmentsView.List(
 		validator_view.ValidatorBlockCommitmentsListFilter{
 			MaybeConsensusNodeAddress: &address,
-		}, pagination)
+		}, paginationInput)
 	if err != nil {
 		handler.logger.Errorf("error listing block commitments: %v", err)
 		httpapi.InternalServerError(ctx)
