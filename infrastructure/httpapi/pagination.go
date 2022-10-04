@@ -11,7 +11,7 @@ import (
 func ParsePagination(ctx *fasthttp.RequestCtx) (*pagination_interface.Pagination, error) {
 	var err error
 
-	var pagination pagination_interface.PaginationType
+	var pagination string
 	var page, limit int64
 
 	queryArgs := NewQueryArgs(ctx.QueryArgs())

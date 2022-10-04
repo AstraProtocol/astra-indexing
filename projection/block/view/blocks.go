@@ -70,7 +70,7 @@ func (blocksView *Blocks) Insert(block *Block) error {
 	return nil
 }
 
-func (blocksView *Blocks) List(order BlocksListOrder, pagination *pagination.Pagination) ([]Block, *pagination.PaginationResult, error) {
+func (blocksView *Blocks) List(order BlocksListOrder, pagination *pagination.Pagination) ([]Block, *pagination.Result, error) {
 	stmtBuilder := blocksView.rdb.StmtBuilder.Select(
 		"height",
 		"hash",

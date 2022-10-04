@@ -108,7 +108,7 @@ func (commitmentsView *ValidatorBlockCommitments) Insert(commitment ValidatorBlo
 func (commitmentsView *ValidatorBlockCommitments) List(
 	filter ValidatorBlockCommitmentsListFilter,
 	pagination *pagination_interface.Pagination,
-) ([]ListValidatorBlockCommitmentRow, *pagination.PaginationResult, error) {
+) ([]ListValidatorBlockCommitmentRow, *pagination.Result, error) {
 	if pagination.Type() != pagination_interface.PAGINATION_OFFSET {
 		panic(fmt.Sprintf("unsupported pagination type: %s", pagination.Type()))
 	}

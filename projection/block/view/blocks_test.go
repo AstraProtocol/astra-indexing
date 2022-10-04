@@ -20,7 +20,7 @@ var BLOCK_MIGRATIONS_PATH = func() string {
 	return path.Join(filename, "../../migrations")
 }()
 
-var _ = Describe("Blocks", func() {
+var _ = Describe("TransactionRows", func() {
 	WithProjectionTestEnv(func(testEnv ProjectionTestEnv) {
 		pgxConn := testEnv.Conn
 

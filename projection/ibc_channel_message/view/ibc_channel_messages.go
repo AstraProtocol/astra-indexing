@@ -21,7 +21,7 @@ type IBCChannelMessages interface {
 		pagination *pagination.Pagination,
 	) (
 		[]IBCChannelMessageRow,
-		*pagination.PaginationResult,
+		*pagination.Result,
 		error,
 	)
 }
@@ -98,7 +98,7 @@ func (ibcChannelMessagesView *IBCChannelMessagesView) ListByChannelID(
 	pagination *pagination.Pagination,
 ) (
 	[]IBCChannelMessageRow,
-	*pagination.PaginationResult,
+	*pagination.Result,
 	error,
 ) {
 	stmtBuilder := ibcChannelMessagesView.rdb.StmtBuilder.Select(

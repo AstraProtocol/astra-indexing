@@ -91,9 +91,9 @@ func (accountMessagesView *MockAccountMessagesView) List(
 	filter AccountMessagesListFilter,
 	order AccountMessagesListOrder,
 	pagination *pagination_interface.Pagination,
-) ([]AccountMessageRow, *pagination_interface.PaginationResult, error) {
+) ([]AccountMessageRow, *pagination_interface.Result, error) {
 	mockArgs := accountMessagesView.Called(filter, order, pagination)
 	result0, _ := mockArgs.Get(0).([]AccountMessageRow)
-	result1, _ := mockArgs.Get(1).(*pagination_interface.PaginationResult)
+	result1, _ := mockArgs.Get(1).(*pagination_interface.Result)
 	return result0, result1, mockArgs.Error(2)
 }

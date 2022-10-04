@@ -27,7 +27,7 @@ type Votes interface {
 		proposalId string,
 		order VoteListOrder,
 		pagination *pagination.Pagination,
-	) ([]VoteWithMonikerRow, *pagination.PaginationResult, error)
+	) ([]VoteWithMonikerRow, *pagination.Result, error)
 }
 
 type VotesView struct {
@@ -180,7 +180,7 @@ func (votesView *VotesView) ListByProposalId(
 	proposalId string,
 	order VoteListOrder,
 	pagination *pagination.Pagination,
-) ([]VoteWithMonikerRow, *pagination.PaginationResult, error) {
+) ([]VoteWithMonikerRow, *pagination.Result, error) {
 	stmtBuilder := votesView.rdb.StmtBuilder.Select(
 		fmt.Sprintf("%s.proposal_id", VOTES_TABLE_NAME),
 		fmt.Sprintf("%s.voter_address", VOTES_TABLE_NAME),

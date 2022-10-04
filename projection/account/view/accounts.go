@@ -17,7 +17,7 @@ import (
 type Accounts interface {
 	Upsert(*AccountRow) error
 	FindBy(*AccountIdentity) (*AccountRow, error)
-	List(AccountsListOrder, *pagination.Pagination) ([]AccountRow, *pagination.PaginationResult, error)
+	List(AccountsListOrder, *pagination.Pagination) ([]AccountRow, *pagination.Result, error)
 }
 
 type AccountsView struct {
@@ -124,7 +124,7 @@ func (accountsView *AccountsView) FindBy(identity *AccountIdentity) (*AccountRow
 func (accountsView *AccountsView) List(
 	order AccountsListOrder,
 	pagination *pagination.Pagination,
-) ([]AccountRow, *pagination.PaginationResult, error) {
+) ([]AccountRow, *pagination.Result, error) {
 	stmtBuilder := accountsView.rdb.StmtBuilder.Select(
 		"address",
 		"account_type",

@@ -24,7 +24,7 @@ type BlockTransactions interface {
 		filter TransactionsListFilter,
 		order TransactionsListOrder,
 		pagination *pagination_interface.Pagination,
-	) ([]TransactionRow, *pagination_interface.PaginationResult, error)
+	) ([]TransactionRow, *pagination_interface.Result, error)
 	Search(keyword string) ([]TransactionRow, error)
 	Count() (int64, error)
 }
@@ -297,7 +297,7 @@ func (transactionsView *BlockTransactionsView) List(
 	filter TransactionsListFilter,
 	order TransactionsListOrder,
 	pagination *pagination_interface.Pagination,
-) ([]TransactionRow, *pagination_interface.PaginationResult, error) {
+) ([]TransactionRow, *pagination_interface.Result, error) {
 	stmtBuilder := transactionsView.rdb.StmtBuilder.Select(
 		"block_height",
 		"block_hash",

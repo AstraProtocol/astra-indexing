@@ -97,7 +97,8 @@ func NewSyncManager(
 	var cosmosClient cosmosapp_interface.Client
 
 	cosmosClient = cosmosapp_infrastructure.NewHTTPClient(
-		params.Config.CosmosAppHTTPRPCURL, params.Config.StakingDenom,
+		params.Config.CosmosAppHTTPRPCURL,
+		params.Config.StakingDenom,
 	)
 
 	return &SyncManager{

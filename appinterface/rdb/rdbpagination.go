@@ -71,7 +71,7 @@ func (pagination *RDbPaginationStmtBuilder) ToStmtBuilder() sq.SelectBuilder {
 	return pagination.stmtBuilder
 }
 
-func (pagination *RDbPaginationStmtBuilder) Result() (*pagination_interface.PaginationResult, error) {
+func (pagination *RDbPaginationStmtBuilder) Result() (*pagination_interface.Result, error) {
 	switch pagination.Type() {
 	case pagination_interface.PAGINATION_OFFSET:
 		return pagination.offsetResult()
@@ -80,7 +80,7 @@ func (pagination *RDbPaginationStmtBuilder) Result() (*pagination_interface.Pagi
 	return nil, nil
 }
 
-func (pagination *RDbPaginationStmtBuilder) offsetResult() (*pagination_interface.PaginationResult, error) {
+func (pagination *RDbPaginationStmtBuilder) offsetResult() (*pagination_interface.Result, error) {
 	var err error
 
 	sql, sqlArgs, err := pagination.stmtBuilder.ToSql()
@@ -133,7 +133,7 @@ func (pagination *RDbPaginationSQLBuilder) ToSQL() (string, []interface{}) {
 	return pagination.sql, pagination.args
 }
 
-func (pagination *RDbPaginationSQLBuilder) Result() (*pagination_interface.PaginationResult, error) {
+func (pagination *RDbPaginationSQLBuilder) Result() (*pagination_interface.Result, error) {
 	switch pagination.Type() {
 	case pagination_interface.PAGINATION_OFFSET:
 		return pagination.offsetResult()
@@ -142,7 +142,7 @@ func (pagination *RDbPaginationSQLBuilder) Result() (*pagination_interface.Pagin
 	return nil, nil
 }
 
-func (pagination *RDbPaginationSQLBuilder) offsetResult() (*pagination_interface.PaginationResult, error) {
+func (pagination *RDbPaginationSQLBuilder) offsetResult() (*pagination_interface.Result, error) {
 	var err error
 
 	// No new parameter is introduced in the prepare statement. Hence not

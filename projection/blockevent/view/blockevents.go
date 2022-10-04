@@ -178,7 +178,7 @@ func (eventsView *BlockEvents) List(
 	filter BlockEventsListFilter,
 	order BlockEventsListOrder,
 	pagination *pagination_interface.Pagination,
-) ([]BlockEventRow, *pagination_interface.PaginationResult, error) {
+) ([]BlockEventRow, *pagination_interface.Result, error) {
 	stmtBuilder := eventsView.rdb.StmtBuilder.Select(
 		"id",
 		"block_height",

@@ -42,11 +42,11 @@ func (votesView *MockVotesView) ListByProposalId(
 	pagination *pagination2.Pagination,
 ) (
 	[]VoteWithMonikerRow,
-	*pagination2.PaginationResult,
+	*pagination2.Result,
 	error,
 ) {
 	mockArgs := votesView.Called(proposalId, order, pagination)
 	result1, _ := mockArgs.Get(0).([]VoteWithMonikerRow)
-	result2, _ := mockArgs.Get(1).(*pagination2.PaginationResult)
+	result2, _ := mockArgs.Get(1).(*pagination2.Result)
 	return result1, result2, mockArgs.Error(2)
 }

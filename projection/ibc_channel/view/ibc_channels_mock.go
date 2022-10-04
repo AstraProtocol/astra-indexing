@@ -74,12 +74,12 @@ func (ibcChannelsView *MockIBCChannelsView) List(
 	paginate *pagination.Pagination,
 ) (
 	[]IBCChannelRow,
-	*pagination.PaginationResult,
+	*pagination.Result,
 	error,
 ) {
 	mockArgs := ibcChannelsView.Called(order, filter, paginate)
 	result0, _ := mockArgs.Get(0).([]IBCChannelRow)
-	result1, _ := mockArgs.Get(1).(*pagination.PaginationResult)
+	result1, _ := mockArgs.Get(1).(*pagination.Result)
 	return result0, result1, mockArgs.Error(2)
 }
 
@@ -89,11 +89,11 @@ func (ibcChannelsView *MockIBCChannelsView) ListChannelsGroupByChainId(
 	paginate *pagination.Pagination,
 ) (
 	[]ChainChannels,
-	*pagination.PaginationResult,
+	*pagination.Result,
 	error,
 ) {
 	mockArgs := ibcChannelsView.Called(order, filter, paginate)
 	result0, _ := mockArgs.Get(0).([]ChainChannels)
-	result1, _ := mockArgs.Get(1).(*pagination.PaginationResult)
+	result1, _ := mockArgs.Get(1).(*pagination.Result)
 	return result0, result1, mockArgs.Error(2)
 }

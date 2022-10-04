@@ -123,7 +123,7 @@ func (validatorActivitiesView *ValidatorActivities) List(
 	filter ValidatorActivitiesListFilter,
 	order ValidatorActivitiesListOrder,
 	pagination *pagination_interface.Pagination,
-) ([]ValidatorActivityRow, *pagination_interface.PaginationResult, error) {
+) ([]ValidatorActivityRow, *pagination_interface.Result, error) {
 	stmtBuilder := validatorActivitiesView.rdb.StmtBuilder.Select(
 		"block_height",
 		"block_hash",

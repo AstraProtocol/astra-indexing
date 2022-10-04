@@ -38,7 +38,8 @@ func initProjections(
 
 	var cosmosAppClient cosmosapp.Client
 	cosmosAppClient = cosmosapp_infrastructure.NewHTTPClient(
-		config.CosmosApp.HTTPRPCUrl, config.Blockchain.BondingDenom,
+		config.CosmosApp.HTTPRPCUrl,
+		config.Blockchain.BondingDenom,
 	)
 
 	projections := make([]projection_entity.Projection, 0, len(config.IndexService.Projection.Enables))

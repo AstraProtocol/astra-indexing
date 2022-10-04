@@ -25,8 +25,8 @@ type IBCChannels interface {
 	UpdateBondedTokens(string, *BondedTokens) error
 	FindBondedTokensBy(string) (*BondedTokens, error)
 	FindBy(string) (*IBCChannelRow, error)
-	List(IBCChannelsListOrder, IBCChannelsListFilter, *pagination.Pagination) ([]IBCChannelRow, *pagination.PaginationResult, error)
-	ListChannelsGroupByChainId(IBCChannelsListOrder, IBCChannelsListFilter, *pagination.Pagination) ([]ChainChannels, *pagination.PaginationResult, error)
+	List(IBCChannelsListOrder, IBCChannelsListFilter, *pagination.Pagination) ([]IBCChannelRow, *pagination.Result, error)
+	ListChannelsGroupByChainId(IBCChannelsListOrder, IBCChannelsListFilter, *pagination.Pagination) ([]ChainChannels, *pagination.Result, error)
 }
 
 // Channels projection view implemented by relational database
@@ -447,7 +447,7 @@ func (ibcChannelsView *IBCChannelsView) List(
 	pagination *pagination.Pagination,
 ) (
 	[]IBCChannelRow,
-	*pagination.PaginationResult,
+	*pagination.Result,
 	error,
 ) {
 
@@ -582,7 +582,7 @@ func (ibcChannelsView *IBCChannelsView) ListChannelsGroupByChainId(
 	pagination *pagination.Pagination,
 ) (
 	[]ChainChannels,
-	*pagination.PaginationResult,
+	*pagination.Result,
 	error,
 ) {
 

@@ -90,7 +90,7 @@ func (accountMessagesView *AccountTransactions) List(
 	filter AccountTransactionsListFilter,
 	order AccountTransactionsListOrder,
 	pagination *pagination_interface.Pagination,
-) ([]AccountTransactionReadRow, *pagination_interface.PaginationResult, error) {
+) ([]AccountTransactionReadRow, *pagination_interface.Result, error) {
 	stmtBuilder := accountMessagesView.rdb.StmtBuilder.Select(
 		"view_account_transactions.account",
 		"view_account_transactions.block_height",

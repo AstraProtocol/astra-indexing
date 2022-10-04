@@ -29,7 +29,7 @@ type Proposals interface {
 		pagination *pagination_interface.Pagination,
 	) (
 		[]ProposalWithMonikerRow,
-		*pagination_interface.PaginationResult,
+		*pagination_interface.Result,
 		error,
 	)
 }
@@ -307,7 +307,7 @@ func (proposalView *ProposalsView) List(
 	filter ProposalListFilter,
 	order ProposalListOrder,
 	pagination *pagination_interface.Pagination,
-) ([]ProposalWithMonikerRow, *pagination_interface.PaginationResult, error) {
+) ([]ProposalWithMonikerRow, *pagination_interface.Result, error) {
 	stmtBuilder := proposalView.rdb.StmtBuilder.Select(
 		fmt.Sprintf("%s.proposal_id", PROPOSALS_TABLE_NAME),
 		fmt.Sprintf("%s.title", PROPOSALS_TABLE_NAME),

@@ -22,11 +22,11 @@ func (ibcChannelMessagesView *MockIBCChannelMessageView) ListByChannelID(
 	pagination *pagination2.Pagination,
 ) (
 	[]IBCChannelMessageRow,
-	*pagination2.PaginationResult,
+	*pagination2.Result,
 	error,
 ) {
 	mockArgs := ibcChannelMessagesView.Called(channelID, order, filter, pagination)
 	messages, _ := mockArgs.Get(0).([]IBCChannelMessageRow)
-	paginationResult, _ := mockArgs.Get(1).(*pagination2.PaginationResult)
+	paginationResult, _ := mockArgs.Get(1).(*pagination2.Result)
 	return messages, paginationResult, mockArgs.Error(3)
 }
