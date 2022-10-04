@@ -105,7 +105,6 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 	tmpBlockPage := BlocksPaginationResult{}
 	err = handler.astraCache.Get(blockPaginationKey, &tmpBlockPage)
 	if err == nil {
-		fmt.Println("cache hit")
 		httpapi.SuccessWithPagination(ctx, tmpBlockPage.Blocks, &tmpBlockPage.PaginationResult)
 		return
 	}
