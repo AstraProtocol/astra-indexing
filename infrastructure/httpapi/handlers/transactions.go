@@ -2,6 +2,9 @@ package handlers
 
 import (
 	"errors"
+	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
+	"github.com/AstraProtocol/astra-indexing/external/cache"
+	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/valyala/fasthttp"
@@ -9,13 +12,17 @@ import (
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
-	transaction_view "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 )
 
 type Transactions struct {
-	logger applogger.Logger
+	logger           applogger.Logger
+	transactionsView transactionView.BlockTransactions
+	astraCache       *cache.AstraCache
+}
 
-	transactionsView transaction_view.BlockTransactions
+type TransactionsPaginationResult struct {
+	Blocks           []transactionView.TransactionRow `json:"blocks"`
+	PaginationResult pagination.PaginationResult      `json:"paginationResult"`
 }
 
 func NewTransactions(logger applogger.Logger, rdbHandle *rdb.Handle) *Transactions {
@@ -24,7 +31,8 @@ func NewTransactions(logger applogger.Logger, rdbHandle *rdb.Handle) *Transactio
 			"module": "TransactionsHandler",
 		}),
 
-		transaction_view.NewTransactionsView(rdbHandle),
+		transactionView.NewTransactionsView(rdbHandle),
+		cache.NewCache(),
 	}
 }
 
@@ -49,7 +57,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 }
 
 func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
-	pagination, err := httpapi.ParsePagination(ctx)
+	paginationInput, err := httpapi.ParsePagination(ctx)
 	if err != nil {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
@@ -63,16 +71,26 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	blocks, paginationResult, err := handler.transactionsView.List(transaction_view.TransactionsListFilter{
+	transactionPaginationKey := getKeyPagination(paginationInput, heightOrder)
+	tmpTransactions := TransactionsPaginationResult{}
+	err = handler.astraCache.Get(transactionPaginationKey, &tmpTransactions)
+	if err == nil {
+		httpapi.SuccessWithPagination(ctx, tmpTransactions.Blocks, &tmpTransactions.PaginationResult)
+		return
+	}
+	blocks, paginationResult, err := handler.transactionsView.List(transactionView.TransactionsListFilter{
 		MaybeBlockHeight: nil,
-	}, transaction_view.TransactionsListOrder{
+	}, transactionView.TransactionsListOrder{
 		Height: heightOrder,
-	}, pagination)
+	}, paginationInput)
 	if err != nil {
 		handler.logger.Errorf("error listing transactions: %v", err)
 		httpapi.InternalServerError(ctx)
 		return
 	}
-
+	_ = handler.astraCache.Set(transactionPaginationKey, TransactionsPaginationResult{
+		Blocks:           blocks,
+		PaginationResult: *paginationResult,
+	}, 2)
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
