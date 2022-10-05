@@ -106,7 +106,7 @@ func NewHTTPClient(url string) *HTTPClient {
 	return &HTTPClient{
 		httpClient,
 		strings.TrimSuffix(url, "/"),
-		cache.NewCache(),
+		cache.NewCache("blockscout"),
 	}
 }
 
