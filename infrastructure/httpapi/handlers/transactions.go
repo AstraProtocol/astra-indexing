@@ -47,7 +47,7 @@ func NewTransactions(
 		}),
 		transactionView.NewTransactionsView(rdbHandle),
 		blockscoutClient,
-		cache.NewCache(),
+		cache.NewCache("transactions"),
 	}
 }
 

@@ -54,7 +54,7 @@ func NewHTTPClient(tendermintRPCUrl string, strictGenesisParsing bool) *HTTPClie
 		httpClient,
 		strings.TrimSuffix(tendermintRPCUrl, "/"),
 		strictGenesisParsing,
-		cache.NewCache(),
+		cache.NewCache("tendermint"),
 	}
 }
 

@@ -13,6 +13,10 @@ func Run(path, port string) error {
 	register.MustRegister(projectionExecTime)
 	register.MustRegister(projectionLatestHeight)
 	register.MustRegister(apiExecTime)
+	register.MustRegister(paramGaugeVecHit)
+	register.MustRegister(paramGaugeVecMissed)
+	register.MustRegister(paramGaugeVecEviction)
+	register.MustRegister(paramGaugeVecInsertion)
 	handler := promhttp.InstrumentMetricHandler(
 		register, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}),
 	)

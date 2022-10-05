@@ -114,7 +114,7 @@ func NewHTTPClient(rpcUrl string, bondingDenom string) *HTTPClient {
 		httpClient,
 		strings.TrimSuffix(rpcUrl, "/"),
 		bondingDenom,
-		cache.NewCache(),
+		cache.NewCache("cosmosapp"),
 	}
 }
 
