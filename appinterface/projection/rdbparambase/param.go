@@ -18,7 +18,7 @@ var (
 	NewParams = view.NewParamsView
 )
 
-// a generic Param projection. For table schema refer to view/params.go
+// a generic Param projection. For table schema refer to view/cache_metrics.go
 type Base struct {
 	tableName string
 

@@ -6,26 +6,26 @@ import (
 )
 
 const (
-	paramName  = "prams"
-	paramLabel = "prams"
+	cacheMetrics = "cache_metric"
+	appName      = "appName"
 )
 
 var (
 	paramGaugeVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: paramName,
+			Name: cacheMetrics,
 		},
 		[]string{
-			paramLabel,
+			appName,
 		},
 	)
 )
 
-func RecordParam(paramName string, param string) {
+func RecordParam(appNameRecord string, param string) {
 	paramFloat, _ := strconv.ParseFloat(param, 64)
 	paramGaugeVec.With(
 		prometheus.Labels{
-			paramLabel: paramName,
+			appName: appNameRecord,
 		},
 	).Set(paramFloat)
 }
