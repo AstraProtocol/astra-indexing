@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"errors"
+	"time"
+
 	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
 	"github.com/AstraProtocol/astra-indexing/external/cache"
 	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
-	"time"
 
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	"github.com/valyala/fasthttp"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
@@ -18,6 +20,7 @@ import (
 type Transactions struct {
 	logger           applogger.Logger
 	transactionsView transactionView.BlockTransactions
+	blockscoutClient blockscout_infrastructure.HTTPClient
 	astraCache       *cache.AstraCache
 }
 
@@ -34,13 +37,16 @@ func NewTransactionsPaginationResult(transactionRows []transactionView.Transacti
 	}
 }
 
-func NewTransactions(logger applogger.Logger, rdbHandle *rdb.Handle) *Transactions {
+func NewTransactions(
+	logger applogger.Logger,
+	blockscoutClient blockscout_infrastructure.HTTPClient,
+	rdbHandle *rdb.Handle) *Transactions {
 	return &Transactions{
 		logger.WithFields(applogger.LogFields{
 			"module": "TransactionsHandler",
 		}),
-
 		transactionView.NewTransactionsView(rdbHandle),
+		blockscoutClient,
 		cache.NewCache("transactions"),
 	}
 }
@@ -50,19 +56,27 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 	if !hashParamOk {
 		return
 	}
-
-	transaction, err := handler.transactionsView.FindByHash(hashParam)
-	if err != nil {
-		if errors.Is(err, rdb.ErrNoRows) {
-			httpapi.NotFound(ctx)
+	if string(ctx.QueryArgs().Peek("type")) == "evm" {
+		transaction, err := handler.blockscoutClient.GetDetailEvmTx(hashParam)
+		if err != nil {
+			handler.logger.Errorf("error parsing tx response from blockscout: %v", err)
+			httpapi.InternalServerError(ctx)
 			return
 		}
-		handler.logger.Errorf("error finding transactions by hash: %v", err)
-		httpapi.InternalServerError(ctx)
-		return
+		httpapi.Success(ctx, transaction)
+	} else {
+		transaction, err := handler.transactionsView.FindByHash(hashParam)
+		if err != nil {
+			if errors.Is(err, rdb.ErrNoRows) {
+				httpapi.NotFound(ctx)
+				return
+			}
+			handler.logger.Errorf("error finding transactions by hash: %v", err)
+			httpapi.InternalServerError(ctx)
+			return
+		}
+		httpapi.Success(ctx, transaction)
 	}
-
-	httpapi.Success(ctx, transaction)
 }
 
 func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {

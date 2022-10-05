@@ -7,6 +7,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/bootstrap"
 	"github.com/AstraProtocol/astra-indexing/bootstrap/config"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	cosmosapp_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/cosmosapp"
 	httpapi_handlers "github.com/AstraProtocol/astra-indexing/infrastructure/httpapi/handlers"
 	tendermint_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/tendermint"
@@ -18,7 +19,6 @@ func InitRouteRegistry(
 	config *config.Config,
 ) bootstrap.RouteRegistry {
 	var cosmosAppClient cosmosapp.Client
-
 	cosmosAppClient = cosmosapp_infrastructure.NewHTTPClient(
 		config.CosmosApp.HTTPRPCUrl,
 		config.Blockchain.BondingDenom,
@@ -28,6 +28,10 @@ func InitRouteRegistry(
 	tendermintClient = tendermint_infrastructure.NewHTTPClient(
 		config.TendermintApp.HTTPRPCUrl,
 		config.TendermintApp.StrictGenesisParsing,
+	)
+
+	blockscoutClient := blockscout_infrastructure.NewHTTPClient(
+		config.HTTPService.BlockscoutUrl,
 	)
 
 	validatorAddressPrefix := config.Blockchain.ValidatorAddressPrefix
@@ -108,7 +112,7 @@ func InitRouteRegistry(
 		},
 	)
 
-	transactionHandler := httpapi_handlers.NewTransactions(logger, rdbConn.ToHandle())
+	transactionHandler := httpapi_handlers.NewTransactions(logger, *blockscoutClient, rdbConn.ToHandle())
 	routes = append(routes,
 		Route{
 			Method:  GET,

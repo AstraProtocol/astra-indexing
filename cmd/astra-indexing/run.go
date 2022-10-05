@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/AstraProtocol/astra-indexing/cmd/astra-indexing/routes"
-	"github.com/urfave/cli/v2"
 	"os"
 	"path/filepath"
+
+	"github.com/AstraProtocol/astra-indexing/cmd/astra-indexing/routes"
+	"github.com/urfave/cli/v2"
 
 	"github.com/AstraProtocol/astra-indexing/bootstrap"
 	configuration "github.com/AstraProtocol/astra-indexing/bootstrap/config"

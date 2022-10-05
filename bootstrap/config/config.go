@@ -31,6 +31,7 @@ type HTTPService struct {
 	Enable             bool     `yaml:"enable" toml:"enable" xml:"enable" json:"enable,omitempty"`
 	ListeningAddress   string   `yaml:"listening_address" toml:"listening_address" xml:"listening_address" json:"listening_address,omitempty"`
 	RoutePrefix        string   `yaml:"route_prefix" toml:"route_prefix" xml:"route_prefix" json:"route_prefix,omitempty"`
+	BlockscoutUrl      string   `yaml:"blockscout_url" toml:"blockscout_url" xml:"blockscout_url" json:"blockscout_url,omitempty"`
 	CorsAllowedOrigins []string `yaml:"cors_allowed_origins" toml:"cors_allowed_origins" xml:"cors_allowed_origins" json:"cors_allowed_origins,omitempty"`
 	CorsAllowedMethods []string `yaml:"cors_allowed_methods" toml:"cors_allowed_methods" xml:"cors_allowed_methods" json:"cors_allowed_methods,omitempty"`
 	CorsAllowedHeaders []string `yaml:"cors_allowed_headers" toml:"cors_allowed_headers" xml:"cors_allowed_headers" json:"cors_allowed_headers,omitempty"`
