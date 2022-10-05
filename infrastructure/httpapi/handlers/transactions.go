@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"time"
 
@@ -9,9 +8,8 @@ import (
 	"github.com/AstraProtocol/astra-indexing/external/cache"
 	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 
-	blockscout_url_handler "github.com/AstraProtocol/astra-indexing/external/explorer/blockscout"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
-	"github.com/AstraProtocol/astra-indexing/external/utctime"
+	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	"github.com/valyala/fasthttp"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
@@ -22,6 +20,7 @@ import (
 type Transactions struct {
 	logger           applogger.Logger
 	transactionsView transactionView.BlockTransactions
+	blockscoutClient blockscout_infrastructure.HTTPClient
 	astraCache       *cache.AstraCache
 }
 
@@ -38,86 +37,33 @@ func NewTransactionsPaginationResult(transactionRows []transactionView.Transacti
 	}
 }
 
-func NewTransactions(logger applogger.Logger, rdbHandle *rdb.Handle) *Transactions {
+func NewTransactions(
+	logger applogger.Logger,
+	blockscoutClient blockscout_infrastructure.HTTPClient,
+	rdbHandle *rdb.Handle) *Transactions {
 	return &Transactions{
 		logger.WithFields(applogger.LogFields{
 			"module": "TransactionsHandler",
 		}),
-
 		transactionView.NewTransactionsView(rdbHandle),
+		blockscoutClient,
 		cache.NewCache(),
 	}
 }
 
 func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
-	type Log struct {
-		Address string   `json:"address"`
-		Data    string   `json:"data"`
-		Index   string   `json:"index"`
-		Topics  []string `json:"topics"`
-	}
-
-	type TransactionEvm struct {
-		BlockHeight                  int64           `json:"blockHeight"`
-		BlockHash                    string          `json:"blockHash"`
-		BlockTime                    utctime.UTCTime `json:"blockTime"`
-		Confirmations                int64           `json:"confirmations"`
-		Hash                         string          `json:"hash"`
-		CosmosHash                   string          `json:"cosmosHash"`
-		Index                        int             `json:"index"`
-		Success                      bool            `json:"success"`
-		Error                        string          `json:"error"`
-		RevertReason                 string          `json:"revertReason"`
-		CreatedContractCodeIndexedAt utctime.UTCTime `json:"createdContractCodeIndexedAt"`
-		From                         string          `json:"from"`
-		To                           string          `json:"to"`
-		Value                        string          `json:"value"`
-		CumulativeGasUsed            string          `json:"cumulativeGasUsed"`
-		GasLimit                     string          `json:"gasLimit"`
-		GasPrice                     string          `json:"gasPrice"`
-		GasUsed                      string          `json:"gasUsed"`
-		MaxFeePerGas                 string          `json:"maxFeePerGas"`
-		MaxPriorityFeePerGas         string          `json:"maxPriorityFeePerGas"`
-		Input                        string          `json:"input"`
-		Nonce                        int             `json:"nonce"`
-		R                            string          `json:"r"`
-		S                            string          `json:"s"`
-		V                            string          `json:"v"`
-		Type                         int             `json:"type"`
-		Logs                         []Log           `json:"logs"`
-	}
-
-	type Result struct {
-		Message string         `json:"message"`
-		Result  TransactionEvm `json:"result"`
-		Status  string         `json:"status"`
-	}
-
 	hashParam, hashParamOk := URLValueGuard(ctx, handler.logger, "hash")
 	if !hashParamOk {
 		return
 	}
-
 	if string(ctx.QueryArgs().Peek("type")) == "evm" {
-		url := blockscout_url_handler.GetInstance().GetDetailEvmTxUrl(hashParam)
-
-		req := fasthttp.AcquireRequest()
-		req.SetRequestURI(url)
-
-		resp := fasthttp.AcquireResponse()
-		client := &fasthttp.Client{}
-		client.Do(req, resp)
-
-		result := Result{}
-		bodyBytes := resp.Body()
-
-		err := json.Unmarshal(bodyBytes, &result)
+		transaction, err := handler.blockscoutClient.GetDetailEvmTx(hashParam)
 		if err != nil {
-			handler.logger.Errorf("error parsing response from endpoint %s: %v", url, err)
+			handler.logger.Errorf("error parsing tx response from blockscout: %v", err)
 			httpapi.InternalServerError(ctx)
 			return
 		}
-		httpapi.Success(ctx, result.Result)
+		httpapi.Success(ctx, transaction)
 	} else {
 		transaction, err := handler.transactionsView.FindByHash(hashParam)
 		if err != nil {

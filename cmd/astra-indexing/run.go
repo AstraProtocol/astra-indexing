@@ -10,7 +10,6 @@ import (
 
 	"github.com/AstraProtocol/astra-indexing/bootstrap"
 	configuration "github.com/AstraProtocol/astra-indexing/bootstrap/config"
-	blockscout_url_handler "github.com/AstraProtocol/astra-indexing/external/explorer/blockscout"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/primptr"
 	"github.com/AstraProtocol/astra-indexing/infrastructure"
@@ -146,8 +145,6 @@ func run(args []string) error {
 				nil,
 			)
 			app.InitHTTPAPIServer(routes.InitRouteRegistry(logger, app.GetRDbConn(), &config))
-
-			blockscout_url_handler.InitSingleton(config.HTTPService.BlockscoutUrl)
 
 			app.Run()
 
