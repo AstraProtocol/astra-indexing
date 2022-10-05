@@ -41,7 +41,7 @@ func NewTransactions(logger applogger.Logger, rdbHandle *rdb.Handle) *Transactio
 		}),
 
 		transactionView.NewTransactionsView(rdbHandle),
-		cache.NewCache(),
+		cache.NewCache("transactions"),
 	}
 }
 

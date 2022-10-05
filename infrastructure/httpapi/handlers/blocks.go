@@ -51,7 +51,7 @@ func NewBlocks(logger applogger.Logger, rdbHandle *rdb.Handle) *Blocks {
 		transaction_view.NewTransactionsView(rdbHandle),
 		blockevent_view.NewBlockEvents(rdbHandle),
 		validator_view.NewValidatorBlockCommitments(rdbHandle),
-		cache.NewCache(),
+		cache.NewCache("blocks"),
 	}
 }
 

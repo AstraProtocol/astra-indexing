@@ -10,7 +10,7 @@ import (
 )
 
 func TestSet(t *testing.T) {
-	cache := NewCache()
+	cache := NewCache("test")
 	err := cache.Set("123", "nguyen khanh hoa", time.Minute)
 	assert.Equal(t, nil, err)
 
@@ -21,7 +21,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestCacheBlock(t *testing.T) {
-	cache := NewCache()
+	cache := NewCache("test")
 	block := view.Block{
 		Height:                123,
 		Hash:                  "123",
