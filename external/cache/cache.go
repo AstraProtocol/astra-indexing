@@ -19,10 +19,10 @@ func NewCache(appName string) *AstraCache {
 	go func() {
 		for {
 			metrics := cache.Metrics()
-			prometheus.RecordParam(appName+"_cache_missed", strconv.FormatUint(metrics.Misses, 10))
-			prometheus.RecordParam(appName+"_cache_insertions", strconv.FormatUint(metrics.Insertions, 10))
-			prometheus.RecordParam(appName+"_cache_hits", strconv.FormatUint(metrics.Hits, 10))
-			prometheus.RecordParam(appName+"_cache_evictions", strconv.FormatUint(metrics.Evictions, 10))
+			prometheus.RecordCacheMissed(appName, strconv.FormatUint(metrics.Misses, 10))
+			prometheus.RecordCacheInsertion(appName, strconv.FormatUint(metrics.Insertions, 10))
+			prometheus.RecordCacheHits(appName, strconv.FormatUint(metrics.Hits, 10))
+			prometheus.RecordCacheEviction(appName, strconv.FormatUint(metrics.Evictions, 10))
 			time.Sleep(2 * time.Second)
 		}
 	}()
