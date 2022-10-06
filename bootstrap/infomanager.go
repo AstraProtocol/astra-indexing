@@ -9,7 +9,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/infrastructure/tendermint"
 )
 
-// TODO: Move InfoManager to CronJob
+// INFO_DEFAULT_POLLING_INTERVAL TODO: Move InfoManager to CronJob
 const INFO_DEFAULT_POLLING_INTERVAL = 2500 * time.Millisecond
 
 type InfoManager struct {

@@ -31,7 +31,7 @@ func InitRouteRegistry(
 	)
 
 	blockscoutClient := blockscout_infrastructure.NewHTTPClient(
-		config.HTTPService.BlockscoutUrl,
+		config.BlockscoutApp.HTTPRPCUrl,
 	)
 
 	validatorAddressPrefix := config.Blockchain.ValidatorAddressPrefix

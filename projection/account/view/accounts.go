@@ -3,6 +3,7 @@ package view
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/AstraProtocol/astra-indexing/external/json"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
@@ -89,8 +90,8 @@ func (accountsView *AccountsView) FindBy(identity *AccountIdentity) (*AccountRow
 		"pubkey",
 		"account_number",
 		"sequence_number",
-
-		"account_balance", "account_denom",
+		"account_balance",
+		"account_denom",
 	).From("view_accounts")
 
 	selectStmtBuilder = selectStmtBuilder.Where("address = ?", identity.Address)
@@ -162,13 +163,15 @@ func (accountsView *AccountsView) List(
 	for rowsResult.Next() {
 		var account AccountRow
 		var balance string
+		var accountNumber uint64
+		var sequenceNumer uint64
 		if err = rowsResult.Scan(
 			&account.Address,
 			&account.Type,
 			&account.MaybeName,
 			&account.MaybePubkey,
-			&account.AccountNumber,
-			&account.SequenceNumber,
+			&accountNumber,
+			&sequenceNumer,
 			&balance,
 		); err != nil {
 			if errors.Is(err, rdb.ErrNoRows) {
@@ -176,7 +179,8 @@ func (accountsView *AccountsView) List(
 			}
 			return nil, nil, fmt.Errorf("error scanning account row: %v: %w", err, rdb.ErrQuery)
 		}
-
+		account.AccountNumber = strconv.FormatUint(accountNumber, 10)
+		account.SequenceNumber = strconv.FormatUint(sequenceNumer, 10)
 		json.MustUnmarshalFromString(balance, &account.Balance)
 		accounts = append(accounts, account)
 	}

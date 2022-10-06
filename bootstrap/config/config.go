@@ -9,6 +9,7 @@ type Config struct {
 	HTTPService   HTTPService   `yaml:"http_service" toml:"http_service" xml:"http_service" json:"http_service"`
 	TendermintApp TendermintApp `yaml:"tendermint_app" toml:"tendermint_app" xml:"tendermint_app" json:"tendermint_app"`
 	CosmosApp     CosmosApp     `yaml:"cosmos_app" toml:"cosmos_app" xml:"cosmos_app" json:"cosmos_app"`
+	BlockscoutApp BlockscoutApp `yaml:"blockscout_app" toml:"blockscout_app" xml:"blockscout_app" json:"blockscout_app"`
 	Debug         Debug         `yaml:"debug" toml:"debug" xml:"debug" json:"debug"`
 	Postgres      Postgres      `yaml:"postgres" toml:"postgres" xml:"postgres" json:"postgres"`
 	Logger        Logger        `yaml:"logger" toml:"logger" xml:"logger" json:"logger"`
@@ -31,7 +32,6 @@ type HTTPService struct {
 	Enable             bool     `yaml:"enable" toml:"enable" xml:"enable" json:"enable,omitempty"`
 	ListeningAddress   string   `yaml:"listening_address" toml:"listening_address" xml:"listening_address" json:"listening_address,omitempty"`
 	RoutePrefix        string   `yaml:"route_prefix" toml:"route_prefix" xml:"route_prefix" json:"route_prefix,omitempty"`
-	BlockscoutUrl      string   `yaml:"blockscout_url" toml:"blockscout_url" xml:"blockscout_url" json:"blockscout_url,omitempty"`
 	CorsAllowedOrigins []string `yaml:"cors_allowed_origins" toml:"cors_allowed_origins" xml:"cors_allowed_origins" json:"cors_allowed_origins,omitempty"`
 	CorsAllowedMethods []string `yaml:"cors_allowed_methods" toml:"cors_allowed_methods" xml:"cors_allowed_methods" json:"cors_allowed_methods,omitempty"`
 	CorsAllowedHeaders []string `yaml:"cors_allowed_headers" toml:"cors_allowed_headers" xml:"cors_allowed_headers" json:"cors_allowed_headers,omitempty"`
@@ -59,6 +59,11 @@ type TendermintApp struct {
 }
 
 type CosmosApp struct {
+	HTTPRPCUrl string `yaml:"http_rpc_url" toml:"http_rpc_url" xml:"http_rpc_url" json:"http_rpc_url,omitempty"`
+	Insecure   bool   `yaml:"insecure" toml:"insecure" xml:"insecure" json:"insecure,omitempty"`
+}
+
+type BlockscoutApp struct {
 	HTTPRPCUrl string `yaml:"http_rpc_url" toml:"http_rpc_url" xml:"http_rpc_url" json:"http_rpc_url,omitempty"`
 	Insecure   bool   `yaml:"insecure" toml:"insecure" xml:"insecure" json:"insecure,omitempty"`
 }

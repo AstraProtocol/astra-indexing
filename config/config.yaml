@@ -19,7 +19,8 @@ index_service:
   concurrency: 10
   projection:
     enables: [
-        "AccountMessage",
+        "Account",
+        # "AccountMessage",
         "AccountTransaction",
         "Block",
         # "ChainStats",
@@ -45,7 +46,6 @@ http_service:
   enable: true
   listening_address: "0.0.0.0:8080"
   route_prefix: "/"
-  blockscout_url: "https://explorer.astranaut.dev"
   # A list of origins a cross-domain request is allowed to be requested from
   # Default value '[]' disables CORS support
   # Use '["*"]' to allow request from any origin
@@ -62,6 +62,10 @@ tendermint_app:
 
 cosmos_app:
   http_rpc_url: "https://api.astranaut.dev"
+  insecure: false
+
+blockscout_app:
+  http_rpc_url: "https://explorer.astranaut.dev"
   insecure: false
 
 debug:
