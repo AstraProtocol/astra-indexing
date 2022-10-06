@@ -2044,6 +2044,28 @@ func ParseMsgEthereumTx(
 	)}, possibleSignerAddresses
 }
 
+func getPeriodFromInterface(periodInput interface{}) []model.VestingPeriod {
+	rawInputs, _ := periodInput.([]interface{})
+	inputs := make([]model.VestingPeriod, 0, len(rawInputs))
+	for _, rawInput := range rawInputs {
+		input, _ := rawInput.(map[string]interface{})
+		length := input["length"].(string)
+		amountInterface := input["amount"].([]interface{})
+		amount, err := tmcosmosutils.NewCoinsFromAmountInterface(amountInterface)
+		if err != nil {
+			amount = make([]coin.Coin, 0)
+			for i := 0; i < len(amountInterface); i++ {
+				amount = append(amount, coin.Coin{})
+			}
+		}
+		inputs = append(inputs, model.VestingPeriod{
+			Amount: amount,
+			Length: length,
+		})
+	}
+	return inputs
+}
+
 func ParseMsgClawbackVestingAccount(
 	parserParams utils.CosmosParserParams,
 ) ([]command.Command, []string) {
@@ -2062,6 +2084,12 @@ func ParseMsgClawbackVestingAccount(
 	}
 	if typeStr, ok := parserParams.Msg["@type"]; ok {
 		rawMsg.Type = typeStr.(string)
+	}
+	if vestingPeriod, ok := parserParams.Msg["vesting_periods"]; ok {
+		rawMsg.VestingPeriods = getPeriodFromInterface(vestingPeriod)
+	}
+	if lockupPeriod, ok := parserParams.Msg["lockup_periods"]; ok {
+		rawMsg.LockupPeriods = getPeriodFromInterface(lockupPeriod)
 	}
 
 	if !parserParams.MsgCommonParams.TxSuccess {

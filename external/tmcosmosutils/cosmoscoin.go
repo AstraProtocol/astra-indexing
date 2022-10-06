@@ -2,7 +2,6 @@ package tmcosmosutils
 
 import (
 	"fmt"
-
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 )
 

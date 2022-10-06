@@ -234,6 +234,25 @@ func (client *HTTPClient) Account(accountAddress string) (*cosmosapp_interface.A
 				VestingPeriods:   rawAccount.MaybeVestingPeriods,
 			},
 		}
+	case cosmosapp_interface.ACCOUNT_CLAWBACK_VESTING:
+		account = cosmosapp_interface.Account{
+			Type:                          rawAccount.Type,
+			Address:                       rawAccount.MaybeBaseVestingAccount.BaseAccount.Address,
+			MaybePubkey:                   rawAccount.MaybeBaseVestingAccount.BaseAccount.MaybePubKey,
+			AccountNumber:                 rawAccount.MaybeBaseVestingAccount.BaseAccount.AccountNumber,
+			Sequence:                      rawAccount.MaybeBaseVestingAccount.BaseAccount.Sequence,
+			MaybeModuleAccount:            nil,
+			MaybeDelayedVestingAccount:    nil,
+			MaybeContinuousVestingAccount: nil,
+			MaybePeriodicVestingAccount:   nil,
+			MaybeClawbackVestingAccount: &cosmosapp_interface.ClawbackVestingAccount{
+				FunderAddress:  *rawAccount.MaybeFunderAddress,
+				StartTime:      *rawAccount.MaybeStartTime,
+				LockupPeriod:   rawAccount.MaybeLockupPeriods,
+				VestingPeriods: rawAccount.MaybeVestingPeriods,
+			},
+		}
+
 	default:
 		return nil, fmt.Errorf("unrecognized account type: %s", rawAccount.Type)
 	}

@@ -798,7 +798,7 @@ const TX_MSG_CREATE_CLAWBACK_VESTING_ACCOUNT_TXS_RESP = `{
           "@type": "/evmos.vesting.v1.MsgCreateClawbackVestingAccount",
           "from_address": "astra16mqptvptnds4098cmdmz846lmazenegc08wwf7",
           "to_address": "astra1wxru954y35y88x2u8q2vsmmsazs7h3ld0yfnh6",
-          "start_time": "1970-01-01T00:00:00Z",
+          "start_time": "1990-09-01T00:00:00Z",
           "lockup_periods": [
           ],
           "vesting_periods": [

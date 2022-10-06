@@ -18,9 +18,11 @@ type Account struct {
 	// Vesting account common fields
 	MaybeBaseVestingAccount *BaseVestingAccount `json:"base_vesting_account"`
 	// Continuous vesting account
-	MaybeStartTime *string `json:"start_time"`
+	MaybeStartTime     *string `json:"start_time"`
+	MaybeFunderAddress *string `json:"funder_address"`
 	// Periodic vesting account
 	MaybeVestingPeriods []cosmosapp_interface.VestingPeriod `json:"vesting_periods"`
+	MaybeLockupPeriods  []cosmosapp_interface.VestingPeriod `json:"lockup_periods"`
 
 	// User account
 	MaybeAddress       *string                     `json:"address"`
