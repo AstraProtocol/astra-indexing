@@ -3,6 +3,7 @@ package account_transaction
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/rdbprojectionbase"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -420,6 +421,8 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			if isHexString(typedEvent.Params.From) {
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.From[2:])
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
+			} else if len(typedEvent.Params.From) > 2 {
+				transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.From)
 			}
 			if isHexString(typedEvent.Params.Data.To) {
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.Data.To[2:])
@@ -487,6 +490,9 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 
 func isHexString(s string) bool {
 	if len(s) < 3 {
+		return false
+	}
+	if !strings.HasPrefix(s, "0x") {
 		return false
 	}
 	_, err := hex.DecodeString(s[2:])

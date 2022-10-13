@@ -2031,6 +2031,13 @@ func ParseMsgEthereumTx(
 	msgEthereumTxParams := model.MsgEthereumTxParams{
 		RawMsgEthereumTx: rawMsg,
 	}
+	log := utils.NewParsedTxsResultLog(&parserParams.TxsResult.Log[parserParams.MsgIndex])
+	// When there is no reward withdrew, `transfer` event would not exist
+	logEvent := log.GetLastEventByTypeOne("message")
+	if logEvent != nil && logEvent.HasAttribute("sender") {
+		fromAddr := logEvent.MustGetAttributeByKey("sender")
+		msgEthereumTxParams.From = fromAddr
+	}
 
 	// Getting possible signer address from Msg
 	var possibleSignerAddresses []string

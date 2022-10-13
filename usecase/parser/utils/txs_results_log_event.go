@@ -31,6 +31,19 @@ func NewParsedTxsResultLogEvent(rawEvent *model.BlockResultsEvent) *ParsedTxsRes
 	return event
 }
 
+func NewParsedLastTxsResultLogEvent(rawEvent *model.BlockResultsEvent) *ParsedTxsResultLogEvent {
+	event := &ParsedTxsResultLogEvent{
+		make(map[string]int),
+
+		*rawEvent,
+	}
+	for i, attribute := range rawEvent.Attributes {
+		event.keyIndex[attribute.Key] = i
+	}
+
+	return event
+}
+
 // In the txs_results log, multiple event of the same types are grouped
 // together into single event. This method pars txs_results log and split into
 // a new event when a same key name appears.

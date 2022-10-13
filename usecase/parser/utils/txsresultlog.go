@@ -48,6 +48,14 @@ func (log *ParsedTxsResultLog) GetFirstEventByType(t string) *ParsedTxsResultLog
 	return NewParsedTxsResultLogEvent(&log.rawLog.Events[log.typeIndex[t][0]])
 }
 
+// Get first event by type
+func (log *ParsedTxsResultLog) GetLastEventByTypeOne(t string) *ParsedTxsResultLogEvent {
+	if !log.HasEvent(t) {
+		return nil
+	}
+	return NewParsedLastTxsResultLogEvent(&log.rawLog.Events[log.typeIndex[t][0]])
+}
+
 // Get all events by type
 func (log *ParsedTxsResultLog) GetEventsByType(t string) []ParsedTxsResultLogEvent {
 	if !log.HasEvent(t) {
