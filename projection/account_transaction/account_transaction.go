@@ -1,6 +1,7 @@
 package account_transaction
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/rdbprojectionbase"
@@ -14,9 +15,12 @@ import (
 	"github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
 	event_usecase "github.com/AstraProtocol/astra-indexing/usecase/event"
 	"github.com/AstraProtocol/astra-indexing/usecase/model"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-var _ projection_entity.Projection = &AccountTransaction{}
+var (
+	_ projection_entity.Projection = &AccountTransaction{}
+)
 
 type AccountTransaction struct {
 	*rdbprojectionbase.Base
@@ -35,6 +39,8 @@ func NewAccountTransaction(
 	accountAddressPrefix string,
 	migrationHelper migrationhelper.MigrationHelper,
 ) *AccountTransaction {
+	cfg := sdk.GetConfig()
+	cfg.SetBech32PrefixForAccount("astra", "astrapub")
 	return &AccountTransaction{
 		rdbprojectionbase.NewRDbBase(
 			rdbConn.ToHandle(),
@@ -411,8 +417,14 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.FromAddress)
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.ToAddress)
 		} else if typedEvent, ok := event.(*event_usecase.MsgEthereumTx); ok {
-			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.From)
-			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.Data.To)
+			if isHexString(typedEvent.Params.From) {
+				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.From[2:])
+				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
+			}
+			if isHexString(typedEvent.Params.Data.To) {
+				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.Data.To[2:])
+				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
+			}
 		}
 	}
 
@@ -471,6 +483,11 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 	}
 	committed = true
 	return nil
+}
+
+func isHexString(s string) bool {
+	_, err := hex.DecodeString(s)
+	return err == nil
 }
 
 func (projection *AccountTransaction) ParseSenderAddresses(senders []model.TransactionSigner) []string {
