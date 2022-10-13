@@ -486,6 +486,9 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 }
 
 func isHexString(s string) bool {
+	if len(s) < 3 {
+		return false
+	}
 	_, err := hex.DecodeString(s)
 	return err == nil
 }
