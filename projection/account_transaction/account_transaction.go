@@ -410,7 +410,9 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 		} else if typedEvent, ok := event.(*event_usecase.MsgCreateVestingAccount); ok {
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.FromAddress)
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.ToAddress)
-
+		} else if typedEvent, ok := event.(*event_usecase.MsgEthereumTx); ok {
+			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.From)
+			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.Data.To)
 		}
 	}
 
