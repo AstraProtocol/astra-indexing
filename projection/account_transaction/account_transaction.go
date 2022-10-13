@@ -421,11 +421,8 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.From[2:])
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
 			}
-			fmt.Println(typedEvent.Params.Data.To)
-			fmt.Println(isHexString(typedEvent.Params.Data.To))
 			if isHexString(typedEvent.Params.Data.To) {
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.Data.To[2:])
-				fmt.Println(astraAddr.String())
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
 			}
 		}
@@ -492,7 +489,7 @@ func isHexString(s string) bool {
 	if len(s) < 3 {
 		return false
 	}
-	_, err := hex.DecodeString(s)
+	_, err := hex.DecodeString(s[2:])
 	return err == nil
 }
 
