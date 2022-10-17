@@ -3,16 +3,21 @@ package blockscout
 import "github.com/AstraProtocol/astra-indexing/external/utctime"
 
 type Log struct {
-	Address string   `json:"address"`
-	Data    string   `json:"data"`
-	Index   string   `json:"index"`
-	Topics  []string `json:"topics"`
+	Address     string   `json:"address"`
+	AddressName string   `json:"addressName"`
+	Data        string   `json:"data"`
+	Index       string   `json:"index"`
+	Topics      []string `json:"topics"`
 }
 
 type TokenTransfer struct {
 	Amount               string `json:"amount"`
+	Decimals             string `json:"decimals"`
 	FromAddress          string `json:"fromAddress"`
+	FromAddressName      string `json:"fromAddressName"`
+	LogIndex             string `json:"logIndex"`
 	ToAddress            string `json:"toAddress"`
+	ToAddressName        string `json:"toAddressName"`
 	TokenContractAddress string `json:"tokenContractAddress"`
 	TokenName            string `json:"tokenName"`
 	TokenSymbol          string `json:"tokenSymbol"`
