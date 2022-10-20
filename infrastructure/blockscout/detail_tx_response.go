@@ -34,6 +34,7 @@ type TransactionEvm struct {
 	Success                      bool            `json:"success"`
 	Error                        string          `json:"error"`
 	RevertReason                 string          `json:"revertReason"`
+	CreatedContractAddressHash   string          `json:"createdContractAddressHash"`
 	CreatedContractCodeIndexedAt utctime.UTCTime `json:"createdContractCodeIndexedAt"`
 	From                         string          `json:"from"`
 	To                           string          `json:"to"`
