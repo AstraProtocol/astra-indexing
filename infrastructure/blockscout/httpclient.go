@@ -16,6 +16,7 @@ import (
 )
 
 const GET_DETAIL_EVM_TX = "/api/v1?module=transaction&action=getTxCosmosInfo&txhash="
+const TX_NOT_FOUND = "transaction not found"
 
 type HTTPClient struct {
 	httpClient *retryablehttp.Client
@@ -125,7 +126,7 @@ func (client *HTTPClient) GetDetailEvmTx(txHash string) (*TransactionEvm, error)
 	}
 
 	if txResp.Status == "0" {
-		return nil, fmt.Errorf("transaction not found")
+		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
 
 	return &txResp.Result, nil

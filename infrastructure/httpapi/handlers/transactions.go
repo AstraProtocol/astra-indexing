@@ -61,18 +61,9 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 	if string(ctx.QueryArgs().Peek("type")) == "evm" {
 		transaction, err := handler.blockscoutClient.GetDetailEvmTx(hashParam)
 		if err != nil {
-			if strings.Contains(fmt.Sprint(err), "transaction not found") {
-				transaction, err := handler.transactionsView.FindByHash(hashParam)
-				if err != nil {
-					if errors.Is(err, rdb.ErrNoRows) {
-						httpapi.NotFound(ctx)
-						return
-					}
-					handler.logger.Errorf("error finding transactions by hash: %v", err)
-					httpapi.InternalServerError(ctx)
-					return
-				}
-				httpapi.Success(ctx, transaction)
+			if strings.Contains(fmt.Sprint(err), blockscout_infrastructure.TX_NOT_FOUND) {
+				ctx.QueryArgs().Del("type")
+				handler.FindByHash(ctx)
 				return
 			} else {
 				handler.logger.Errorf("error parsing tx response from blockscout: %v", err)
