@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
@@ -59,9 +61,24 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 	if string(ctx.QueryArgs().Peek("type")) == "evm" {
 		transaction, err := handler.blockscoutClient.GetDetailEvmTx(hashParam)
 		if err != nil {
-			handler.logger.Errorf("error parsing tx response from blockscout: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
+			if strings.Contains(fmt.Sprint(err), "transaction not found") {
+				transaction, err := handler.transactionsView.FindByHash(hashParam)
+				if err != nil {
+					if errors.Is(err, rdb.ErrNoRows) {
+						httpapi.NotFound(ctx)
+						return
+					}
+					handler.logger.Errorf("error finding transactions by hash: %v", err)
+					httpapi.InternalServerError(ctx)
+					return
+				}
+				httpapi.Success(ctx, transaction)
+				return
+			} else {
+				handler.logger.Errorf("error parsing tx response from blockscout: %v", err)
+				httpapi.InternalServerError(ctx)
+				return
+			}
 		}
 		httpapi.Success(ctx, transaction)
 	} else {

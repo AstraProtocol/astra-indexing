@@ -123,5 +123,10 @@ func (client *HTTPClient) GetDetailEvmTx(txHash string) (*TransactionEvm, error)
 	if err := jsoniter.NewDecoder(rawRespBody).Decode(&txResp); err != nil {
 		return nil, err
 	}
+
+	if txResp.Status == "0" {
+		return nil, fmt.Errorf("transaction not found")
+	}
+
 	return &txResp.Result, nil
 }
