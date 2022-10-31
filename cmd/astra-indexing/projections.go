@@ -60,9 +60,12 @@ func initProjections(
 
 		ServerMigrationRepoRef: customConfig.ServerGithubAPI.MigrationRepoRef,
 	}
+
+	util, _ := evmUtil.NewEvmUtils()
 	for _, projectionName := range config.IndexService.Projection.Enables {
 		projection := InitProjection(
 			projectionName, initParams,
+			util,
 		)
 		if projection == nil {
 			continue
@@ -83,7 +86,7 @@ func initProjections(
 	return projections
 }
 
-func InitProjection(name string, params InitProjectionParams) projection_entity.Projection {
+func InitProjection(name string, params InitProjectionParams, util evmUtil.EvmUtils) projection_entity.Projection {
 	connString := params.RdbConn.(*pg.PgxConn).ConnString()
 
 	githubMigrationHelperConfig := github_migrationhelper.Config{
@@ -103,9 +106,9 @@ func InitProjection(name string, params InitProjectionParams) projection_entity.
 		return account.NewAccount(params.Logger, params.RdbConn, params.CosmosAppClient, migrationHelper)
 	case "AccountTransaction":
 		if params.GithubAPIToken == "" {
-			return account_transaction.NewAccountTransaction(params.Logger, params.RdbConn, params.AccountAddressPrefix, nil)
+			return account_transaction.NewAccountTransaction(params.Logger, params.RdbConn, params.AccountAddressPrefix, nil, util)
 		}
-		return account_transaction.NewAccountTransaction(params.Logger, params.RdbConn, params.AccountAddressPrefix, migrationHelper)
+		return account_transaction.NewAccountTransaction(params.Logger, params.RdbConn, params.AccountAddressPrefix, migrationHelper, util)
 	case "AccountMessage":
 		if params.GithubAPIToken == "" {
 			return account_message.NewAccountMessage(params.Logger, params.RdbConn, params.AccountAddressPrefix, nil)
@@ -150,7 +153,6 @@ func InitProjection(name string, params InitProjectionParams) projection_entity.
 		}
 		return proposal.NewProposal(params.Logger, params.RdbConn, params.ConsNodeAddressPrefix, migrationHelper)
 	case "Transaction":
-		util, _ := evmUtil.NewEvmUtils()
 		if params.GithubAPIToken == "" {
 			return transaction.NewTransaction(params.Logger, params.RdbConn, nil, util)
 		}
