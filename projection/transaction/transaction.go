@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"fmt"
+	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 	"strconv"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/rdbprojectionbase"
@@ -30,12 +31,14 @@ type Transaction struct {
 	logger  applogger.Logger
 
 	migrationHelper migrationhelper.MigrationHelper
+	evmUtil         evmUtil.EvmUtils
 }
 
 func NewTransaction(
 	logger applogger.Logger,
 	rdbConn rdb.Conn,
 	migrationHelper migrationhelper.MigrationHelper,
+	evmUtil evmUtil.EvmUtils,
 ) *Transaction {
 	return &Transaction{
 		rdbprojectionbase.NewRDbBase(
@@ -46,6 +49,7 @@ func NewTransaction(
 		rdbConn,
 		logger,
 		migrationHelper,
+		evmUtil,
 	}
 }
 
@@ -91,6 +95,7 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 	var blockHash string
 	txs := make([]transaction_view.TransactionRow, 0)
 	txMsgs := make(map[string][]event_usecase.MsgEvent)
+	txEvmType := make(map[string]string)
 	for _, event := range events {
 		if blockCreatedEvent, ok := event.(*event_usecase.BlockCreated); ok {
 			blockTime = blockCreatedEvent.Block.Time
@@ -178,6 +183,13 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 		}
 	}
 
+	for _, event := range events {
+		if typedEvent, ok := event.(*event_usecase.MsgEthereumTx); ok {
+			evmType := projection.evmUtil.GetSignatureFromData(typedEvent.Params.Data.Data)
+			txEvmType[typedEvent.TxHash()] = evmType
+		}
+	}
+
 	if len(txs) == 0 {
 		if err := projection.UpdateLastHandledEventHeight(rdbTxHandle, height); err != nil {
 			return fmt.Errorf("error updating last handled event height: %v", err)
@@ -195,10 +207,15 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 		txs[i].BlockHash = blockHash
 
 		for _, msg := range txMsgs[tx.Hash] {
-			txs[i].Messages = append(txs[i].Messages, transaction_view.TransactionRowMessage{
+			tmpMessage := transaction_view.TransactionRowMessage{
 				Type:    msg.MsgType(),
 				Content: msg,
-			})
+			}
+
+			if val, ok := txEvmType[tx.Hash]; ok {
+				tmpMessage.EvmType = val
+			}
+			txs[i].Messages = append(txs[i].Messages, tmpMessage)
 		}
 	}
 	if insertErr := transactionsView.InsertAll(txs); insertErr != nil {

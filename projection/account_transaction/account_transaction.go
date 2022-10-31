@@ -3,6 +3,7 @@ package account_transaction
 import (
 	"encoding/hex"
 	"fmt"
+	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 	"strings"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/rdbprojectionbase"
@@ -32,6 +33,7 @@ type AccountTransaction struct {
 	logger  applogger.Logger
 
 	migrationHelper migrationhelper.MigrationHelper
+	evmUtil         evmUtil.EvmUtils
 }
 
 func NewAccountTransaction(
@@ -39,6 +41,7 @@ func NewAccountTransaction(
 	rdbConn rdb.Conn,
 	accountAddressPrefix string,
 	migrationHelper migrationhelper.MigrationHelper,
+	evmUtil evmUtil.EvmUtils,
 ) *AccountTransaction {
 	cfg := sdk.GetConfig()
 	cfg.SetBech32PrefixForAccount("astra", "astrapub")
@@ -54,6 +57,7 @@ func NewAccountTransaction(
 		logger,
 
 		migrationHelper,
+		evmUtil,
 	}
 }
 
@@ -207,22 +211,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 		return nil
 	}
 
-	for i, tx := range txs {
-		txs[i].BlockTime = blockTime
-		txs[i].BlockHash = blockHash
-
-		transactionInfos[tx.Hash].FillBlockInfo(blockHash, blockTime)
-
-		for _, msg := range txMsgs[tx.Hash] {
-			txs[i].Messages = append(txs[i].Messages, view.TransactionRowMessage{
-				Type:    msg.MsgType(),
-				Content: msg,
-			})
-		}
-	}
-	if insertErr := accountTransactionDataView.InsertAll(txs); insertErr != nil {
-		return fmt.Errorf("error inserting account transaction data into view: %v", insertErr)
-	}
+	txEvmType := make(map[string]string)
 
 	// Handle transaction messages
 	for _, event := range events {
@@ -428,7 +417,30 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.Data.To[2:])
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
 			}
+			evmType := projection.evmUtil.GetSignatureFromData(typedEvent.Params.Data.Data)
+			txEvmType[typedEvent.TxHash()] = evmType
 		}
+	}
+
+	for i, tx := range txs {
+		txs[i].BlockTime = blockTime
+		txs[i].BlockHash = blockHash
+
+		transactionInfos[tx.Hash].FillBlockInfo(blockHash, blockTime)
+
+		for _, msg := range txMsgs[tx.Hash] {
+			tmpMessage := view.TransactionRowMessage{
+				Type:    msg.MsgType(),
+				Content: msg,
+			}
+			if val, ok := txEvmType[tx.Hash]; ok {
+				tmpMessage.EvmType = val
+			}
+			txs[i].Messages = append(txs[i].Messages, tmpMessage)
+		}
+	}
+	if insertErr := accountTransactionDataView.InsertAll(txs); insertErr != nil {
+		return fmt.Errorf("error inserting account transaction data into view: %v", insertErr)
 	}
 
 	accountTransactionRows := make([]view.AccountTransactionBaseRow, 0)

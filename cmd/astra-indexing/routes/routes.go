@@ -85,15 +85,6 @@ func InitRouteRegistry(
 		},
 	)
 
-	accountMessagesHandlers := httpapi_handlers.NewAccountMessages(logger, rdbConn.ToHandle())
-	routes = append(routes,
-		Route{
-			Method:  GET,
-			path:    "api/v1/accounts/{account}/messages",
-			handler: accountMessagesHandlers.ListByAccount,
-		},
-	)
-
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(logger, rdbConn.ToHandle())
 	routes = append(routes,
 		Route{
