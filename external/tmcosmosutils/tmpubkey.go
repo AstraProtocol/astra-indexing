@@ -251,3 +251,23 @@ func IsValidCosmosAddress(address string) bool {
 	_, err = bech32.ConvertBits(conv, 5, 8, false)
 	return err == nil
 }
+
+func EncodeHexToAddress(hrp string, data []byte) (string, error) {
+	converted, err := bech32.ConvertBits(data, 8, 5, true)
+	if err != nil {
+		return "", fmt.Errorf("encoding bech32 failed: %w", err)
+	}
+	return bech32.Encode(hrp, converted)
+}
+
+func DecodeAddressToHex(text string) (string, []byte, error) {
+	hrp, data, err := bech32.Decode(text)
+	if err != nil {
+		return "", nil, fmt.Errorf("decoding bech32 failed: %w", err)
+	}
+	converted, err := bech32.ConvertBits(data, 5, 8, false)
+	if err != nil {
+		return "", nil, fmt.Errorf("decoding bech32 failed: %w", err)
+	}
+	return hrp, converted, nil
+}

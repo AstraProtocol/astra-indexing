@@ -1,8 +1,10 @@
 package blockscout
 
 import (
+	"bytes"
 	"context"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +18,7 @@ import (
 )
 
 const GET_DETAIL_EVM_TX = "/api/v1?module=transaction&action=getTxCosmosInfo&txhash="
+const GET_SEARCH_RESULTS = "/token-autocomplete?q="
 const TX_NOT_FOUND = "transaction not found"
 
 type HTTPClient struct {
@@ -130,4 +133,24 @@ func (client *HTTPClient) GetDetailEvmTx(txHash string) (*TransactionEvm, error)
 	}
 
 	return &txResp.Result, nil
+}
+
+func (client *HTTPClient) GetSearchResults(keyword string) ([]SearchResult, error) {
+	rawRespBody, err := client.request(
+		client.getUrl(GET_SEARCH_RESULTS, keyword), "",
+	)
+	if err != nil {
+		return []SearchResult{}, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var seachResults []SearchResult
+	if err := json.Unmarshal(respBody.Bytes(), &seachResults); err != nil {
+		return []SearchResult{}, err
+	}
+
+	return seachResults, nil
 }
