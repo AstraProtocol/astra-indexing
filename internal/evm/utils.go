@@ -46,6 +46,9 @@ func (utils *EvmUtils) GetSignatureFromData(base64Data string) string {
 		return ""
 	} else {
 		h := hex.EncodeToString(p)
+		if len(h) < 8 {
+			return ""
+		}
 		value, err := utils.GetSignature(h[0:8])
 		if err == nil {
 			return strings.Split(value, "(")[0]
