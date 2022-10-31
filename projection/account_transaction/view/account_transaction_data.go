@@ -187,6 +187,7 @@ type TransactionRow struct {
 
 type TransactionRowMessage struct {
 	Type    string      `json:"type"`
+	EvmType string      `json:"evmType"`
 	Content interface{} `json:"content"`
 }
 

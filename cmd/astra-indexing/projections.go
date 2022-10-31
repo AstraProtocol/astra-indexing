@@ -1,6 +1,7 @@
 package main
 
 import (
+	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/AstraProtocol/astra-indexing/projection/blockevent"
 	"strings"
 
@@ -149,10 +150,11 @@ func InitProjection(name string, params InitProjectionParams) projection_entity.
 		}
 		return proposal.NewProposal(params.Logger, params.RdbConn, params.ConsNodeAddressPrefix, migrationHelper)
 	case "Transaction":
+		util, _ := evmUtil.NewEvmUtils()
 		if params.GithubAPIToken == "" {
-			return transaction.NewTransaction(params.Logger, params.RdbConn, nil)
+			return transaction.NewTransaction(params.Logger, params.RdbConn, nil, util)
 		}
-		return transaction.NewTransaction(params.Logger, params.RdbConn, migrationHelper)
+		return transaction.NewTransaction(params.Logger, params.RdbConn, migrationHelper, util)
 	case "Validator":
 		if params.GithubAPIToken == "" {
 			return validator.NewValidator(params.Logger, params.RdbConn, params.ConsNodeAddressPrefix, nil)

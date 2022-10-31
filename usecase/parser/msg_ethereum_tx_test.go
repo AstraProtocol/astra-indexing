@@ -69,7 +69,7 @@ var _ = Describe("ParseMsgCommands", func() {
 							R:        "GWDX+kHcVNVKp5K2lG+/zHAOJI8yR6lYZ2GW4kYgEhE=",
 							S:        "PqawF/sgoCKiOnqN9al9x9AAWOS2uKaW5Dq+cg74Lgg=",
 						},
-						From: "",
+						From: "0x6F966DA8f83ac4b4ae3DFbD2da1aDa7f333967b1",
 						Hash: "0x3118583b6f71ebed92410afbdc069facb9e94169bd764711d58ca1f131d63fff",
 					},
 				},

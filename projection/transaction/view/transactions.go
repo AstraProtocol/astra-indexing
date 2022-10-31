@@ -560,6 +560,7 @@ type TransactionRow struct {
 type TransactionRowMessage struct {
 	Type    string      `json:"type"`
 	Content interface{} `json:"content"`
+	EvmType string      `json:"evmType"`
 }
 
 type TransactionsListFilter struct {
