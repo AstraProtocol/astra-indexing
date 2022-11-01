@@ -49,7 +49,20 @@ func NewSearch(logger applogger.Logger, blockscoutClient blockscout_infrastructu
 }
 
 func (search *Search) Search(ctx *fasthttp.RequestCtx) {
+	resultsChan := make(chan []blockscout_infrastructure.SearchResult)
+
 	keyword := string(ctx.QueryArgs().Peek("keyword"))
+
+	// If keyword contains a "/", then it is a {account}/{memo} combination
+	strs := strings.SplitN(keyword, "/", 2)
+	address := strs[0]
+	if tmcosmosutils.IsValidCosmosAddress(address) {
+		_, converted, _ := tmcosmosutils.DecodeAddressToHex(address)
+		hex_address := hex.EncodeToString(converted)
+		go search.blockscoutClient.GetSearchResultsAsync("0x"+hex_address, resultsChan)
+	} else {
+		go search.blockscoutClient.GetSearchResultsAsync(keyword, resultsChan)
+	}
 
 	var results SearchResults
 
@@ -65,54 +78,8 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 	}
 	if len(blocks) > 0 {
 		results.Blocks = parseBlocks(blocks)
-	}
-
-	transactions, err := search.transactionsView.Search(keyword)
-	if err != nil {
-		if errors.Is(err, rdb.ErrNoRows) {
-			transactions = nil
-		} else {
-			search.logger.Errorf("error searching transaction: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
-		}
-	}
-	if len(transactions) > 0 {
-		blockscoutSearchResults, err := search.blockscoutClient.GetSearchResults(keyword)
-		if err == nil {
-			results.Transactions = parseTransactions(transactions, blockscoutSearchResults)
-		} else {
-			search.logger.Errorf("error parsing search results from blockscout: %v", err)
-		}
-	}
-
-	if tmcosmosutils.IsValidCosmosAddress(keyword) {
-		_, converted, _ := tmcosmosutils.DecodeAddressToHex(keyword)
-		hex_address := hex.EncodeToString(converted)
-		blockscoutSearchResults, err := search.blockscoutClient.GetSearchResults("0x" + hex_address)
-		if err == nil {
-			results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutSearchResults)
-		} else {
-			search.logger.Errorf("error parsing search results from blockscout: %v", err)
-			results.Addresses = nil
-		}
-	}
-
-	// If keyword contains a "/", then it is a {account}/{memo} combination
-	strs := strings.SplitN(keyword, "/", 2)
-	if len(strs) == 2 {
-		address := strs[0]
-		if tmcosmosutils.IsValidCosmosAddress(address) {
-			_, converted, _ := tmcosmosutils.DecodeAddressToHex(address)
-			hex_address := hex.EncodeToString(converted)
-			blockscoutSearchResults, err := search.blockscoutClient.GetSearchResults("0x" + hex_address)
-			if err == nil {
-				results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutSearchResults)
-			} else {
-				search.logger.Errorf("error parsing search results from blockscout: %v", err)
-				results.Addresses = nil
-			}
-		}
+		httpapi.Success(ctx, results)
+		return
 	}
 
 	validators, err := search.validatorsView.Search(keyword)
@@ -126,13 +93,31 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 		}
 	}
 	if len(validators) > 0 {
-		results.Addresses = nil
 		results.Validators = parseValidators(validators)
+		httpapi.Success(ctx, results)
+		return
+	}
+
+	blockscoutSearchResults := <-resultsChan
+
+	transactions, err := search.transactionsView.Search(keyword)
+	if err != nil {
+		if errors.Is(err, rdb.ErrNoRows) {
+			transactions = nil
+		} else {
+			search.logger.Errorf("error searching transaction: %v", err)
+			httpapi.InternalServerError(ctx)
+			return
+		}
+	}
+	if len(transactions) > 0 {
+		results.Transactions = parseTransactions(transactions, blockscoutSearchResults)
+		httpapi.Success(ctx, results)
+		return
 	}
 
 	// Using blockscout search when search results in chainindexing are empty
 	if isResultsEmpty(results) {
-		blockscoutSearchResults, err := search.blockscoutClient.GetSearchResults(keyword)
 		if err != nil {
 			search.logger.Errorf("error parsing search results from blockscout: %v", err)
 			httpapi.InternalServerError(ctx)
@@ -142,12 +127,14 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 			switch blockscoutSearchResults[0].Type {
 			case "token":
 				results.Tokens = blockscout_infrastructure.SearchResultsToTokens(blockscoutSearchResults)
+			case "block":
+				results.Blocks = blockscout_infrastructure.SearchResultsToBlocks(blockscoutSearchResults)
 			case "address":
 				results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutSearchResults)
 			case "transaction":
 				results.Transactions = blockscout_infrastructure.SearchResultsToTransactions(blockscoutSearchResults)
-			default:
-				results.Blocks = blockscout_infrastructure.SearchResultsToBlocks(blockscoutSearchResults)
+			case "transaction_cosmos":
+				results.Transactions = blockscout_infrastructure.SearchResultsToTransactions(blockscoutSearchResults)
 			}
 		}
 	}
@@ -159,7 +146,7 @@ func parseBlocks(data []block_view.Block) []blockscout_infrastructure.BlockResul
 	var blocks []blockscout_infrastructure.BlockResult
 	for _, block_data := range data {
 		var block blockscout_infrastructure.BlockResult
-		block.BlockHash = block_data.Hash
+		block.BlockHash = "0x" + block_data.Hash
 		block.BlockNumber = int(block_data.Height)
 		block.InsertedAt = block_data.Time
 		blocks = append(blocks, block)
