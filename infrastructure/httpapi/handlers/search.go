@@ -118,11 +118,6 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 
 	// Using blockscout search when search results in chainindexing are empty
 	if isResultsEmpty(results) {
-		if err != nil {
-			search.logger.Errorf("error parsing search results from blockscout: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
-		}
 		if len(blockscoutSearchResults) > 0 {
 			switch blockscoutSearchResults[0].Type {
 			case "token":
