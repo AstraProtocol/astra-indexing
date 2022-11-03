@@ -140,6 +140,28 @@ func (client *HTTPClient) GetDetailEvmTx(txHash string) (*TransactionEvm, error)
 	return &txResp.Result, nil
 }
 
+func (client *HTTPClient) GetSearchResults(keyword string) []SearchResult {
+	rawRespBody, err := client.request(
+		client.getUrl(GET_SEARCH_RESULTS, keyword), "",
+	)
+	if err != nil {
+		client.logger.Errorf("error getting search results from blockscout: %v", err)
+		return []SearchResult{}
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var seachResults []SearchResult
+	if err := json.Unmarshal(respBody.Bytes(), &seachResults); err != nil {
+		client.logger.Errorf("error parsing search results from blockscout: %v", err)
+		return []SearchResult{}
+	}
+
+	return seachResults
+}
+
 func (client *HTTPClient) GetSearchResultsAsync(keyword string, results chan []SearchResult) {
 	// Make sure we close these channels when we're done with them\\
 	defer func() {

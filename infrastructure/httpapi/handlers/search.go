@@ -53,19 +53,44 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 
 	keyword := string(ctx.QueryArgs().Peek("keyword"))
 
-	// If keyword contains a "/", then it is a {account}/{memo} combination
-	strs := strings.SplitN(keyword, "/", 2)
-	address := strs[0]
-	if tmcosmosutils.IsValidCosmosAddress(address) {
-		_, converted, _ := tmcosmosutils.DecodeAddressToHex(address)
-		hex_address := hex.EncodeToString(converted)
-		go search.blockscoutClient.GetSearchResultsAsync("0x"+hex_address, resultsChan)
+	var results SearchResults
+
+	if tmcosmosutils.IsValidCosmosAddress(keyword) {
+		if strings.Contains(keyword, "valoper") {
+			// If keywork is validator address (ex: "astravaloper16mqptvptnds4098cmdmz846lmazenegc270ljs")
+			// use chainindexing search for validator
+			validators, err := search.validatorsView.Search(keyword)
+			if err != nil {
+				if errors.Is(err, rdb.ErrNoRows) {
+					validators = nil
+				} else {
+					search.logger.Errorf("error searching validator: %v", err)
+					httpapi.InternalServerError(ctx)
+					return
+				}
+			}
+			if len(validators) > 0 {
+				results.Validators = parseValidators(validators)
+				results.Addresses = nil
+				httpapi.Success(ctx, results)
+				return
+			}
+		} else {
+			// If keyword is bech32 address, ex: "astra1g9v3fp9wkhar696e7896x6wu3hqjsy5cpxdzff"
+			// It must be converted to hex address then using blockscout's api search only
+			_, converted, _ := tmcosmosutils.DecodeAddressToHex(keyword)
+			hex_address := hex.EncodeToString(converted)
+			blockscoutAddressResults := search.blockscoutClient.GetSearchResults("0x" + hex_address)
+			results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutAddressResults)
+			httpapi.Success(ctx, results)
+			return
+		}
 	} else {
+		// Otherwise using simultaneously blockscout and chainindexing search
 		go search.blockscoutClient.GetSearchResultsAsync(keyword, resultsChan)
 	}
 
-	var results SearchResults
-
+	// If keywork is integer (ex: 9947), use chainindexing search for block
 	blocks, err := search.blocksView.Search(keyword)
 	if err != nil {
 		if errors.Is(err, rdb.ErrNoRows) {
@@ -82,24 +107,10 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	validators, err := search.validatorsView.Search(keyword)
-	if err != nil {
-		if errors.Is(err, rdb.ErrNoRows) {
-			validators = nil
-		} else {
-			search.logger.Errorf("error searching validator: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
-		}
-	}
-	if len(validators) > 0 {
-		results.Validators = parseValidators(validators)
-		httpapi.Success(ctx, results)
-		return
-	}
-
 	blockscoutSearchResults := <-resultsChan
 
+	// If keywork is cosmos tx (ex: "90FEE96EE94CA74AD67FCF155E15488B901B3AE2530EBE4D35A9E77B609EB348")
+	// use chainindexing search for transaction then merge with evm tx from blockscout's search result
 	transactions, err := search.transactionsView.Search(keyword)
 	if err != nil {
 		if errors.Is(err, rdb.ErrNoRows) {
@@ -116,7 +127,8 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// Using blockscout search when search results in chainindexing are empty
+	// Using blockscout's search results when chainindexing's search results are empty
+	// mostly token search or keyword is hex type
 	if isResultsEmpty(results) {
 		if len(blockscoutSearchResults) > 0 {
 			switch blockscoutSearchResults[0].Type {
