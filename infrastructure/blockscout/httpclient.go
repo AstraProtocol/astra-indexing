@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/AstraProtocol/astra-indexing/external/cache"
+	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/hashicorp/go-retryablehttp"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -22,6 +23,7 @@ const GET_SEARCH_RESULTS = "/token-autocomplete?q="
 const TX_NOT_FOUND = "transaction not found"
 
 type HTTPClient struct {
+	logger     applogger.Logger
 	httpClient *retryablehttp.Client
 	url        string
 	httpCache  *cache.AstraCache
@@ -102,12 +104,15 @@ func (client *HTTPClient) request(endpoint string, queryParams ...string) (io.Re
 	return rawResp.Body, nil
 }
 
-func NewHTTPClient(url string) *HTTPClient {
+func NewHTTPClient(logger applogger.Logger, url string) *HTTPClient {
 	httpClient := retryablehttp.NewClient()
 	httpClient.Logger = nil
 	httpClient.CheckRetry = defaultRetryPolicy
 
 	return &HTTPClient{
+		logger.WithFields(applogger.LogFields{
+			"module": "BlockscoutHttpClient",
+		}),
 		httpClient,
 		strings.TrimSuffix(url, "/"),
 		cache.NewCache("blockscout"),
@@ -136,11 +141,18 @@ func (client *HTTPClient) GetDetailEvmTx(txHash string) (*TransactionEvm, error)
 }
 
 func (client *HTTPClient) GetSearchResultsAsync(keyword string, results chan []SearchResult) {
+	// Make sure we close these channels when we're done with them\\
+	defer func() {
+		close(results)
+	}()
+
 	rawRespBody, err := client.request(
 		client.getUrl(GET_SEARCH_RESULTS, keyword), "",
 	)
 	if err != nil {
-		println(fmt.Errorf("error getting search results from blockscout: %v", err))
+		client.logger.Errorf("error getting search results from blockscout: %v", err)
+		results <- []SearchResult{}
+		return
 	}
 	defer rawRespBody.Close()
 
@@ -149,13 +161,7 @@ func (client *HTTPClient) GetSearchResultsAsync(keyword string, results chan []S
 
 	var seachResults []SearchResult
 	if err := json.Unmarshal(respBody.Bytes(), &seachResults); err != nil {
-		println(fmt.Errorf("error parsing search results from blockscout: %v", err))
+		client.logger.Errorf("error parsing search results from blockscout: %v", err)
 	}
-
 	results <- seachResults
-
-	// Make sure we close these channels when we're done with them\\
-	defer func() {
-		close(results)
-	}()
 }
