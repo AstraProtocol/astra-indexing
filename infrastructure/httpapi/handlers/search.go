@@ -57,7 +57,7 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 
 	if tmcosmosutils.IsValidCosmosAddress(keyword) {
 		if strings.Contains(keyword, "valoper") {
-			// If keywork is validator address (ex: "astravaloper16mqptvptnds4098cmdmz846lmazenegc270ljs")
+			// If keyword is validator address (ex: "astravaloper16mqptvptnds4098cmdmz846lmazenegc270ljs")
 			// use chainindexing search for validator
 			validators, err := search.validatorsView.Search(keyword)
 			if err != nil {
@@ -90,7 +90,7 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 		go search.blockscoutClient.GetSearchResultsAsync(keyword, resultsChan)
 	}
 
-	// If keywork is integer (ex: 9947), use chainindexing search for block
+	// If keyword is integer (ex: 9947), use chainindexing search for block
 	blocks, err := search.blocksView.Search(keyword)
 	if err != nil {
 		if errors.Is(err, rdb.ErrNoRows) {
@@ -109,7 +109,7 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 
 	blockscoutSearchResults := <-resultsChan
 
-	// If keywork is cosmos tx (ex: "90FEE96EE94CA74AD67FCF155E15488B901B3AE2530EBE4D35A9E77B609EB348")
+	// If keyword is cosmos tx (ex: "90FEE96EE94CA74AD67FCF155E15488B901B3AE2530EBE4D35A9E77B609EB348")
 	// use chainindexing search for transaction then merge with evm tx from blockscout's search result
 	transactions, err := search.transactionsView.Search(keyword)
 	if err != nil {
