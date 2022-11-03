@@ -71,7 +71,6 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 			}
 			if len(validators) > 0 {
 				results.Validators = parseValidators(validators)
-				results.Addresses = nil
 				httpapi.Success(ctx, results)
 				return
 			}
