@@ -21,6 +21,7 @@ type TokenTransfer struct {
 	TokenContractAddress string `json:"tokenContractAddress"`
 	TokenName            string `json:"tokenName"`
 	TokenSymbol          string `json:"tokenSymbol"`
+	TokenId              string `json:"tokenId"`
 }
 
 type TransactionEvm struct {
