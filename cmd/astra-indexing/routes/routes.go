@@ -31,6 +31,7 @@ func InitRouteRegistry(
 	)
 
 	blockscoutClient := blockscout_infrastructure.NewHTTPClient(
+		logger,
 		config.BlockscoutApp.HTTPRPCUrl,
 	)
 

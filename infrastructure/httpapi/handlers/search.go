@@ -49,24 +49,48 @@ func NewSearch(logger applogger.Logger, blockscoutClient blockscout_infrastructu
 }
 
 func (search *Search) Search(ctx *fasthttp.RequestCtx) {
+	resultsChan := make(chan []blockscout_infrastructure.SearchResult)
+
 	keyword := string(ctx.QueryArgs().Peek("keyword"))
 
 	var results SearchResults
 
-	blocks, err := search.blocksView.Search(keyword)
-	if err != nil {
-		if errors.Is(err, rdb.ErrNoRows) {
-			blocks = nil
+	if !tmcosmosutils.IsValidCosmosAddress(keyword) {
+		// Using simultaneously blockscout and chainindexing search
+		go search.blockscoutClient.GetSearchResultsAsync(keyword, resultsChan)
+	} else {
+		if strings.Contains(keyword, "valoper") {
+			// If keyword is validator address (e.g: "astravaloper16mqptvptnds4098cmdmz846lmazenegc270ljs")
+			// use chainindexing's validator search only
+			validators, err := search.validatorsView.Search(keyword)
+			if err != nil {
+				if errors.Is(err, rdb.ErrNoRows) {
+					validators = nil
+				} else {
+					search.logger.Errorf("error searching validator: %v", err)
+					httpapi.InternalServerError(ctx)
+					return
+				}
+			}
+			if len(validators) > 0 {
+				results.Validators = parseValidators(validators)
+				httpapi.Success(ctx, results)
+				return
+			}
 		} else {
-			search.logger.Errorf("error searching block: %v", err)
-			httpapi.InternalServerError(ctx)
+			// If keyword is bech32 address (e.g: "astra1g9v3fp9wkhar696e7896x6wu3hqjsy5cpxdzff")
+			// It must be converted to hex address then using blockscout's api search only
+			_, converted, _ := tmcosmosutils.DecodeAddressToHex(keyword)
+			hex_address := "0x" + hex.EncodeToString(converted)
+			blockscoutAddressResults := search.blockscoutClient.GetSearchResults(hex_address)
+			results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutAddressResults)
+			httpapi.Success(ctx, results)
 			return
 		}
 	}
-	if len(blocks) > 0 {
-		results.Blocks = parseBlocks(blocks)
-	}
 
+	// If keyword is cosmos tx (e.g: "90FEE96EE94CA74AD67FCF155E15488B901B3AE2530EBE4D35A9E77B609EB348")
+	// use chainindexing search for cosmos tx then merge with evm tx from blockscout's search result (if exist)
 	transactions, err := search.transactionsView.Search(keyword)
 	if err != nil {
 		if errors.Is(err, rdb.ErrNoRows) {
@@ -77,94 +101,37 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 			return
 		}
 	}
+
+	// Get blockscout's search result from channel
+	blockscoutSearchResults := <-resultsChan
+
 	if len(transactions) > 0 {
-		blockscoutSearchResults, err := search.blockscoutClient.GetSearchResults(keyword)
-		if err == nil {
-			results.Transactions = parseTransactions(transactions, blockscoutSearchResults)
-		} else {
-			search.logger.Errorf("error parsing search results from blockscout: %v", err)
-		}
+		// merge with evm tx from blockscout's search result (if exist)
+		results.Transactions = parseTransactions(transactions, blockscoutSearchResults)
+		httpapi.Success(ctx, results)
+		return
 	}
 
-	if tmcosmosutils.IsValidCosmosAddress(keyword) {
-		_, converted, _ := tmcosmosutils.DecodeAddressToHex(keyword)
-		hex_address := hex.EncodeToString(converted)
-		blockscoutSearchResults, err := search.blockscoutClient.GetSearchResults("0x" + hex_address)
-		if err == nil {
-			results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutSearchResults)
-		} else {
-			search.logger.Errorf("error parsing search results from blockscout: %v", err)
-			results.Addresses = nil
-		}
-	}
-
-	// If keyword contains a "/", then it is a {account}/{memo} combination
-	strs := strings.SplitN(keyword, "/", 2)
-	if len(strs) == 2 {
-		address := strs[0]
-		if tmcosmosutils.IsValidCosmosAddress(address) {
-			_, converted, _ := tmcosmosutils.DecodeAddressToHex(address)
-			hex_address := hex.EncodeToString(converted)
-			blockscoutSearchResults, err := search.blockscoutClient.GetSearchResults("0x" + hex_address)
-			if err == nil {
-				results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutSearchResults)
-			} else {
-				search.logger.Errorf("error parsing search results from blockscout: %v", err)
-				results.Addresses = nil
-			}
-		}
-	}
-
-	validators, err := search.validatorsView.Search(keyword)
-	if err != nil {
-		if errors.Is(err, rdb.ErrNoRows) {
-			validators = nil
-		} else {
-			search.logger.Errorf("error searching validator: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
-		}
-	}
-	if len(validators) > 0 {
-		results.Addresses = nil
-		results.Validators = parseValidators(validators)
-	}
-
-	// Using blockscout search when search results in chainindexing are empty
+	// Using blockscout's search results when chainindexing's search results are empty
+	// mostly using for token, block search or in case of keyword is hex type
 	if isResultsEmpty(results) {
-		blockscoutSearchResults, err := search.blockscoutClient.GetSearchResults(keyword)
-		if err != nil {
-			search.logger.Errorf("error parsing search results from blockscout: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
-		}
 		if len(blockscoutSearchResults) > 0 {
 			switch blockscoutSearchResults[0].Type {
 			case "token":
 				results.Tokens = blockscout_infrastructure.SearchResultsToTokens(blockscoutSearchResults)
+			case "block":
+				results.Blocks = blockscout_infrastructure.SearchResultsToBlocks(blockscoutSearchResults)
 			case "address":
 				results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutSearchResults)
 			case "transaction":
 				results.Transactions = blockscout_infrastructure.SearchResultsToTransactions(blockscoutSearchResults)
-			default:
-				results.Blocks = blockscout_infrastructure.SearchResultsToBlocks(blockscoutSearchResults)
+			case "transaction_cosmos":
+				results.Transactions = blockscout_infrastructure.SearchResultsToTransactions(blockscoutSearchResults)
 			}
 		}
 	}
 
 	httpapi.Success(ctx, results)
-}
-
-func parseBlocks(data []block_view.Block) []blockscout_infrastructure.BlockResult {
-	var blocks []blockscout_infrastructure.BlockResult
-	for _, block_data := range data {
-		var block blockscout_infrastructure.BlockResult
-		block.BlockHash = block_data.Hash
-		block.BlockNumber = int(block_data.Height)
-		block.InsertedAt = block_data.Time
-		blocks = append(blocks, block)
-	}
-	return blocks
 }
 
 func parseValidators(data []validator_view.ValidatorRow) []blockscout_infrastructure.ValidatorResult {
@@ -175,6 +142,7 @@ func parseValidators(data []validator_view.ValidatorRow) []blockscout_infrastruc
 		validator.Status = validator_data.Status
 		validator.ConsensusNodeAddress = validator_data.ConsensusNodeAddress
 		validator.InitialDelegatorAddress = validator_data.InitialDelegatorAddress
+		validator.Moniker = validator_data.Moniker
 		_, converted, _ := tmcosmosutils.DecodeAddressToHex(validator_data.InitialDelegatorAddress)
 		validator.InitialDelegatorAddressHash = "0x" + hex.EncodeToString(converted)
 		validators = append(validators, validator)

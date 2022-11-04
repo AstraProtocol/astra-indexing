@@ -38,6 +38,7 @@ type ValidatorResult struct {
 	ConsensusNodeAddress        string `json:"consensusNodeAddress"`
 	InitialDelegatorAddress     string `json:"initialDelegatorAddress"`
 	InitialDelegatorAddressHash string `json:"initialDelegatorAddressHash"`
+	Moniker                     string `json:"moniker"`
 	Status                      string `json:"status"`
 	Jailed                      bool   `json:"jailed"`
 }
