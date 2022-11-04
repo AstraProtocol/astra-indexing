@@ -55,10 +55,13 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 
 	var results SearchResults
 
-	if tmcosmosutils.IsValidCosmosAddress(keyword) {
+	if !tmcosmosutils.IsValidCosmosAddress(keyword) {
+		// Using simultaneously blockscout and chainindexing search
+		go search.blockscoutClient.GetSearchResultsAsync(keyword, resultsChan)
+	} else {
 		if strings.Contains(keyword, "valoper") {
-			// If keyword is validator address (ex: "astravaloper16mqptvptnds4098cmdmz846lmazenegc270ljs")
-			// use chainindexing search for validator
+			// If keyword is validator address (e.g: "astravaloper16mqptvptnds4098cmdmz846lmazenegc270ljs")
+			// use chainindexing's validator search only
 			validators, err := search.validatorsView.Search(keyword)
 			if err != nil {
 				if errors.Is(err, rdb.ErrNoRows) {
@@ -75,41 +78,19 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 				return
 			}
 		} else {
-			// If keyword is bech32 address, ex: "astra1g9v3fp9wkhar696e7896x6wu3hqjsy5cpxdzff"
+			// If keyword is bech32 address (e.g: "astra1g9v3fp9wkhar696e7896x6wu3hqjsy5cpxdzff")
 			// It must be converted to hex address then using blockscout's api search only
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(keyword)
-			hex_address := hex.EncodeToString(converted)
-			blockscoutAddressResults := search.blockscoutClient.GetSearchResults("0x" + hex_address)
+			hex_address := "0x" + hex.EncodeToString(converted)
+			blockscoutAddressResults := search.blockscoutClient.GetSearchResults(hex_address)
 			results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutAddressResults)
 			httpapi.Success(ctx, results)
 			return
 		}
-	} else {
-		// Otherwise using simultaneously blockscout and chainindexing search
-		go search.blockscoutClient.GetSearchResultsAsync(keyword, resultsChan)
 	}
 
-	// If keyword is integer (ex: 9947), use chainindexing search for block
-	blocks, err := search.blocksView.Search(keyword)
-	if err != nil {
-		if errors.Is(err, rdb.ErrNoRows) {
-			blocks = nil
-		} else {
-			search.logger.Errorf("error searching block: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
-		}
-	}
-	if len(blocks) > 0 {
-		results.Blocks = parseBlocks(blocks)
-		httpapi.Success(ctx, results)
-		return
-	}
-
-	blockscoutSearchResults := <-resultsChan
-
-	// If keyword is cosmos tx (ex: "90FEE96EE94CA74AD67FCF155E15488B901B3AE2530EBE4D35A9E77B609EB348")
-	// use chainindexing search for transaction then merge with evm tx from blockscout's search result
+	// If keyword is cosmos tx (e.g: "90FEE96EE94CA74AD67FCF155E15488B901B3AE2530EBE4D35A9E77B609EB348")
+	// use chainindexing search for cosmos tx then merge with evm tx from blockscout's search result (if exist)
 	transactions, err := search.transactionsView.Search(keyword)
 	if err != nil {
 		if errors.Is(err, rdb.ErrNoRows) {
@@ -120,14 +101,19 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 			return
 		}
 	}
+
+	// Get blockscout's search result from channel
+	blockscoutSearchResults := <-resultsChan
+
 	if len(transactions) > 0 {
+		// merge with evm tx from blockscout's search result (if exist)
 		results.Transactions = parseTransactions(transactions, blockscoutSearchResults)
 		httpapi.Success(ctx, results)
 		return
 	}
 
 	// Using blockscout's search results when chainindexing's search results are empty
-	// mostly token search or keyword is hex type
+	// mostly using for token, block search or in case of keyword is hex type
 	if isResultsEmpty(results) {
 		if len(blockscoutSearchResults) > 0 {
 			switch blockscoutSearchResults[0].Type {
@@ -148,18 +134,6 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 	httpapi.Success(ctx, results)
 }
 
-func parseBlocks(data []block_view.Block) []blockscout_infrastructure.BlockResult {
-	var blocks []blockscout_infrastructure.BlockResult
-	for _, block_data := range data {
-		var block blockscout_infrastructure.BlockResult
-		block.BlockHash = "0x" + block_data.Hash
-		block.BlockNumber = int(block_data.Height)
-		block.InsertedAt = block_data.Time
-		blocks = append(blocks, block)
-	}
-	return blocks
-}
-
 func parseValidators(data []validator_view.ValidatorRow) []blockscout_infrastructure.ValidatorResult {
 	var validators []blockscout_infrastructure.ValidatorResult
 	for _, validator_data := range data {
@@ -168,6 +142,7 @@ func parseValidators(data []validator_view.ValidatorRow) []blockscout_infrastruc
 		validator.Status = validator_data.Status
 		validator.ConsensusNodeAddress = validator_data.ConsensusNodeAddress
 		validator.InitialDelegatorAddress = validator_data.InitialDelegatorAddress
+		validator.Moniker = validator_data.Moniker
 		_, converted, _ := tmcosmosutils.DecodeAddressToHex(validator_data.InitialDelegatorAddress)
 		validator.InitialDelegatorAddressHash = "0x" + hex.EncodeToString(converted)
 		validators = append(validators, validator)
