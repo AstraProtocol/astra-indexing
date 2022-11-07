@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -109,8 +110,7 @@ func ParseBlockTxsMsgToCommands(
 				// cosmos authz
 				"/cosmos.authz.v1beta1.MsgGrant",
 				"/cosmos.authz.v1beta1.MsgRevoke",
-				// FIXME: https://github.com/AstraProtocol/astra-indexing/issues/673
-				//"/cosmos.authz.v1beta1.MsgExec",
+				"/cosmos.authz.v1beta1.MsgExec",
 
 				// cosmos feegrant
 				"/cosmos.feegrant.v1beta1.MsgGrantAllowance",
@@ -278,12 +278,12 @@ func ParseMsgWithdrawDelegatorReward(
 	var recipient string
 	var amount coin.Coins
 	// When there is no reward withdrew, `transfer` event would not exist
-	if event := log.GetEventByType("transfer"); event == nil {
+	if eventByType := log.GetEventByType("transfer"); eventByType == nil {
 		recipient, _ = parserParams.Msg["delegator_address"].(string)
 		amount = coin.NewEmptyCoins()
 	} else {
-		recipient = event.MustGetAttributeByKey("recipient")
-		amountValue := event.MustGetAttributeByKey("amount")
+		recipient = eventByType.MustGetAttributeByKey("recipient")
+		amountValue := eventByType.MustGetAttributeByKey("amount")
 		amount = coin.MustParseCoinsNormalized(amountValue)
 	}
 
@@ -309,6 +309,7 @@ func ParseMsgWithdrawValidatorCommission(
 			possibleSignerAddresses = append(possibleSignerAddresses, validatorAddress.(string))
 		}
 	}
+	fmt.Println("ParseMsgWithdrawValidatorCommission", parserParams)
 
 	if !parserParams.MsgCommonParams.TxSuccess {
 		return []command.Command{command_usecase.NewCreateMsgWithdrawValidatorCommission(
@@ -325,12 +326,12 @@ func ParseMsgWithdrawValidatorCommission(
 	var recipient string
 	var amount coin.Coins
 	// When there is no reward withdrew, `transfer` event would not exist
-	if event := log.GetEventByType("transfer"); event == nil {
+	if eventByType := log.GetEventByType("transfer"); eventByType == nil {
 		recipient, _ = parserParams.Msg["delegator_address"].(string)
 		amount = coin.NewEmptyCoins()
 	} else {
-		recipient = event.MustGetAttributeByKey("recipient")
-		amountValue := event.MustGetAttributeByKey("amount")
+		recipient = eventByType.MustGetAttributeByKey("recipient")
+		amountValue := eventByType.MustGetAttributeByKey("amount")
 		amount = coin.MustParseCoinsNormalized(amountValue)
 	}
 
@@ -465,15 +466,12 @@ func parseMsgSubmitParamChangeProposal(
 			},
 		)}, possibleSignerAddresses
 	}
-	for i := range txsResult.Log {
-		fmt.Println(txsResult.Log[i])
-	}
 	log := utils.NewParsedTxsResultLog(&txsResult.Log[msgIndex])
-	event := log.GetEventByType("submit_proposal")
-	if event == nil {
+	eventByType := log.GetEventByType("submit_proposal")
+	if eventByType == nil {
 		panic("missing `submit_proposal` event in TxsResult log")
 	}
-	proposalId := event.GetAttributeByKey("proposal_id")
+	proposalId := eventByType.GetAttributeByKey("proposal_id")
 	if proposalId == nil {
 		panic("missing `proposal_id` in `submit_proposal` event of TxsResult log")
 	}
@@ -548,11 +546,11 @@ func parseMsgSubmitCommunityFundSpendProposal(
 	}
 	log := utils.NewParsedTxsResultLog(&txsResult.Log[msgIndex])
 	// When there is no reward withdrew, `transfer` event would not exist
-	event := log.GetEventByType("submit_proposal")
-	if event == nil {
+	eventByType := log.GetEventByType("submit_proposal")
+	if eventByType == nil {
 		panic("missing `submit_proposal` event in TxsResult log")
 	}
-	proposalId := event.GetAttributeByKey("proposal_id")
+	proposalId := eventByType.GetAttributeByKey("proposal_id")
 	if proposalId == nil {
 		panic("missing `proposal_id` in `submit_proposal` event of TxsResult log")
 	}
@@ -629,11 +627,11 @@ func parseMsgSubmitSoftwareUpgradeProposal(
 	}
 	log := utils.NewParsedTxsResultLog(&txsResult.Log[msgIndex])
 	// When there is no reward withdrew, `transfer` event would not exist
-	event := log.GetEventByType("submit_proposal")
-	if event == nil {
+	eventByType := log.GetEventByType("submit_proposal")
+	if eventByType == nil {
 		panic("missing `submit_proposal` event in TxsResult log")
 	}
-	proposalId := event.GetAttributeByKey("proposal_id")
+	proposalId := eventByType.GetAttributeByKey("proposal_id")
 	if proposalId == nil {
 		panic("missing `proposal_id` in `submit_proposal` event of TxsResult log")
 	}
@@ -694,11 +692,11 @@ func parseMsgSubmitCancelSoftwareUpgradeProposal(
 	}
 	log := utils.NewParsedTxsResultLog(&txsResult.Log[msgIndex])
 	// When there is no reward withdrew, `transfer` event would not exist
-	event := log.GetEventByType("submit_proposal")
-	if event == nil {
+	eventByType := log.GetEventByType("submit_proposal")
+	if eventByType == nil {
 		panic("missing `submit_proposal` event in TxsResult log")
 	}
-	proposalId := event.GetAttributeByKey("proposal_id")
+	proposalId := eventByType.GetAttributeByKey("proposal_id")
 	if proposalId == nil {
 		panic("missing `proposal_id` in `submit_proposal` event of TxsResult log")
 	}
@@ -759,11 +757,11 @@ func parseMsgSubmitTextProposal(
 	}
 	log := utils.NewParsedTxsResultLog(&txsResult.Log[msgIndex])
 	// When there is no reward withdrew, `transfer` event would not exist
-	event := log.GetEventByType("submit_proposal")
-	if event == nil {
+	eventByType := log.GetEventByType("submit_proposal")
+	if eventByType == nil {
 		panic("missing `submit_proposal` event in TxsResult log")
 	}
-	proposalId := event.GetAttributeByKey("proposal_id")
+	proposalId := eventByType.GetAttributeByKey("proposal_id")
 	if proposalId == nil {
 		panic("missing `proposal_id` in `submit_proposal` event of TxsResult log")
 	}
@@ -829,11 +827,11 @@ func parseMsgSubmitUnknownProposal(
 
 	log := utils.NewParsedTxsResultLog(&txsResult.Log[msgIndex])
 	// When there is no reward withdrew, `transfer` event would not exist
-	event := log.GetEventByType("submit_proposal")
-	if event == nil {
+	eventByType := log.GetEventByType("submit_proposal")
+	if eventByType == nil {
 		panic("missing `submit_proposal` event in TxsResult log")
 	}
-	proposalId := event.GetAttributeByKey("proposal_id")
+	proposalId := eventByType.GetAttributeByKey("proposal_id")
 	if proposalId == nil {
 		panic("missing `proposal_id` in `submit_proposal` event of TxsResult log")
 	}
@@ -966,11 +964,11 @@ func ParseMsgDelegate(
 		}
 
 		amount := transferEvent.MustGetAttributeByKey("amount")
-		coin, coinErr := coin.ParseCoinNormalized(amount)
+		coinAmount, coinErr := coin.ParseCoinNormalized(amount)
 		if coinErr != nil {
 			panic(fmt.Errorf("error parsing auto claimed rewards amount: %v", coinErr))
 		}
-		autoClaimedRewards = autoClaimedRewards.Add(coin)
+		autoClaimedRewards = autoClaimedRewards.Add(coinAmount)
 	}
 
 	return []command.Command{command_usecase.NewCreateMsgDelegate(
@@ -1038,11 +1036,11 @@ func ParseMsgUndelegate(
 		}
 
 		amount := transferEvent.MustGetAttributeByKey("amount")
-		coin, coinErr := coin.ParseCoinNormalized(amount)
+		coinAmount, coinErr := coin.ParseCoinNormalized(amount)
 		if coinErr != nil {
 			panic(fmt.Errorf("error parsing auto claimed rewards amount: %v", coinErr))
 		}
-		autoClaimedRewards = autoClaimedRewards.Add(coin)
+		autoClaimedRewards = autoClaimedRewards.Add(coinAmount)
 	}
 
 	return []command.Command{command_usecase.NewCreateMsgUndelegate(
@@ -1100,11 +1098,11 @@ func ParseMsgBeginRedelegate(
 		}
 
 		amount := transferEvent.MustGetAttributeByKey("amount")
-		coin, coinErr := coin.ParseCoinNormalized(amount)
+		coinAmount, coinErr := coin.ParseCoinNormalized(amount)
 		if coinErr != nil {
 			panic(fmt.Errorf("error parsing auto claimed rewards amount: %v", coinErr))
 		}
-		autoClaimedRewards = autoClaimedRewards.Add(coin)
+		autoClaimedRewards = autoClaimedRewards.Add(coinAmount)
 	}
 
 	return []command.Command{command_usecase.NewCreateMsgBeginRedelegate(
@@ -1653,18 +1651,49 @@ func parseMsgExecInnerMsgs(
 			panic(fmt.Errorf("error missing '@type' in MsgExec.msgs[%v]: %v", innerMsgIndex, innerMsg))
 		}
 
-		parser := parserParams.ParserManager.GetParser(utils.CosmosParserKey(innerMsgType), utils.ParserBlockHeight(blockHeight))
+		//  skip ParseTxsResultsEvents for inner MsgExec
+		if innerMsgType == "/cosmos.authz.v1beta1.MsgExec" {
+			_, ok := innerMsg["msgs"].([]interface{})
+			if !ok {
+				panic(fmt.Errorf("error parsing innerMsgExec.msgs.msgs to []interface{}: %v", innerMsg["msgs"]))
+			}
 
-		msgCommands, _ := parser(utils.CosmosParserParams{
-			AddressPrefix:   parserParams.AddressPrefix,
-			StakingDenom:    parserParams.StakingDenom,
-			TxsResult:       parserParams.TxsResult,
-			MsgCommonParams: parserParams.MsgCommonParams,
-			Msg:             innerMsg,
-			MsgIndex:        parserParams.MsgIndex,
-			ParserManager:   parserParams.ParserManager,
-		})
-		commands = append(commands, msgCommands...)
+			parser := parserParams.ParserManager.GetParser(utils.CosmosParserKey(innerMsgType), utils.ParserBlockHeight(blockHeight))
+			parserParams.Msg = innerMsg
+
+			msgCommands, _ := parser(utils.CosmosParserParams{
+				AddressPrefix:   parserParams.AddressPrefix,
+				StakingDenom:    parserParams.StakingDenom,
+				TxsResult:       parserParams.TxsResult,
+				MsgCommonParams: parserParams.MsgCommonParams,
+				Msg:             innerMsg,
+				MsgIndex:        innerMsgIndex,
+				ParserManager:   parserParams.ParserManager,
+			})
+			commands = append(commands, msgCommands...)
+
+		} else {
+			parser := parserParams.ParserManager.GetParser(utils.CosmosParserKey(innerMsgType), utils.ParserBlockHeight(blockHeight))
+
+			if len(parserParams.TxsResult.Log) > 0 {
+				// parse events by msg type
+				parserParams.TxsResult.Log = ParseTxsResultsEvents(innerMsgIndex, innerMsg, parserParams.TxsResult.Log[parserParams.MsgCommonParams.MsgIndex])
+				bytes, _ := json.Marshal(parserParams.TxsResult.Log)
+				rawLog, _ := json.Marshal(bytes)
+				parserParams.TxsResult.RawLog = string(rawLog)
+			}
+
+			msgCommands, _ := parser(utils.CosmosParserParams{
+				AddressPrefix:   parserParams.AddressPrefix,
+				StakingDenom:    parserParams.StakingDenom,
+				TxsResult:       parserParams.TxsResult,
+				MsgCommonParams: parserParams.MsgCommonParams,
+				Msg:             innerMsg,
+				MsgIndex:        0,
+				ParserManager:   parserParams.ParserManager,
+			})
+			commands = append(commands, msgCommands...)
+		}
 	}
 
 	return commands

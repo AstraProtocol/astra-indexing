@@ -22,7 +22,7 @@ func NewCreateMsgDelegate(msgCommonParams event.MsgCommonParams, params model.Ms
 
 // Name returns name of command
 func (*CreateMsgDelegate) Name() string {
-	return "CreateMsgDelegate"
+	return "/cosmos.staking.v1beta1.MsgDelegate.Create"
 }
 
 // Version returns version of command

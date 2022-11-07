@@ -31,7 +31,7 @@ func (log *ParsedTxsResultsEvents) HasEvent(t string) bool {
 	return ok
 }
 
-// Get the last event by type
+// GetEventByType Get the last event by type
 func (log *ParsedTxsResultsEvents) GetEventByType(t string) *ParsedTxsResultLogEvent {
 	if !log.HasEvent(t) {
 		return nil
@@ -40,7 +40,7 @@ func (log *ParsedTxsResultsEvents) GetEventByType(t string) *ParsedTxsResultLogE
 	return NewParsedTxsResultLogEvent(&log.rawEvents[log.typeIndex[t][lastIndex]])
 }
 
-// Get first event by type
+// GetFirstEventByType Get first event by type
 func (log *ParsedTxsResultsEvents) GetFirstEventByType(t string) *ParsedTxsResultLogEvent {
 	if !log.HasEvent(t) {
 		return nil
@@ -48,7 +48,7 @@ func (log *ParsedTxsResultsEvents) GetFirstEventByType(t string) *ParsedTxsResul
 	return NewParsedTxsResultLogEvent(&log.rawEvents[log.typeIndex[t][0]])
 }
 
-// Get all events by type
+// GetEventsByType Get all events by type
 func (log *ParsedTxsResultsEvents) GetEventsByType(t string) []*ParsedTxsResultLogEvent {
 	if !log.HasEvent(t) {
 		return nil
@@ -60,4 +60,15 @@ func (log *ParsedTxsResultsEvents) GetEventsByType(t string) []*ParsedTxsResultL
 	}
 
 	return logEvents
+}
+
+func (log *ParsedTxsResultsEvents) GetRawEvents() []model.BlockResultsEvent {
+	return log.rawEvents
+}
+
+func (log *ParsedTxsResultsEvents) GetTypeIndex(key string) []int {
+	return log.typeIndex[key]
+}
+func (log *ParsedTxsResultsEvents) RemoveIndexType(key string, index int) {
+	log.typeIndex[key] = append(log.typeIndex[key][:index], log.typeIndex[key][index+1:]...)
 }
