@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -109,8 +110,7 @@ func ParseBlockTxsMsgToCommands(
 				// cosmos authz
 				"/cosmos.authz.v1beta1.MsgGrant",
 				"/cosmos.authz.v1beta1.MsgRevoke",
-				// FIXME: https://github.com/AstraProtocol/astra-indexing/issues/673
-				//"/cosmos.authz.v1beta1.MsgExec",
+				"/cosmos.authz.v1beta1.MsgExec",
 
 				// cosmos feegrant
 				"/cosmos.feegrant.v1beta1.MsgGrantAllowance",
@@ -309,6 +309,7 @@ func ParseMsgWithdrawValidatorCommission(
 			possibleSignerAddresses = append(possibleSignerAddresses, validatorAddress.(string))
 		}
 	}
+	fmt.Println("ParseMsgWithdrawValidatorCommission", parserParams)
 
 	if !parserParams.MsgCommonParams.TxSuccess {
 		return []command.Command{command_usecase.NewCreateMsgWithdrawValidatorCommission(
@@ -464,9 +465,6 @@ func parseMsgSubmitParamChangeProposal(
 				InitialDeposit:  initialDepositAmount,
 			},
 		)}, possibleSignerAddresses
-	}
-	for i := range txsResult.Log {
-		fmt.Println(txsResult.Log[i])
 	}
 	log := utils.NewParsedTxsResultLog(&txsResult.Log[msgIndex])
 	eventByType := log.GetEventByType("submit_proposal")
@@ -1653,18 +1651,49 @@ func parseMsgExecInnerMsgs(
 			panic(fmt.Errorf("error missing '@type' in MsgExec.msgs[%v]: %v", innerMsgIndex, innerMsg))
 		}
 
-		parser := parserParams.ParserManager.GetParser(utils.CosmosParserKey(innerMsgType), utils.ParserBlockHeight(blockHeight))
+		//  skip ParseTxsResultsEvents for inner MsgExec
+		if innerMsgType == "/cosmos.authz.v1beta1.MsgExec" {
+			_, ok := innerMsg["msgs"].([]interface{})
+			if !ok {
+				panic(fmt.Errorf("error parsing innerMsgExec.msgs.msgs to []interface{}: %v", innerMsg["msgs"]))
+			}
 
-		msgCommands, _ := parser(utils.CosmosParserParams{
-			AddressPrefix:   parserParams.AddressPrefix,
-			StakingDenom:    parserParams.StakingDenom,
-			TxsResult:       parserParams.TxsResult,
-			MsgCommonParams: parserParams.MsgCommonParams,
-			Msg:             innerMsg,
-			MsgIndex:        parserParams.MsgIndex,
-			ParserManager:   parserParams.ParserManager,
-		})
-		commands = append(commands, msgCommands...)
+			parser := parserParams.ParserManager.GetParser(utils.CosmosParserKey(innerMsgType), utils.ParserBlockHeight(blockHeight))
+			parserParams.Msg = innerMsg
+
+			msgCommands, _ := parser(utils.CosmosParserParams{
+				AddressPrefix:   parserParams.AddressPrefix,
+				StakingDenom:    parserParams.StakingDenom,
+				TxsResult:       parserParams.TxsResult,
+				MsgCommonParams: parserParams.MsgCommonParams,
+				Msg:             innerMsg,
+				MsgIndex:        innerMsgIndex,
+				ParserManager:   parserParams.ParserManager,
+			})
+			commands = append(commands, msgCommands...)
+
+		} else {
+			parser := parserParams.ParserManager.GetParser(utils.CosmosParserKey(innerMsgType), utils.ParserBlockHeight(blockHeight))
+
+			if len(parserParams.TxsResult.Log) > 0 {
+				// parse events by msg type
+				parserParams.TxsResult.Log = ParseTxsResultsEvents(innerMsgIndex, innerMsg, parserParams.TxsResult.Log[parserParams.MsgCommonParams.MsgIndex])
+				bytes, _ := json.Marshal(parserParams.TxsResult.Log)
+				rawLog, _ := json.Marshal(bytes)
+				parserParams.TxsResult.RawLog = string(rawLog)
+			}
+
+			msgCommands, _ := parser(utils.CosmosParserParams{
+				AddressPrefix:   parserParams.AddressPrefix,
+				StakingDenom:    parserParams.StakingDenom,
+				TxsResult:       parserParams.TxsResult,
+				MsgCommonParams: parserParams.MsgCommonParams,
+				Msg:             innerMsg,
+				MsgIndex:        0,
+				ParserManager:   parserParams.ParserManager,
+			})
+			commands = append(commands, msgCommands...)
+		}
 	}
 
 	return commands

@@ -32,9 +32,9 @@ func (_ *CreateMsgWithdrawValidatorCommission) Version() int {
 }
 
 func (cmd *CreateMsgWithdrawValidatorCommission) Exec() (entity_event.Event, error) {
-	event := event.NewMsgWithdrawValidatorCommission(
+	eventCommission := event.NewMsgWithdrawValidatorCommission(
 		cmd.msgCommonParams,
 		cmd.params,
 	)
-	return event, nil
+	return eventCommission, nil
 }

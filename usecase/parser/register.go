@@ -62,8 +62,7 @@ func InitParsers(manager *utils.CosmosParserManager) {
 	// cosmos authz
 	manager.RegisterParser("/cosmos.authz.v1beta1.MsgGrant", BEGIN_BLOCK_HEIGHT, ParseMsgGrant)
 	manager.RegisterParser("/cosmos.authz.v1beta1.MsgRevoke", BEGIN_BLOCK_HEIGHT, ParseMsgRevoke)
-	// FIXME: https://github.com/AstraProtocol/astra-indexing/issues/673
-	//manager.RegisterParser("/cosmos.authz.v1beta1.MsgExec", BEGIN_BLOCK_HEIGHT, ParseMsgExec)
+	manager.RegisterParser("/cosmos.authz.v1beta1.MsgExec", BEGIN_BLOCK_HEIGHT, ParseMsgExec)
 
 	// cosmos feegrant
 	manager.RegisterParser("/cosmos.feegrant.v1beta1.MsgGrantAllowance", BEGIN_BLOCK_HEIGHT, ParseMsgGrantAllowance)

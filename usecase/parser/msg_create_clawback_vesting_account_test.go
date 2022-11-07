@@ -1,7 +1,6 @@
 package parser_test
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -90,7 +89,6 @@ var _ = Describe("ParseMsgCommands", func() {
 			createMsgCreateClawbackVestingAccount := untypedEvent.(*event.MsgCreateClawbackVestingAccount)
 
 			regex, _ := regexp.Compile("\n?\r?\\s?")
-			fmt.Println(json.MustMarshalToString(createMsgCreateClawbackVestingAccount))
 			Expect(json.MustMarshalToString(createMsgCreateClawbackVestingAccount)).To(Equal(
 				strings.Replace(
 					regex.ReplaceAllString(expected, ""),
