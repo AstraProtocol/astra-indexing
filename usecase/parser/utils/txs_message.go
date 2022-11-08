@@ -2,8 +2,6 @@ package utils
 
 import "encoding/json"
 
-//event_usecase "github.com/AstraProtocol/astra-indexing/usecase/event"
-
 type MsgEvmBase struct {
 	Type    string        `json:"type"`
 	Content MsgEvmContent `json:"content"`
