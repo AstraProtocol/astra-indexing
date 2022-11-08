@@ -21,13 +21,13 @@ type MsgEvmParams struct {
 }
 
 func ParseMsgEvmTx(tx_message string) MsgEvmBase {
-	var result MsgEvmBase
+	var result []MsgEvmBase
 
 	if err := json.Unmarshal([]byte(tx_message), &result); err != nil {
 		return MsgEvmBase{}
 	}
 
-	return result
+	return result[0]
 }
 
 func IsEvmTxHash(evm_tx_hash string) bool {
