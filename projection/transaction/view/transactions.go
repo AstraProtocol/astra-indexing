@@ -14,6 +14,8 @@ import (
 	"github.com/AstraProtocol/astra-indexing/external/json"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
+	event_usecase "github.com/AstraProtocol/astra-indexing/usecase/event"
+	utils "github.com/AstraProtocol/astra-indexing/usecase/parser/utils"
 )
 
 type BlockTransactions interface {
@@ -54,6 +56,7 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 				"block_hash",
 				"block_time",
 				"hash",
+				"evm_hash",
 				"index",
 				"success",
 				"code",
@@ -77,6 +80,15 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 			)
 		}
 
+		// Parse evmTxHash from tx message
+		var evmHash string
+		msgEvmBase := utils.ParseMsgEvmTx(transactionMessagesJSON)
+		if strings.Contains(msgEvmBase.Type, event_usecase.MSG_ETHEREUM_TX) {
+			evmHash = msgEvmBase.Content.Params.Hash
+		} else {
+			evmHash = ""
+		}
+
 		var feeJSON string
 		if feeJSON, marshalErr = json.MarshalToString(transaction.Fee); marshalErr != nil {
 			return fmt.Errorf(
@@ -96,6 +108,7 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 			transaction.BlockHash,
 			transactionsView.rdb.Tton(&transaction.BlockTime),
 			transaction.Hash,
+			evmHash,
 			transaction.Index,
 			transaction.Success,
 			transaction.Code,
@@ -144,6 +157,7 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 		"block_hash",
 		"block_time",
 		"hash",
+		"evm_hash",
 		"index",
 		"success",
 		"code",
@@ -167,6 +181,15 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 		return fmt.Errorf("error JSON marshalling block transation messages for insertion: %v: %w", err, rdb.ErrBuildSQLStmt)
 	}
 
+	// Parse evmTxHash from tx message
+	var evmHash string
+	msgEvmBase := utils.ParseMsgEvmTx(transactionMessagesJSON)
+	if strings.Contains(msgEvmBase.Type, event_usecase.MSG_ETHEREUM_TX) {
+		evmHash = msgEvmBase.Content.Params.Hash
+	} else {
+		evmHash = ""
+	}
+
 	var feeJSON string
 	if feeJSON, err = json.MarshalToString(transaction.Fee); err != nil {
 		return fmt.Errorf("error JSON marshalling block transation fee for insertion: %v: %w", err, rdb.ErrBuildSQLStmt)
@@ -182,6 +205,7 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 		transaction.BlockHash,
 		transactionsView.rdb.Tton(&transaction.BlockTime),
 		transaction.Hash,
+		evmHash,
 		transaction.Index,
 		transaction.Success,
 		transaction.Code,
@@ -214,6 +238,7 @@ func (transactionsView *BlockTransactionsView) FindByHash(txHash string) (*Trans
 		"block_hash",
 		"block_time",
 		"hash",
+		"evm_hash",
 		"success",
 		"code",
 		"log",
@@ -248,6 +273,7 @@ func (transactionsView *BlockTransactionsView) FindByHash(txHash string) (*Trans
 		&transaction.BlockHash,
 		blockTimeReader.ScannableArg(),
 		&transaction.Hash,
+		&transaction.EvmHash,
 		&transaction.Success,
 		&transaction.Code,
 		&transaction.Log,
@@ -303,6 +329,7 @@ func (transactionsView *BlockTransactionsView) List(
 		"block_hash",
 		"block_time",
 		"hash",
+		"evm_hash",
 		"success",
 		"code",
 		"log",
@@ -370,6 +397,7 @@ func (transactionsView *BlockTransactionsView) List(
 			&transaction.BlockHash,
 			blockTimeReader.ScannableArg(),
 			&transaction.Hash,
+			&transaction.EvmHash,
 			&transaction.Success,
 			&transaction.Code,
 			&transaction.Log,
@@ -430,6 +458,7 @@ func (transactionsView *BlockTransactionsView) Search(keyword string) ([]Transac
 		"block_hash",
 		"block_time",
 		"hash",
+		"evm_hash",
 		"success",
 		"code",
 		"log",
@@ -472,6 +501,7 @@ func (transactionsView *BlockTransactionsView) Search(keyword string) ([]Transac
 			&transaction.BlockHash,
 			blockTimeReader.ScannableArg(),
 			&transaction.Hash,
+			&transaction.EvmHash,
 			&transaction.Success,
 			&transaction.Code,
 			&transaction.Log,
@@ -542,6 +572,7 @@ type TransactionRow struct {
 	BlockHash     string                  `json:"blockHash"`
 	BlockTime     utctime.UTCTime         `json:"blockTime"`
 	Hash          string                  `json:"hash"`
+	EvmHash       string                  `json:"evmHash"`
 	Index         int                     `json:"index"`
 	Success       bool                    `json:"success"`
 	Code          int                     `json:"code"`
