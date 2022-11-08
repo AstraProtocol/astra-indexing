@@ -17,6 +17,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
+	utils "github.com/AstraProtocol/astra-indexing/usecase/parser/utils"
 )
 
 type Transactions struct {
@@ -73,17 +74,31 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 		}
 		httpapi.Success(ctx, transaction)
 	} else {
-		transaction, err := handler.transactionsView.FindByHash(hashParam)
-		if err != nil {
-			if errors.Is(err, rdb.ErrNoRows) {
-				httpapi.NotFound(ctx)
+		if utils.IsEvmTxHash(hashParam) {
+			transaction, err := handler.transactionsView.FindByEvmHash(hashParam)
+			if err != nil {
+				if errors.Is(err, rdb.ErrNoRows) {
+					httpapi.NotFound(ctx)
+					return
+				}
+				handler.logger.Errorf("error finding transactions by hash: %v", err)
+				httpapi.InternalServerError(ctx)
 				return
 			}
-			handler.logger.Errorf("error finding transactions by hash: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
+			httpapi.Success(ctx, transaction)
+		} else {
+			transaction, err := handler.transactionsView.FindByHash(hashParam)
+			if err != nil {
+				if errors.Is(err, rdb.ErrNoRows) {
+					httpapi.NotFound(ctx)
+					return
+				}
+				handler.logger.Errorf("error finding transactions by hash: %v", err)
+				httpapi.InternalServerError(ctx)
+				return
+			}
+			httpapi.Success(ctx, transaction)
 		}
-		httpapi.Success(ctx, transaction)
 	}
 }
 

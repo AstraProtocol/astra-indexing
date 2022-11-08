@@ -1,6 +1,9 @@
 package utils
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"regexp"
+)
 
 type MsgEvmBase struct {
 	Type    string        `json:"type"`
@@ -25,4 +28,12 @@ func ParseMsgEvmTx(tx_message string) MsgEvmBase {
 	}
 
 	return result
+}
+
+func IsEvmTxHash(evm_tx_hash string) bool {
+	match, err := regexp.MatchString("^0x[a-fA-F0-9]{64}$", evm_tx_hash)
+	if err != nil {
+		return false
+	}
+	return match
 }
