@@ -81,6 +81,8 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 			)
 		}
 
+		println(transactionMessagesJSON)
+
 		// Parse evmTxHash from tx message
 		var evmHash string
 		msgEvmBase := utils.ParseMsgEvmTx(transactionMessagesJSON)
@@ -181,6 +183,8 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 	if transactionMessagesJSON, err = json.MarshalToString(transaction.Messages); err != nil {
 		return fmt.Errorf("error JSON marshalling block transation messages for insertion: %v: %w", err, rdb.ErrBuildSQLStmt)
 	}
+
+	println(transactionMessagesJSON)
 
 	// Parse evmTxHash from tx message
 	var evmHash string
