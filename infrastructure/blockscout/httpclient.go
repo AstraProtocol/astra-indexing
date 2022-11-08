@@ -18,7 +18,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-const GET_DETAIL_EVM_TX = "/api/v1?module=transaction&action=getTxCosmosInfo&txhash="
+const GET_DETAIL_EVM_TX_BY_COSMOS_TX_HASH = "/api/v1?module=transaction&action=getTxCosmosInfo&txhash="
+const GET_DETAIL_EVM_TX_BY_EVM_TX_HASH = "/api/v1?module=transaction&action=gettxinfo&txhash="
 const GET_SEARCH_RESULTS = "/token-autocomplete?q="
 const TX_NOT_FOUND = "transaction not found"
 
@@ -119,9 +120,30 @@ func NewHTTPClient(logger applogger.Logger, url string) *HTTPClient {
 	}
 }
 
-func (client *HTTPClient) GetDetailEvmTx(txHash string) (*TransactionEvm, error) {
+func (client *HTTPClient) GetDetailEvmTxByCosmosTxHash(txHash string) (*TransactionEvm, error) {
 	rawRespBody, err := client.request(
-		client.getUrl(GET_DETAIL_EVM_TX, txHash), "",
+		client.getUrl(GET_DETAIL_EVM_TX_BY_COSMOS_TX_HASH, txHash), "",
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var txResp TxResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&txResp); err != nil {
+		return nil, err
+	}
+
+	if txResp.Status == "0" {
+		return nil, fmt.Errorf(TX_NOT_FOUND)
+	}
+
+	return &txResp.Result, nil
+}
+
+func (client *HTTPClient) GetDetailEvmTxByEvmTxHash(evmTxHash string) (*TransactionEvm, error) {
+	rawRespBody, err := client.request(
+		client.getUrl(GET_DETAIL_EVM_TX_BY_EVM_TX_HASH, evmTxHash), "",
 	)
 	if err != nil {
 		return nil, err

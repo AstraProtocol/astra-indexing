@@ -60,19 +60,37 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	if string(ctx.QueryArgs().Peek("type")) == "evm" {
-		transaction, err := handler.blockscoutClient.GetDetailEvmTx(hashParam)
-		if err != nil {
-			if strings.Contains(fmt.Sprint(err), blockscout_infrastructure.TX_NOT_FOUND) {
-				ctx.QueryArgs().Del("type")
-				handler.FindByHash(ctx)
-				return
-			} else {
-				handler.logger.Errorf("error parsing tx response from blockscout: %v", err)
-				httpapi.InternalServerError(ctx)
-				return
+		if utils.IsEvmTxHash(hashParam) {
+			transaction, err := handler.blockscoutClient.GetDetailEvmTxByEvmTxHash(hashParam)
+			if err != nil {
+				if strings.Contains(fmt.Sprint(err), blockscout_infrastructure.TX_NOT_FOUND) {
+					ctx.QueryArgs().Del("type")
+					handler.FindByHash(ctx)
+					return
+				} else {
+					handler.logger.Errorf("error parsing tx response from blockscout: %v", err)
+					httpapi.InternalServerError(ctx)
+					return
+				}
 			}
+			httpapi.Success(ctx, transaction)
+			return
+		} else {
+			transaction, err := handler.blockscoutClient.GetDetailEvmTxByCosmosTxHash(hashParam)
+			if err != nil {
+				if strings.Contains(fmt.Sprint(err), blockscout_infrastructure.TX_NOT_FOUND) {
+					ctx.QueryArgs().Del("type")
+					handler.FindByHash(ctx)
+					return
+				} else {
+					handler.logger.Errorf("error parsing tx response from blockscout: %v", err)
+					httpapi.InternalServerError(ctx)
+					return
+				}
+			}
+			httpapi.Success(ctx, transaction)
+			return
 		}
-		httpapi.Success(ctx, transaction)
 	} else {
 		if utils.IsEvmTxHash(hashParam) {
 			transaction, err := handler.transactionsView.FindByEvmHash(hashParam)
@@ -86,6 +104,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 				return
 			}
 			httpapi.Success(ctx, transaction)
+			return
 		} else {
 			transaction, err := handler.transactionsView.FindByHash(hashParam)
 			if err != nil {
@@ -98,6 +117,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 				return
 			}
 			httpapi.Success(ctx, transaction)
+			return
 		}
 	}
 }
