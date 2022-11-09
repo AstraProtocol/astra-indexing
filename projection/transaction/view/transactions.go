@@ -13,6 +13,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/external/json"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
+	evm_utils "github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 )
 
@@ -522,101 +523,128 @@ func (transactionsView *BlockTransactionsView) List(
 }
 
 func (transactionsView *BlockTransactionsView) Search(keyword string) ([]TransactionRow, error) {
-	keyword = strings.ToUpper(keyword)
-	sql, sqlArgs, err := transactionsView.rdb.StmtBuilder.Select(
-		"block_height",
-		"block_hash",
-		"block_time",
-		"hash",
-		"evm_hash",
-		"success",
-		"code",
-		"log",
-		"fee",
-		"fee_payer",
-		"fee_granter",
-		"gas_wanted",
-		"gas_used",
-		"memo",
-		"timeout_height",
-		"messages",
-		"signers",
-	).From(
-		"view_transactions",
-	).Where(
-		"hash = ?", keyword,
-	).OrderBy(
-		"block_height",
-	).Limit(5).ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("error building transactions select SQL: %v, %w", err, rdb.ErrBuildSQLStmt)
+	var sql string
+	var sqlArgs []interface{}
+	var err error
+	if evm_utils.IsEvmTxHash(keyword) {
+		keyword = strings.ToLower(keyword)
+		sql, sqlArgs, err = transactionsView.rdb.StmtBuilder.Select(
+			"block_height",
+			"block_hash",
+			"block_time",
+			"hash",
+			"evm_hash",
+			"success",
+			"code",
+			"log",
+			"fee",
+			"fee_payer",
+			"fee_granter",
+			"gas_wanted",
+			"gas_used",
+			"memo",
+			"timeout_height",
+			"messages",
+			"signers",
+		).From(
+			"view_transactions",
+		).Where(
+			"evm_hash = ?", keyword,
+		).OrderBy(
+			"block_height",
+		).ToSql()
+		if err != nil {
+			return nil, fmt.Errorf("error building transactions select SQL: %v, %w", err, rdb.ErrBuildSQLStmt)
+		}
+	} else {
+		keyword = strings.ToUpper(keyword)
+		sql, sqlArgs, err = transactionsView.rdb.StmtBuilder.Select(
+			"block_height",
+			"block_hash",
+			"block_time",
+			"hash",
+			"evm_hash",
+			"success",
+			"code",
+			"log",
+			"fee",
+			"fee_payer",
+			"fee_granter",
+			"gas_wanted",
+			"gas_used",
+			"memo",
+			"timeout_height",
+			"messages",
+			"signers",
+		).From(
+			"view_transactions",
+		).Where(
+			"hash = ?", keyword,
+		).OrderBy(
+			"block_height",
+		).ToSql()
+		if err != nil {
+			return nil, fmt.Errorf("error building transactions select SQL: %v, %w", err, rdb.ErrBuildSQLStmt)
+		}
 	}
 
-	rowsResult, err := transactionsView.rdb.Query(sql, sqlArgs...)
-	if err != nil {
-		return nil, fmt.Errorf("error executing transactions select SQL: %v: %w", err, rdb.ErrQuery)
+	var transaction TransactionRow
+	var feeJSON *string
+	var messagesJSON *string
+	var signersJSON *string
+	blockTimeReader := transactionsView.rdb.NtotReader()
+
+	if err = transactionsView.rdb.QueryRow(sql, sqlArgs...).Scan(
+		&transaction.BlockHeight,
+		&transaction.BlockHash,
+		blockTimeReader.ScannableArg(),
+		&transaction.Hash,
+		&transaction.EvmHash,
+		&transaction.Success,
+		&transaction.Code,
+		&transaction.Log,
+		&feeJSON,
+		&transaction.FeePayer,
+		&transaction.FeeGranter,
+		&transaction.GasWanted,
+		&transaction.GasUsed,
+		&transaction.Memo,
+		&transaction.TimeoutHeight,
+		&messagesJSON,
+		&signersJSON,
+	); err != nil {
+		if errors.Is(err, rdb.ErrNoRows) {
+			return nil, rdb.ErrNoRows
+		}
+		return nil, fmt.Errorf("error scanning transaction row: %v: %w", err, rdb.ErrQuery)
 	}
-	defer rowsResult.Close()
+
+	blockTime, parseErr := blockTimeReader.Parse()
+	if parseErr != nil {
+		return nil, fmt.Errorf("error parsing transaction block time: %v: %w", parseErr, rdb.ErrQuery)
+	}
+	transaction.BlockTime = *blockTime
+
+	var fee coin.Coins
+	if unmarshalErr := json.UnmarshalFromString(*feeJSON, &fee); unmarshalErr != nil {
+		return nil, fmt.Errorf("error unmarshalling transaction fee JSON: %v: %w", unmarshalErr, rdb.ErrQuery)
+	}
+	transaction.Fee = fee
+
+	var messages []TransactionRowMessage
+	if unmarshalErr := json.UnmarshalFromString(*messagesJSON, &messages); unmarshalErr != nil {
+		return nil, fmt.Errorf("error unmarshalling transaction messages JSON: %v: %w", unmarshalErr, rdb.ErrQuery)
+	}
+	transaction.Messages = messages
+
+	var signers []TransactionRowSigner
+	if unmarshalErr := json.UnmarshalFromString(*signersJSON, &signers); unmarshalErr != nil {
+		return nil, fmt.Errorf("error unmarshalling transaction signers JSON: %v: %w", unmarshalErr, rdb.ErrQuery)
+	}
+	transaction.Signers = signers
 
 	transactions := make([]TransactionRow, 0)
-	for rowsResult.Next() {
-		var transaction TransactionRow
-		var feeJSON *string
-		var messagesJSON *string
-		var signersJSON *string
-		blockTimeReader := transactionsView.rdb.NtotReader()
-
-		if err = rowsResult.Scan(
-			&transaction.BlockHeight,
-			&transaction.BlockHash,
-			blockTimeReader.ScannableArg(),
-			&transaction.Hash,
-			&transaction.EvmHash,
-			&transaction.Success,
-			&transaction.Code,
-			&transaction.Log,
-			&feeJSON,
-			&transaction.FeePayer,
-			&transaction.FeeGranter,
-			&transaction.GasWanted,
-			&transaction.GasUsed,
-			&transaction.Memo,
-			&transaction.TimeoutHeight,
-			&messagesJSON,
-			&signersJSON,
-		); err != nil {
-			if errors.Is(err, rdb.ErrNoRows) {
-				return nil, rdb.ErrNoRows
-			}
-			return nil, fmt.Errorf("error scanning transaction row: %v: %w", err, rdb.ErrQuery)
-		}
-		blockTime, parseErr := blockTimeReader.Parse()
-		if parseErr != nil {
-			return nil, fmt.Errorf("error parsing transaction block time: %v: %w", parseErr, rdb.ErrQuery)
-		}
-		transaction.BlockTime = *blockTime
-
-		var fee coin.Coins
-		if unmarshalErr := json.UnmarshalFromString(*feeJSON, &fee); unmarshalErr != nil {
-			return nil, fmt.Errorf("error unmarshalling transaction fee JSON: %v: %w", unmarshalErr, rdb.ErrQuery)
-		}
-		transaction.Fee = fee
-
-		var messages []TransactionRowMessage
-		if unmarshalErr := json.UnmarshalFromString(*messagesJSON, &messages); unmarshalErr != nil {
-			return nil, fmt.Errorf("error unmarshalling transaction messages JSON: %v: %w", unmarshalErr, rdb.ErrQuery)
-		}
-		transaction.Messages = messages
-
-		var signers []TransactionRowSigner
-		if unmarshalErr := json.UnmarshalFromString(*signersJSON, &signers); unmarshalErr != nil {
-			return nil, fmt.Errorf("error unmarshalling transaction signers JSON: %v: %w", unmarshalErr, rdb.ErrQuery)
-		}
-		transaction.Signers = signers
-
-		transactions = append(transactions, transaction)
-	}
-
+	transactions = append(transactions, transaction)
 	return transactions, nil
 }
 
