@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -17,7 +18,6 @@ import (
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
-	utils "github.com/AstraProtocol/astra-indexing/usecase/parser/utils"
 )
 
 type Transactions struct {
@@ -60,7 +60,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	if string(ctx.QueryArgs().Peek("type")) == "evm" {
-		if utils.IsEvmTxHash(hashParam) {
+		if isEvmTxHash(hashParam) {
 			transaction, err := handler.blockscoutClient.GetDetailEvmTxByEvmTxHash(hashParam)
 			if err != nil {
 				if strings.Contains(fmt.Sprint(err), blockscout_infrastructure.TX_NOT_FOUND) {
@@ -92,7 +92,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 			return
 		}
 	} else {
-		if utils.IsEvmTxHash(hashParam) {
+		if isEvmTxHash(hashParam) {
 			transaction, err := handler.transactionsView.FindByEvmHash(hashParam)
 			if err != nil {
 				if errors.Is(err, rdb.ErrNoRows) {
@@ -157,4 +157,12 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 	_ = handler.astraCache.Set(transactionPaginationKey,
 		NewTransactionsPaginationResult(blocks, *paginationResult), 2400*time.Millisecond)
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
+}
+
+func isEvmTxHash(evm_tx_hash string) bool {
+	match, err := regexp.MatchString("^0x[a-fA-F0-9]{64}$", evm_tx_hash)
+	if err != nil {
+		return false
+	}
+	return match
 }
