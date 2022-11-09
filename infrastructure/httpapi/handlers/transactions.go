@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -59,31 +60,65 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	if string(ctx.QueryArgs().Peek("type")) == "evm" {
-		transaction, err := handler.blockscoutClient.GetDetailEvmTx(hashParam)
-		if err != nil {
-			if strings.Contains(fmt.Sprint(err), blockscout_infrastructure.TX_NOT_FOUND) {
-				ctx.QueryArgs().Del("type")
-				handler.FindByHash(ctx)
-				return
-			} else {
-				handler.logger.Errorf("error parsing tx response from blockscout: %v", err)
+		if isEvmTxHash(hashParam) {
+			transaction, err := handler.blockscoutClient.GetDetailEvmTxByEvmTxHash(hashParam)
+			if err != nil {
+				if strings.Contains(fmt.Sprint(err), blockscout_infrastructure.TX_NOT_FOUND) {
+					ctx.QueryArgs().Del("type")
+					handler.FindByHash(ctx)
+					return
+				} else {
+					handler.logger.Errorf("error parsing tx response from blockscout: %v", err)
+					httpapi.InternalServerError(ctx)
+					return
+				}
+			}
+			httpapi.Success(ctx, transaction)
+			return
+		} else {
+			transaction, err := handler.blockscoutClient.GetDetailEvmTxByCosmosTxHash(hashParam)
+			if err != nil {
+				if strings.Contains(fmt.Sprint(err), blockscout_infrastructure.TX_NOT_FOUND) {
+					ctx.QueryArgs().Del("type")
+					handler.FindByHash(ctx)
+					return
+				} else {
+					handler.logger.Errorf("error parsing tx response from blockscout: %v", err)
+					httpapi.InternalServerError(ctx)
+					return
+				}
+			}
+			httpapi.Success(ctx, transaction)
+			return
+		}
+	} else {
+		if isEvmTxHash(hashParam) {
+			transaction, err := handler.transactionsView.FindByEvmHash(hashParam)
+			if err != nil {
+				if errors.Is(err, rdb.ErrNoRows) {
+					httpapi.NotFound(ctx)
+					return
+				}
+				handler.logger.Errorf("error finding transactions by hash: %v", err)
 				httpapi.InternalServerError(ctx)
 				return
 			}
-		}
-		httpapi.Success(ctx, transaction)
-	} else {
-		transaction, err := handler.transactionsView.FindByHash(hashParam)
-		if err != nil {
-			if errors.Is(err, rdb.ErrNoRows) {
-				httpapi.NotFound(ctx)
+			httpapi.Success(ctx, transaction)
+			return
+		} else {
+			transaction, err := handler.transactionsView.FindByHash(hashParam)
+			if err != nil {
+				if errors.Is(err, rdb.ErrNoRows) {
+					httpapi.NotFound(ctx)
+					return
+				}
+				handler.logger.Errorf("error finding transactions by hash: %v", err)
+				httpapi.InternalServerError(ctx)
 				return
 			}
-			handler.logger.Errorf("error finding transactions by hash: %v", err)
-			httpapi.InternalServerError(ctx)
+			httpapi.Success(ctx, transaction)
 			return
 		}
-		httpapi.Success(ctx, transaction)
 	}
 }
 
@@ -122,4 +157,12 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 	_ = handler.astraCache.Set(transactionPaginationKey,
 		NewTransactionsPaginationResult(blocks, *paginationResult), 2400*time.Millisecond)
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
+}
+
+func isEvmTxHash(evm_tx_hash string) bool {
+	match, err := regexp.MatchString("^0x[a-fA-F0-9]{64}$", evm_tx_hash)
+	if err != nil {
+		return false
+	}
+	return match
 }

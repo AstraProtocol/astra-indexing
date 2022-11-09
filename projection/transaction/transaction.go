@@ -2,8 +2,9 @@ package transaction
 
 import (
 	"fmt"
-	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 	"strconv"
+
+	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/rdbprojectionbase"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -96,6 +97,7 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 	txs := make([]transaction_view.TransactionRow, 0)
 	txMsgs := make(map[string][]event_usecase.MsgEvent)
 	txEvmType := make(map[string]string)
+	txEvmHash := make(map[string]string)
 	for _, event := range events {
 		if blockCreatedEvent, ok := event.(*event_usecase.BlockCreated); ok {
 			blockTime = blockCreatedEvent.Block.Time
@@ -187,6 +189,7 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 		if typedEvent, ok := event.(*event_usecase.MsgEthereumTx); ok {
 			evmType := projection.evmUtil.GetSignatureFromData(typedEvent.Params.Data.Data)
 			txEvmType[typedEvent.TxHash()] = evmType
+			txEvmHash[typedEvent.TxHash()] = typedEvent.Params.Hash
 		}
 	}
 
@@ -216,6 +219,7 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 				tmpMessage.EvmType = val
 			}
 			txs[i].Messages = append(txs[i].Messages, tmpMessage)
+			txs[i].EvmHash = txEvmHash[tx.Hash]
 		}
 	}
 	if insertErr := transactionsView.InsertAll(txs); insertErr != nil {

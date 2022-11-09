@@ -31,6 +31,12 @@ func (transactionsView *MockTransactionsView) FindByHash(txHash string) (*Transa
 	return row, mockArgs.Error(1)
 }
 
+func (transactionsView *MockTransactionsView) FindByEvmHash(txEvmHash string) (*TransactionRow, error) {
+	mockArgs := transactionsView.Called(txEvmHash)
+	row, _ := mockArgs.Get(0).(*TransactionRow)
+	return row, mockArgs.Error(1)
+}
+
 func (transactionsView *MockTransactionsView) List(
 	filter TransactionsListFilter,
 	order TransactionsListOrder,

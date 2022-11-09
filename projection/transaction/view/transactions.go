@@ -20,6 +20,7 @@ type BlockTransactions interface {
 	InsertAll(transactions []TransactionRow) error
 	Insert(transaction *TransactionRow) error
 	FindByHash(txHash string) (*TransactionRow, error)
+	FindByEvmHash(txEvmHash string) (*TransactionRow, error)
 	List(
 		filter TransactionsListFilter,
 		order TransactionsListOrder,
@@ -54,6 +55,7 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 				"block_hash",
 				"block_time",
 				"hash",
+				"evm_hash",
 				"index",
 				"success",
 				"code",
@@ -96,6 +98,7 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 			transaction.BlockHash,
 			transactionsView.rdb.Tton(&transaction.BlockTime),
 			transaction.Hash,
+			transaction.EvmHash,
 			transaction.Index,
 			transaction.Success,
 			transaction.Code,
@@ -144,6 +147,7 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 		"block_hash",
 		"block_time",
 		"hash",
+		"evm_hash",
 		"index",
 		"success",
 		"code",
@@ -182,6 +186,7 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 		transaction.BlockHash,
 		transactionsView.rdb.Tton(&transaction.BlockTime),
 		transaction.Hash,
+		transaction.EvmHash,
 		transaction.Index,
 		transaction.Success,
 		transaction.Code,
@@ -214,6 +219,7 @@ func (transactionsView *BlockTransactionsView) FindByHash(txHash string) (*Trans
 		"block_hash",
 		"block_time",
 		"hash",
+		"evm_hash",
 		"success",
 		"code",
 		"log",
@@ -248,6 +254,96 @@ func (transactionsView *BlockTransactionsView) FindByHash(txHash string) (*Trans
 		&transaction.BlockHash,
 		blockTimeReader.ScannableArg(),
 		&transaction.Hash,
+		&transaction.EvmHash,
+		&transaction.Success,
+		&transaction.Code,
+		&transaction.Log,
+		&feeJSON,
+		&transaction.FeePayer,
+		&transaction.FeeGranter,
+		&transaction.GasWanted,
+		&transaction.GasUsed,
+		&transaction.Memo,
+		&transaction.TimeoutHeight,
+		&messagesJSON,
+		&signersJSON,
+	); err != nil {
+		if errors.Is(err, rdb.ErrNoRows) {
+			return nil, rdb.ErrNoRows
+		}
+		return nil, fmt.Errorf("error scanning transaction row: %v: %w", err, rdb.ErrQuery)
+	}
+	blockTime, parseErr := blockTimeReader.Parse()
+	if parseErr != nil {
+		return nil, fmt.Errorf("error parsing transaction block time: %v: %w", parseErr, rdb.ErrQuery)
+	}
+	transaction.BlockTime = *blockTime
+
+	var fee coin.Coins
+	if unmarshalErr := json.UnmarshalFromString(*feeJSON, &fee); unmarshalErr != nil {
+		return nil, fmt.Errorf("error unmarshalling transaction fee JSON: %v: %w", unmarshalErr, rdb.ErrQuery)
+	}
+	transaction.Fee = fee
+
+	var messages []TransactionRowMessage
+	if unmarshalErr := json.UnmarshalFromString(*messagesJSON, &messages); unmarshalErr != nil {
+		return nil, fmt.Errorf("error unmarshalling transaction messages JSON: %v: %w", unmarshalErr, rdb.ErrQuery)
+	}
+	transaction.Messages = messages
+
+	var signers []TransactionRowSigner
+	if unmarshalErr := json.UnmarshalFromString(*signersJSON, &signers); unmarshalErr != nil {
+		return nil, fmt.Errorf("error unmarshalling transaction signers JSON: %v: %w", unmarshalErr, rdb.ErrQuery)
+	}
+	transaction.Signers = signers
+
+	return &transaction, nil
+}
+
+func (transactionsView *BlockTransactionsView) FindByEvmHash(txEvmHash string) (*TransactionRow, error) {
+	var err error
+
+	selectStmtBuilder := transactionsView.rdb.StmtBuilder.Select(
+		"block_height",
+		"block_hash",
+		"block_time",
+		"hash",
+		"evm_hash",
+		"success",
+		"code",
+		"log",
+		"fee",
+		"fee_payer",
+		"fee_granter",
+		"gas_wanted",
+		"gas_used",
+		"memo",
+		"timeout_height",
+		"messages",
+		"signers",
+	).From(
+		"view_transactions",
+	).Where(
+		"evm_hash = ?", txEvmHash,
+	).OrderBy("id DESC")
+
+	sql, sqlArgs, err := selectStmtBuilder.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("error building transactions selection sql: %v: %w", err, rdb.ErrPrepare)
+	}
+
+	var transaction TransactionRow
+	var feeJSON *string
+	var messagesJSON *string
+	var signersJSON *string
+	blockTimeReader := transactionsView.rdb.NtotReader()
+
+	if err = transactionsView.rdb.QueryRow(sql, sqlArgs...).Scan(
+		&transaction.BlockHeight,
+		&transaction.BlockHash,
+		blockTimeReader.ScannableArg(),
+		&transaction.Hash,
+		&transaction.EvmHash,
 		&transaction.Success,
 		&transaction.Code,
 		&transaction.Log,
@@ -303,6 +399,7 @@ func (transactionsView *BlockTransactionsView) List(
 		"block_hash",
 		"block_time",
 		"hash",
+		"evm_hash",
 		"success",
 		"code",
 		"log",
@@ -370,6 +467,7 @@ func (transactionsView *BlockTransactionsView) List(
 			&transaction.BlockHash,
 			blockTimeReader.ScannableArg(),
 			&transaction.Hash,
+			&transaction.EvmHash,
 			&transaction.Success,
 			&transaction.Code,
 			&transaction.Log,
@@ -430,6 +528,7 @@ func (transactionsView *BlockTransactionsView) Search(keyword string) ([]Transac
 		"block_hash",
 		"block_time",
 		"hash",
+		"evm_hash",
 		"success",
 		"code",
 		"log",
@@ -472,6 +571,7 @@ func (transactionsView *BlockTransactionsView) Search(keyword string) ([]Transac
 			&transaction.BlockHash,
 			blockTimeReader.ScannableArg(),
 			&transaction.Hash,
+			&transaction.EvmHash,
 			&transaction.Success,
 			&transaction.Code,
 			&transaction.Log,
@@ -542,6 +642,7 @@ type TransactionRow struct {
 	BlockHash     string                  `json:"blockHash"`
 	BlockTime     utctime.UTCTime         `json:"blockTime"`
 	Hash          string                  `json:"hash"`
+	EvmHash       string                  `json:"evmHash"`
 	Index         int                     `json:"index"`
 	Success       bool                    `json:"success"`
 	Code          int                     `json:"code"`

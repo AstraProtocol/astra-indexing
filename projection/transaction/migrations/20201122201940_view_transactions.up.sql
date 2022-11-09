@@ -4,6 +4,7 @@ CREATE TABLE view_transactions (
     block_hash VARCHAR NOT NULL,
     block_time BIGINT NOT NULL,
     hash VARCHAR NOT NULL,
+    evm_hash VARCHAR NOT NULL,
     index INT NOT NULL,
     success BOOLEAN NOT NULL,
     code INT NOT NULL,

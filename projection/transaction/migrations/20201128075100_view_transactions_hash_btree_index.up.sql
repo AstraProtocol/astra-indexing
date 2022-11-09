@@ -1,1 +1,2 @@
 CREATE INDEX view_transactions_block_hash_btree_index ON view_transactions(hash);
+CREATE INDEX view_transactions_block_evm_hash_btree_index ON view_transactions(evm_hash);

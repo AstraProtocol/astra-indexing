@@ -4,6 +4,7 @@ import "github.com/AstraProtocol/astra-indexing/usecase/coin"
 
 type CreateTransactionParams struct {
 	TxHash        string
+	EvmTxHash     string
 	Index         int
 	Code          int
 	Log           string
