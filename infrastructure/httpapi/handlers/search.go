@@ -156,9 +156,12 @@ func parseTransactions(data []transaction_view.TransactionRow, blockscout_data [
 		var transaction blockscout_infrastructure.TransactionResult
 		transaction.CosmosHash = transaction_data.Hash
 		transaction.InsertedAt = transaction_data.BlockTime
-		for _, result := range blockscout_data {
-			if transaction.CosmosHash == result.CosmosHash {
-				transaction.EvmHash = result.TxHash
+		transaction.EvmHash = transaction_data.EvmHash
+		if transaction.EvmHash == "" {
+			for _, result := range blockscout_data {
+				if transaction.CosmosHash == result.CosmosHash {
+					transaction.EvmHash = result.TxHash
+				}
 			}
 		}
 		transactions = append(transactions, transaction)

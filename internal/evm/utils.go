@@ -4,10 +4,12 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"os"
+	"regexp"
+	"strings"
+
 	"github.com/akrylysov/pogreb"
 	"github.com/akrylysov/pogreb/fs"
-	"os"
-	"strings"
 )
 
 type EvmUtils struct {
@@ -56,4 +58,12 @@ func (utils *EvmUtils) GetSignatureFromData(base64Data string) string {
 			return ""
 		}
 	}
+}
+
+func IsEvmTxHash(evm_tx_hash string) bool {
+	match, err := regexp.MatchString("^0x[a-fA-F0-9]{64}$", evm_tx_hash)
+	if err != nil {
+		return false
+	}
+	return match
 }
