@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS view_transactions_block_hash_btree_index;
+DROP INDEX IF EXISTS view_transactions_block_evm_hash_btree_index;

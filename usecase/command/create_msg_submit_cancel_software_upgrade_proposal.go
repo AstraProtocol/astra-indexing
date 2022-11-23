@@ -1,0 +1,38 @@
+package command
+
+import (
+	entity_event "github.com/AstraProtocol/astra-indexing/entity/event"
+	"github.com/AstraProtocol/astra-indexing/usecase/event"
+	"github.com/AstraProtocol/astra-indexing/usecase/model"
+)
+
+type CreateMsgSubmitCancelSoftwareUpgradeProposal struct {
+	msgCommonParams event.MsgCommonParams
+	params          model.MsgSubmitCancelSoftwareUpgradeProposalParams
+}
+
+func NewCreateMsgSubmitCancelSoftwareUpgradeProposal(
+	msgCommonParams event.MsgCommonParams,
+	params model.MsgSubmitCancelSoftwareUpgradeProposalParams,
+) *CreateMsgSubmitCancelSoftwareUpgradeProposal {
+	return &CreateMsgSubmitCancelSoftwareUpgradeProposal{
+		msgCommonParams,
+		params,
+	}
+}
+
+// Name returns name of command
+func (*CreateMsgSubmitCancelSoftwareUpgradeProposal) Name() string {
+	return "/cosmos.upgrade.v1beta1.CancelSoftwareUpgradeProposal.Create"
+}
+
+// Version returns version of command
+func (*CreateMsgSubmitCancelSoftwareUpgradeProposal) Version() int {
+	return 1
+}
+
+// Exec process the command data and return the event accordingly
+func (cmd *CreateMsgSubmitCancelSoftwareUpgradeProposal) Exec() (entity_event.Event, error) {
+	event := event.NewMsgSubmitCancelSoftwareUpgradeProposal(cmd.msgCommonParams, cmd.params)
+	return event, nil
+}

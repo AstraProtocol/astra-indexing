@@ -1,0 +1,79 @@
+version: '2'
+config:
+  slack_notify: true
+  slack_channel: astra_ci
+environment:
+  BUILD_IMAGE: 'maven:3.6-jdk-11'
+jobs:
+  build_docker:
+    steps:
+      - build_image:
+          buildkit: true
+          dockerfile: Dockerfile
+  publish_docker:
+    steps:
+      - push_image
+  deploy_dev:
+    steps:
+      - deploy_dev:
+          cluster: dev
+          namespace: astra
+          workload: chainindexing
+          argocd_pipeline: generic-v2
+          deployment_config: dev
+  deploy_prod:
+    steps:
+      - deploy_production:
+          cluster: k8s-astra-prod
+          namespace: default
+          workload: chainindexing
+          argocd_pipeline: generic-v2
+          deployment_config: prod
+workflows:
+  jenkins_pipeline:
+    jobs:
+      - build_docker:
+          filters:
+            branches:
+              only:
+                - main
+                - dev
+      - publish_docker:
+          requires:
+            - build_docker
+          filters:
+            branches:
+              only:
+                - main
+                - dev
+      - deploy_dev:
+          requires:
+            - publish_docker
+          filters:
+            branches:
+              only:
+                - dev
+      - deploy_prod:
+          requires:
+            - publish_docker
+          filters:
+            branches:
+              only:
+                - main
+deployment_config:
+  dev:
+    ingress:
+      hosts:
+        - host: chainindexing.dev.tiki.services
+          paths:
+            - path: /
+              port: '8080'
+    replicaCount: 1
+  prod:
+    ingress:
+      hosts:
+        - host: chainindexing.tiki.services
+          paths:
+            - path: /
+              port: '8080'
+    replicaCount: 1
