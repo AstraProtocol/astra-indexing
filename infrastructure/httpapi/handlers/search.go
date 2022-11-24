@@ -32,6 +32,7 @@ type SearchResults struct {
 	Addresses    []blockscout_infrastructure.AddressResult     `json:"addresses"`
 	Tokens       []blockscout_infrastructure.TokenResult       `json:"tokens"`
 	Validators   []blockscout_infrastructure.ValidatorResult   `json:"validators"`
+	Contracts    []blockscout_infrastructure.ContractResult    `json:"contracts"`
 }
 
 func NewSearch(logger applogger.Logger, blockscoutClient blockscout_infrastructure.HTTPClient, rdbHandle *rdb.Handle) *Search {
@@ -113,7 +114,7 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Using blockscout's search results when chainindexing's search results are empty
-	// mostly using for token, block search or in case of keyword is hex type
+	// mostly using for token, contract, block search or in case of keyword is hex type
 	if isResultsEmpty(results) {
 		if len(blockscoutSearchResults) > 0 {
 			switch blockscoutSearchResults[0].Type {
@@ -123,6 +124,8 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 				results.Blocks = blockscout_infrastructure.SearchResultsToBlocks(blockscoutSearchResults)
 			case "address":
 				results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutSearchResults)
+			case "contract":
+				results.Contracts = blockscout_infrastructure.SearchResultsToContracts(blockscoutSearchResults)
 			case "transaction":
 				results.Transactions = blockscout_infrastructure.SearchResultsToTransactions(blockscoutSearchResults)
 			case "transaction_cosmos":

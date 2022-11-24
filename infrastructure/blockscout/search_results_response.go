@@ -57,6 +57,12 @@ type BlockResult struct {
 	InsertedAt  utctime.UTCTime `json:"insertedAt"`
 }
 
+type ContractResult struct {
+	AddressHash string          `json:"addressHash"`
+	Name        string          `json:"name"`
+	InsertedAt  utctime.UTCTime `json:"insertedAt"`
+}
+
 func SearchResultsToAddresses(data []SearchResult) []AddressResult {
 	var addresses []AddressResult
 	for _, address_data := range data {
@@ -70,6 +76,18 @@ func SearchResultsToAddresses(data []SearchResult) []AddressResult {
 		addresses = append(addresses, address)
 	}
 	return addresses
+}
+
+func SearchResultsToContracts(data []SearchResult) []ContractResult {
+	var contracts []ContractResult
+	for _, contract_data := range data {
+		var contract ContractResult
+		contract.AddressHash = contract_data.AddressHash
+		contract.Name = contract_data.Name
+		contract.InsertedAt = contract_data.InsertedAt
+		contracts = append(contracts, contract)
+	}
+	return contracts
 }
 
 func SearchResultsToTokens(data []SearchResult) []TokenResult {
