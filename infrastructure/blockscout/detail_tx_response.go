@@ -39,7 +39,9 @@ type TransactionEvm struct {
 	CreatedContractAddressHash   string          `json:"createdContractAddressHash"`
 	CreatedContractCodeIndexedAt utctime.UTCTime `json:"createdContractCodeIndexedAt"`
 	From                         string          `json:"from"`
+	FromAddressName              string          `json:"fromAddressName"`
 	To                           string          `json:"to"`
+	ToAddressName                string          `json:"toAddressName"`
 	Value                        string          `json:"value"`
 	CumulativeGasUsed            string          `json:"cumulativeGasUsed"`
 	GasLimit                     string          `json:"gasLimit"`
