@@ -60,8 +60,16 @@ func (utils *EvmUtils) GetSignatureFromData(base64Data string) string {
 	}
 }
 
-func IsEvmTxHash(evm_tx_hash string) bool {
-	match, err := regexp.MatchString("^0x[a-fA-F0-9]{64}$", evm_tx_hash)
+func IsHexTx(hex_tx string) bool {
+	match, err := regexp.MatchString("^0x[a-fA-F0-9]{64}$", hex_tx)
+	if err != nil {
+		return false
+	}
+	return match
+}
+
+func IsHexAddress(hex_address string) bool {
+	match, err := regexp.MatchString("^0x[a-fA-F0-9]{40}$", hex_address)
 	if err != nil {
 		return false
 	}

@@ -526,7 +526,7 @@ func (transactionsView *BlockTransactionsView) Search(keyword string) ([]Transac
 	var sql string
 	var sqlArgs []interface{}
 	var err error
-	if evm_utils.IsEvmTxHash(keyword) {
+	if evm_utils.IsHexTx(keyword) {
 		keyword = strings.ToLower(keyword)
 		sql, sqlArgs, err = transactionsView.rdb.StmtBuilder.Select(
 			"block_height",
