@@ -100,7 +100,6 @@ func (accountsView *AccountsView) FindBy(identity *AccountIdentity) (*AccountRow
 	}
 
 	var account AccountRow
-	var balance string
 	if err = accountsView.rdb.QueryRow(sql, sqlArgs...).Scan(
 		&account.Address,
 		&account.Type,
@@ -108,7 +107,6 @@ func (accountsView *AccountsView) FindBy(identity *AccountIdentity) (*AccountRow
 		&account.MaybePubkey,
 		&account.AccountNumber,
 		&account.SequenceNumber,
-		&balance,
 	); err != nil {
 		if errors.Is(err, rdb.ErrNoRows) {
 			return nil, rdb.ErrNoRows
@@ -116,7 +114,6 @@ func (accountsView *AccountsView) FindBy(identity *AccountIdentity) (*AccountRow
 		return nil, fmt.Errorf("error scanning account row: %v: %w", err, rdb.ErrQuery)
 	}
 
-	json.MustUnmarshalFromString(balance, &account.Balance)
 	return &account, nil
 }
 
