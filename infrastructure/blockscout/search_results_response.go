@@ -27,10 +27,10 @@ type TransactionResult struct {
 }
 
 type AddressResult struct {
-	AddressHash string          `json:"addressHash"`
-	Address     string          `json:"address"`
-	Name        string          `json:"name"`
-	InsertedAt  utctime.UTCTime `json:"insertedAt"`
+	AddressHash string `json:"addressHash"`
+	Address     string `json:"address"`
+	Name        string `json:"name"`
+	Type        string `json:"type"`
 }
 
 type ValidatorResult struct {
@@ -72,7 +72,6 @@ func SearchResultsToAddresses(data []SearchResult) []AddressResult {
 		address.Address = address_bech32
 		address.AddressHash = address_data.AddressHash
 		address.Name = address_data.Name
-		address.InsertedAt = address_data.InsertedAt
 		addresses = append(addresses, address)
 	}
 	return addresses

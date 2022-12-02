@@ -10,6 +10,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
+	account_view "github.com/AstraProtocol/astra-indexing/projection/account/view"
 	account_transaction_view "github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
 	block_view "github.com/AstraProtocol/astra-indexing/projection/block/view"
 	transaction_view "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
@@ -23,6 +24,7 @@ type Search struct {
 	blocksView                   *block_view.Blocks
 	transactionsView             transaction_view.BlockTransactions
 	validatorsView               *validator_view.Validators
+	accountsView                 account_view.Accounts
 	accountTransactionsTotalView *account_transaction_view.AccountTransactionsTotal
 }
 
@@ -45,6 +47,7 @@ func NewSearch(logger applogger.Logger, blockscoutClient blockscout_infrastructu
 		block_view.NewBlocks(rdbHandle),
 		transaction_view.NewTransactionsView(rdbHandle),
 		validator_view.NewValidators(rdbHandle),
+		account_view.NewAccountsView(rdbHandle),
 		account_transaction_view.NewAccountTransactionsTotal(rdbHandle),
 	}
 }
@@ -80,11 +83,26 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 			}
 		} else {
 			// If keyword is bech32 address (e.g: "astra1g9v3fp9wkhar696e7896x6wu3hqjsy5cpxdzff")
-			// It must be converted to hex address then using blockscout's api search only
+			// Using chainindexing search first
+			accountIdentity := account_view.AccountIdentity{}
+			accountIdentity.Address = keyword
+			accounts, err := search.accountsView.FindBy(&accountIdentity)
+			if err != nil {
+				if errors.Is(err, rdb.ErrNoRows) {
+					accounts = nil
+				} else {
+					search.logger.Errorf("error searching account: %v", err)
+					httpapi.InternalServerError(ctx)
+					return
+				}
+			}
+			// Address must be converted to hex address then using blockscout's api search only
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(keyword)
 			hex_address := "0x" + hex.EncodeToString(converted)
 			blockscoutAddressResults := search.blockscoutClient.GetSearchResults(hex_address)
-			results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutAddressResults)
+
+			// Merge blockscout and chainindexing search results
+			results.Addresses = parseAddresses(*accounts, blockscoutAddressResults)
 			httpapi.Success(ctx, results)
 			return
 		}
@@ -151,6 +169,22 @@ func parseValidators(data []validator_view.ValidatorRow) []blockscout_infrastruc
 		validators = append(validators, validator)
 	}
 	return validators
+}
+
+func parseAddresses(data account_view.AccountRow, blockscout_data []blockscout_infrastructure.SearchResult) []blockscout_infrastructure.AddressResult {
+	var addresses []blockscout_infrastructure.AddressResult
+	var address blockscout_infrastructure.AddressResult
+	address.Address = data.Address
+	address.Type = data.Type
+	_, converted, _ := tmcosmosutils.DecodeAddressToHex(address.Address)
+	address.AddressHash = "0x" + hex.EncodeToString(converted)
+	for _, result := range blockscout_data {
+		if address.AddressHash == result.AddressHash {
+			address.Name = result.Name
+		}
+	}
+	addresses = append(addresses, address)
+	return addresses
 }
 
 func parseTransactions(data []transaction_view.TransactionRow, blockscout_data []blockscout_infrastructure.SearchResult) []blockscout_infrastructure.TransactionResult {
