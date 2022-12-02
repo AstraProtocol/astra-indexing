@@ -222,5 +222,8 @@ func isResultsEmpty(results SearchResults) bool {
 	if results.Validators != nil {
 		return false
 	}
+	if results.Contracts != nil {
+		return false
+	}
 	return true
 }
