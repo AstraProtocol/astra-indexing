@@ -96,13 +96,17 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 					return
 				}
 			}
-			// Address must be converted to hex address then using blockscout's api search only
+			// Address must be converted to hex address then using blockscout's api search
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(keyword)
 			hex_address := "0x" + hex.EncodeToString(converted)
 			blockscoutAddressResults := search.blockscoutClient.GetSearchResults(hex_address)
 
-			// Merge blockscout and chainindexing search results
-			results.Addresses = parseAddresses(*accounts, blockscoutAddressResults)
+			if accounts != nil {
+				// Merge blockscout and chainindexing search results
+				results.Addresses = parseAddresses(*accounts, blockscoutAddressResults)
+			} else {
+				results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutAddressResults)
+			}
 			httpapi.Success(ctx, results)
 			return
 		}
