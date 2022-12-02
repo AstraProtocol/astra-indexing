@@ -175,7 +175,6 @@ func parseAddresses(data account_view.AccountRow, blockscout_data []blockscout_i
 	var addresses []blockscout_infrastructure.AddressResult
 	var address blockscout_infrastructure.AddressResult
 	address.Address = data.Address
-	address.Type = data.Type
 	_, converted, _ := tmcosmosutils.DecodeAddressToHex(address.Address)
 	address.AddressHash = "0x" + hex.EncodeToString(converted)
 	for _, result := range blockscout_data {

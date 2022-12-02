@@ -30,7 +30,6 @@ type AddressResult struct {
 	AddressHash string `json:"addressHash"`
 	Address     string `json:"address"`
 	Name        string `json:"name"`
-	Type        string `json:"type"`
 }
 
 type ValidatorResult struct {
