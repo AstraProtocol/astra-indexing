@@ -90,7 +90,6 @@ func (accountsView *AccountsView) FindBy(identity *AccountIdentity) (*AccountRow
 		"pubkey",
 		"account_number",
 		"sequence_number",
-		"account_denom",
 	).From("view_accounts")
 
 	selectStmtBuilder = selectStmtBuilder.Where("address = ?", identity.Address)
