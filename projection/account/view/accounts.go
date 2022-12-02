@@ -88,8 +88,6 @@ func (accountsView *AccountsView) FindBy(identity *AccountIdentity) (*AccountRow
 		"account_type",
 		"name",
 		"pubkey",
-		"account_number",
-		"sequence_number",
 	).From("view_accounts")
 
 	selectStmtBuilder = selectStmtBuilder.Where("address = ?", identity.Address)
@@ -105,8 +103,6 @@ func (accountsView *AccountsView) FindBy(identity *AccountIdentity) (*AccountRow
 		&account.Type,
 		&account.MaybeName,
 		&account.MaybePubkey,
-		&account.AccountNumber,
-		&account.SequenceNumber,
 	); err != nil {
 		if errors.Is(err, rdb.ErrNoRows) {
 			return nil, rdb.ErrNoRows
