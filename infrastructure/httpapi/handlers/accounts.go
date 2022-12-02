@@ -63,9 +63,10 @@ func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
 
 	// Using simultaneously blockscout get address detail api
 	if evm_utils.IsHexAddress(accountParam) {
-		converted, _ := hex.DecodeString(accountParam)
+		addressHash := accountParam
+		converted, _ := hex.DecodeString(accountParam[2:])
 		accountParam, _ = tmcosmosutils.EncodeHexToAddress("astra", converted)
-		go handler.blockscoutClient.GetDetailAddressByAddressHashAsync(accountParam, addressRespChan)
+		go handler.blockscoutClient.GetDetailAddressByAddressHashAsync(addressHash, addressRespChan)
 	} else {
 		if tmcosmosutils.IsValidCosmosAddress(accountParam) {
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(accountParam)
