@@ -59,57 +59,63 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 
 	var results SearchResults
 
-	if !tmcosmosutils.IsValidCosmosAddress(keyword) {
-		// Using simultaneously blockscout and chainindexing search
-		go search.blockscoutClient.GetSearchResultsAsync(keyword, resultsChan)
-	} else {
-		if strings.Contains(keyword, "valoper") {
-			// If keyword is validator address (e.g: "astravaloper16mqptvptnds4098cmdmz846lmazenegc270ljs")
-			// use chainindexing's validator search only
-			validators, err := search.validatorsView.Search(keyword)
-			if err != nil {
-				if errors.Is(err, rdb.ErrNoRows) {
-					validators = nil
-				} else {
-					search.logger.Errorf("error searching validator: %v", err)
-					httpapi.InternalServerError(ctx)
-					return
-				}
-			}
-			if len(validators) > 0 {
-				results.Validators = parseValidators(validators)
-				httpapi.Success(ctx, results)
+	if tmcosmosutils.IsValidCosmosAddress(keyword) && strings.Contains(keyword, "valoper") {
+		// If keyword is validator address (e.g: "astravaloper16mqptvptnds4098cmdmz846lmazenegc270ljs")
+		// use chainindexing's validator search only
+		validators, err := search.validatorsView.Search(keyword)
+		if err != nil {
+			if errors.Is(err, rdb.ErrNoRows) {
+				validators = nil
+			} else {
+				search.logger.Errorf("error searching validator: %v", err)
+				httpapi.InternalServerError(ctx)
 				return
 			}
-		} else {
-			// If keyword is bech32 address (e.g: "astra1g9v3fp9wkhar696e7896x6wu3hqjsy5cpxdzff")
-			// Using chainindexing search first
-			accountIdentity := account_view.AccountIdentity{}
-			accountIdentity.Address = keyword
-			accounts, err := search.accountsView.FindBy(&accountIdentity)
-			if err != nil {
-				if errors.Is(err, rdb.ErrNoRows) {
-					accounts = nil
-				} else {
-					search.logger.Errorf("error searching account: %v", err)
-					httpapi.InternalServerError(ctx)
-					return
-				}
-			}
-			// Address must be converted to hex address then using blockscout's api search
-			_, converted, _ := tmcosmosutils.DecodeAddressToHex(keyword)
-			hex_address := "0x" + hex.EncodeToString(converted)
-			blockscoutAddressResults := search.blockscoutClient.GetSearchResults(hex_address)
-
-			if accounts != nil {
-				// Merge blockscout and chainindexing search results
-				results.Addresses = parseAddresses(*accounts, blockscoutAddressResults)
-			} else {
-				results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutAddressResults)
-			}
+		}
+		if len(validators) > 0 {
+			results.Validators = parseValidators(validators)
 			httpapi.Success(ctx, results)
 			return
 		}
+	}
+
+	if tmcosmosutils.IsValidCosmosAddress(keyword) {
+		// If keyword is bech32 address (e.g: "astra1g9v3fp9wkhar696e7896x6wu3hqjsy5cpxdzff")
+		// Address must be converted to hex address then using blockscout's api search
+		_, converted, _ := tmcosmosutils.DecodeAddressToHex(keyword)
+		hex_address := "0x" + hex.EncodeToString(converted)
+
+		// Using simultaneously blockscout search for hex address
+		go search.blockscoutClient.GetSearchResultsAsync(hex_address, resultsChan)
+
+		// Using chainindexing search
+		accountIdentity := account_view.AccountIdentity{}
+		accountIdentity.Address = keyword
+		accounts, err := search.accountsView.FindBy(&accountIdentity)
+		if err != nil {
+			if errors.Is(err, rdb.ErrNoRows) {
+				accounts = nil
+			} else {
+				search.logger.Errorf("error searching account: %v", err)
+				httpapi.InternalServerError(ctx)
+				return
+			}
+		}
+
+		// Get blockscout's address search result from channel
+		blockscoutAddressResults := <-resultsChan
+
+		if accounts != nil {
+			// Merge blockscout and chainindexing search results
+			results.Addresses = parseAddresses(*accounts, blockscoutAddressResults)
+		} else {
+			results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutAddressResults)
+		}
+		httpapi.Success(ctx, results)
+		return
+	} else {
+		// Using simultaneously blockscout and chainindexing search
+		go search.blockscoutClient.GetSearchResultsAsync(keyword, resultsChan)
 	}
 
 	// If keyword is cosmos tx (e.g: "90FEE96EE94CA74AD67FCF155E15488B901B3AE2530EBE4D35A9E77B609EB348")
