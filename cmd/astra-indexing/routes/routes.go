@@ -71,6 +71,7 @@ func InitRouteRegistry(
 		logger,
 		rdbConn.ToHandle(),
 		cosmosAppClient,
+		*blockscoutClient,
 		config.Blockchain.ValidatorAddressPrefix,
 	)
 	routes = append(routes,

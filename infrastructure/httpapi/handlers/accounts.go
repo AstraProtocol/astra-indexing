@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"encoding/hex"
 	"errors"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/primptr"
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
+	evm_utils "github.com/AstraProtocol/astra-indexing/internal/evm"
 	validator_view "github.com/AstraProtocol/astra-indexing/projection/validator/view"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 
@@ -14,6 +16,7 @@ import (
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
 	account_view "github.com/AstraProtocol/astra-indexing/projection/account/view"
 )
@@ -21,9 +24,10 @@ import (
 type Accounts struct {
 	logger applogger.Logger
 
-	accountsView   account_view.Accounts
-	validatorsView *validator_view.Validators
-	cosmosClient   cosmosapp.Client
+	accountsView     account_view.Accounts
+	validatorsView   *validator_view.Validators
+	cosmosClient     cosmosapp.Client
+	blockscoutClient blockscout_infrastructure.HTTPClient
 
 	validatorAddressPrefix string
 }
@@ -32,6 +36,7 @@ func NewAccounts(
 	logger applogger.Logger,
 	rdbHandle *rdb.Handle,
 	cosmosClient cosmosapp.Client,
+	blockscoutClient blockscout_infrastructure.HTTPClient,
 	validatorAddressPrefix string,
 ) *Accounts {
 	return &Accounts{
@@ -42,6 +47,7 @@ func NewAccounts(
 		account_view.NewAccountsView(rdbHandle),
 		validator_view.NewValidators(rdbHandle),
 		cosmosClient,
+		blockscoutClient,
 
 		validatorAddressPrefix,
 	}
@@ -51,6 +57,21 @@ func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
 	accountParam, accountParamOk := URLValueGuard(ctx, handler.logger, "account")
 	if !accountParamOk {
 		return
+	}
+
+	addressRespChan := make(chan blockscout_infrastructure.AddressResp)
+
+	// Using simultaneously blockscout get address detail api
+	if evm_utils.IsHexAddress(accountParam) {
+		converted, _ := hex.DecodeString(accountParam)
+		accountParam, _ = tmcosmosutils.EncodeHexToAddress("astra", converted)
+		go handler.blockscoutClient.GetDetailAddressByAddressHashAsync(accountParam, addressRespChan)
+	} else {
+		if tmcosmosutils.IsValidCosmosAddress(accountParam) {
+			_, converted, _ := tmcosmosutils.DecodeAddressToHex(accountParam)
+			addressHash := "0x" + hex.EncodeToString(converted)
+			go handler.blockscoutClient.GetDetailAddressByAddressHashAsync(addressHash, addressRespChan)
+		}
 	}
 
 	info := AccountInfo{
@@ -149,7 +170,19 @@ func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
 	totalBalance = totalBalance.Add(info.Commissions...)
 	info.TotalBalance = totalBalance
 
-	httpapi.Success(ctx, info)
+	var addressDetail blockscout_infrastructure.Address
+
+	blockscoutAddressResp := <-addressRespChan
+	if blockscoutAddressResp.Status == "1" {
+		addressDetail = blockscoutAddressResp.Result
+	} else {
+		addressDetail.Balance = info.Balance.String()
+		addressDetail.LastBalanceUpdate = -1
+		addressDetail.Type = "address"
+		addressDetail.Verified = false
+	}
+
+	httpapi.Success(ctx, addressDetail)
 }
 
 func (handler *Accounts) List(ctx *fasthttp.RequestCtx) {
