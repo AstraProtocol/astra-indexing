@@ -3,8 +3,10 @@ package handlers
 import (
 	"encoding/hex"
 	"errors"
+	"strconv"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
+	status_polling "github.com/AstraProtocol/astra-indexing/appinterface/polling"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/primptr"
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
@@ -28,6 +30,7 @@ type Accounts struct {
 	validatorsView   *validator_view.Validators
 	cosmosClient     cosmosapp.Client
 	blockscoutClient blockscout_infrastructure.HTTPClient
+	statusView       *status_polling.Status
 
 	validatorAddressPrefix string
 }
@@ -48,6 +51,7 @@ func NewAccounts(
 		validator_view.NewValidators(rdbHandle),
 		cosmosClient,
 		blockscoutClient,
+		status_polling.NewStatus(rdbHandle),
 
 		validatorAddressPrefix,
 	}
@@ -103,8 +107,27 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 	if blockscoutAddressResp.Status == "1" {
 		addressDetail = blockscoutAddressResp.Result
 	} else {
-		addressDetail.Balance = info.Balance.String()
-		addressDetail.LastBalanceUpdate = -1
+		rawLatestHeight, err := handler.statusView.FindBy("LatestHeight")
+		if err != nil {
+			handler.logger.Errorf("error fetching latest height: %v", err)
+			httpapi.InternalServerError(ctx)
+			return
+		}
+
+		var latestHeight int64 = 0
+		if rawLatestHeight != "" {
+			// TODO: Use big.Int
+			if n, err := strconv.ParseInt(rawLatestHeight, 10, 64); err != nil {
+				handler.logger.Errorf("error converting latest height from string to int64: %v", err)
+				httpapi.InternalServerError(ctx)
+				return
+			} else {
+				latestHeight = n
+			}
+		}
+
+		addressDetail.Balance = info.Balance.AmountOf("aastra").String()
+		addressDetail.LastBalanceUpdate = latestHeight
 		addressDetail.Type = "address"
 		addressDetail.Verified = false
 	}

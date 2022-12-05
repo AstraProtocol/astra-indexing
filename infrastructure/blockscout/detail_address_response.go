@@ -5,7 +5,7 @@ type Address struct {
 	ContractName        string `json:"contractName"`
 	CreationTransaction string `json:"creationTransaction"`
 	Creator             string `json:"creator"`
-	LastBalanceUpdate   int    `json:"lastBalanceUpdate"`
+	LastBalanceUpdate   int64  `json:"lastBalanceUpdate"`
 	TokenName           string `json:"tokenName"`
 	TokenSymbol         string `json:"tokenSymbol"`
 	Type                string `json:"type"`

@@ -110,7 +110,7 @@ func (client *HTTPClient) request(endpoint string, queryParams ...string) (io.Re
 func NewHTTPClient(logger applogger.Logger, url string) *HTTPClient {
 	httpClient := retryablehttp.NewClient()
 	httpClient.Logger = nil
-	httpClient.RetryMax = 1
+	httpClient.RetryMax = 0
 	httpClient.CheckRetry = defaultRetryPolicy
 
 	return &HTTPClient{
