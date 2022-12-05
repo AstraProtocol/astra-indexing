@@ -85,6 +85,11 @@ func InitRouteRegistry(
 			path:    "api/v1/accounts/{account}",
 			handler: accountsHandlers.FindBy,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/detail/{account}",
+			handler: accountsHandlers.GetDetailAddress,
+		},
 	)
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(logger, rdbConn.ToHandle())

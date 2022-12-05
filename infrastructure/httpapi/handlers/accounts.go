@@ -53,7 +53,7 @@ func NewAccounts(
 	}
 }
 
-func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
+func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 	accountParam, accountParamOk := URLValueGuard(ctx, handler.logger, "account")
 	if !accountParamOk {
 		return
@@ -73,6 +73,49 @@ func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
 			addressHash := "0x" + hex.EncodeToString(converted)
 			go handler.blockscoutClient.GetDetailAddressByAddressHashAsync(addressHash, addressRespChan)
 		}
+	}
+	info := AccountInfo{
+		Balance: coin.NewEmptyCoins(),
+	}
+	account, err := handler.cosmosClient.Account(accountParam)
+	if err != nil {
+		httpapi.NotFound(ctx)
+		return
+	}
+
+	info.Type = account.Type
+	info.Address = account.Address
+	if info.Type == cosmosapp.ACCOUNT_MODULE {
+		info.Name = account.MaybeModuleAccount.Name
+	}
+
+	if balance, queryErr := handler.cosmosClient.Balances(accountParam); queryErr != nil {
+		handler.logger.Errorf("error fetching account balance: %v", queryErr)
+		httpapi.InternalServerError(ctx)
+		return
+	} else {
+		info.Balance = balance
+	}
+
+	var addressDetail blockscout_infrastructure.Address
+
+	blockscoutAddressResp := <-addressRespChan
+	if blockscoutAddressResp.Status == "1" {
+		addressDetail = blockscoutAddressResp.Result
+	} else {
+		addressDetail.Balance = info.Balance.String()
+		addressDetail.LastBalanceUpdate = -1
+		addressDetail.Type = "address"
+		addressDetail.Verified = false
+	}
+
+	httpapi.Success(ctx, addressDetail)
+}
+
+func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
+	accountParam, accountParamOk := URLValueGuard(ctx, handler.logger, "account")
+	if !accountParamOk {
+		return
 	}
 
 	info := AccountInfo{
@@ -171,19 +214,7 @@ func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
 	totalBalance = totalBalance.Add(info.Commissions...)
 	info.TotalBalance = totalBalance
 
-	var addressDetail blockscout_infrastructure.Address
-
-	blockscoutAddressResp := <-addressRespChan
-	if blockscoutAddressResp.Status == "1" {
-		addressDetail = blockscoutAddressResp.Result
-	} else {
-		addressDetail.Balance = info.Balance.String()
-		addressDetail.LastBalanceUpdate = -1
-		addressDetail.Type = "address"
-		addressDetail.Verified = false
-	}
-
-	httpapi.Success(ctx, addressDetail)
+	httpapi.Success(ctx, info)
 }
 
 func (handler *Accounts) List(ctx *fasthttp.RequestCtx) {
