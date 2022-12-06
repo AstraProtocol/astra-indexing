@@ -92,12 +92,20 @@ func InitRouteRegistry(
 		},
 	)
 
-	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(logger, rdbConn.ToHandle())
+	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(
+		logger, rdbConn.ToHandle(),
+		*blockscoutClient,
+	)
 	routes = append(routes,
 		Route{
 			Method:  GET,
 			path:    "api/v1/accounts/{account}/transactions",
 			handler: accountTransactionsHandler.ListByAccount,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/{account}/counters",
+			handler: accountTransactionsHandler.GetCounters,
 		},
 	)
 

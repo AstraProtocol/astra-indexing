@@ -78,24 +78,14 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 			go handler.blockscoutClient.GetDetailAddressByAddressHashAsync(addressHash, addressRespChan)
 		}
 	}
+
 	info := AccountInfo{
 		Balance: coin.NewEmptyCoins(),
-	}
-	account, err := handler.cosmosClient.Account(accountParam)
-	if err != nil {
-		httpapi.NotFound(ctx)
-		return
-	}
-
-	info.Type = account.Type
-	info.Address = account.Address
-	if info.Type == cosmosapp.ACCOUNT_MODULE {
-		info.Name = account.MaybeModuleAccount.Name
 	}
 
 	if balance, queryErr := handler.cosmosClient.Balances(accountParam); queryErr != nil {
 		handler.logger.Errorf("error fetching account balance: %v", queryErr)
-		httpapi.InternalServerError(ctx)
+		httpapi.NotFound(ctx)
 		return
 	} else {
 		info.Balance = balance

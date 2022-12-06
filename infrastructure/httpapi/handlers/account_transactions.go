@@ -1,11 +1,17 @@
 package handlers
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
+	evm_utils "github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/valyala/fasthttp"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
 	account_transaction_view "github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
 )
@@ -13,17 +19,59 @@ import (
 type AccountTransactions struct {
 	logger applogger.Logger
 
-	accountTransactionsView *account_transaction_view.AccountTransactions
+	blockscoutClient             blockscout_infrastructure.HTTPClient
+	accountTransactionsView      *account_transaction_view.AccountTransactions
+	accountTransactionsTotalView *account_transaction_view.AccountTransactionsTotal
 }
 
-func NewAccountTransactions(logger applogger.Logger, rdbHandle *rdb.Handle) *AccountTransactions {
+func NewAccountTransactions(
+	logger applogger.Logger,
+	rdbHandle *rdb.Handle,
+	blockscoutClient blockscout_infrastructure.HTTPClient,
+) *AccountTransactions {
 	return &AccountTransactions{
 		logger.WithFields(applogger.LogFields{
 			"module": "AccountTransactionsHandler",
 		}),
 
+		blockscoutClient,
 		account_transaction_view.NewAccountTransactions(rdbHandle),
+		account_transaction_view.NewAccountTransactionsTotal(rdbHandle),
 	}
+}
+
+func (handler *AccountTransactions) GetCounters(ctx *fasthttp.RequestCtx) {
+	accountParam, accountParamOk := URLValueGuard(ctx, handler.logger, "account")
+	if !accountParamOk {
+		return
+	}
+
+	addressCounterRespChan := make(chan blockscout_infrastructure.AddressCounterResp)
+
+	// Using simultaneously blockscout get address counters api
+	if evm_utils.IsHexAddress(accountParam) {
+		addressHash := accountParam
+		converted, _ := hex.DecodeString(accountParam[2:])
+		accountParam, _ = tmcosmosutils.EncodeHexToAddress("astra", converted)
+		go handler.blockscoutClient.GetAddressCountersAsync(addressHash, addressCounterRespChan)
+	} else {
+		if tmcosmosutils.IsValidCosmosAddress(accountParam) {
+			_, converted, _ := tmcosmosutils.DecodeAddressToHex(accountParam)
+			addressHash := "0x" + hex.EncodeToString(converted)
+			go handler.blockscoutClient.GetAddressCountersAsync(addressHash, addressCounterRespChan)
+		}
+	}
+
+	numberOfTxs, err := handler.accountTransactionsTotalView.Total.FindBy(fmt.Sprintf("%s:-", accountParam))
+
+	blockscoutAddressCounterResp := <-addressCounterRespChan
+	addressCounter := blockscoutAddressCounterResp.Result
+
+	if err == nil {
+		addressCounter.TransactionCount = numberOfTxs
+	}
+
+	httpapi.Success(ctx, addressCounter)
 }
 
 func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {

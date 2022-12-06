@@ -21,6 +21,7 @@ import (
 const GET_DETAIL_EVM_TX_BY_COSMOS_TX_HASH = "/api/v1?module=transaction&action=getTxCosmosInfo&txhash="
 const GET_DETAIL_EVM_TX_BY_EVM_TX_HASH = "/api/v1?module=transaction&action=gettxinfo&txhash="
 const GET_DETAIL_ADDRESS_BY_ADDRESS_HASH = "/api/v1?module=account&action=getaddress&address="
+const GET_ADDRESS_COUNTERS = "/api/v1?module=account&action=getaddresscounters&address="
 const GET_SEARCH_RESULTS = "/token-autocomplete?q="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
@@ -163,6 +164,32 @@ func (client *HTTPClient) GetDetailEvmTxByEvmTxHash(evmTxHash string) (*Transact
 	}
 
 	return &txResp.Result, nil
+}
+
+func (client *HTTPClient) GetAddressCountersAsync(addressHash string, addressChan chan AddressCounterResp) {
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(addressChan)
+	}()
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_ADDRESS_COUNTERS, addressHash), "",
+	)
+	if err != nil {
+		client.logger.Errorf("error getting address counters from blockscout: %v", err)
+		addressChan <- AddressCounterResp{}
+		return
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var addressCounterResp AddressCounterResp
+	if err := json.Unmarshal(respBody.Bytes(), &addressCounterResp); err != nil {
+		client.logger.Errorf("error parsing address counters from blockscout: %v", err)
+	}
+	addressChan <- addressCounterResp
 }
 
 func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string, addressChan chan AddressResp) {
