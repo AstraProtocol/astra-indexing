@@ -66,17 +66,23 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 	addressRespChan := make(chan blockscout_infrastructure.AddressResp)
 
 	// Using simultaneously blockscout get address detail api
+	var addressHash string
 	if evm_utils.IsHexAddress(accountParam) {
-		addressHash := accountParam
+		addressHash = accountParam
 		converted, _ := hex.DecodeString(accountParam[2:])
 		accountParam, _ = tmcosmosutils.EncodeHexToAddress("astra", converted)
-		go handler.blockscoutClient.GetDetailAddressByAddressHashAsync(addressHash, addressRespChan)
 	} else {
 		if tmcosmosutils.IsValidCosmosAddress(accountParam) {
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(accountParam)
-			addressHash := "0x" + hex.EncodeToString(converted)
-			go handler.blockscoutClient.GetDetailAddressByAddressHashAsync(addressHash, addressRespChan)
+			addressHash = "0x" + hex.EncodeToString(converted)
 		}
+	}
+	go handler.blockscoutClient.GetDetailAddressByAddressHashAsync(addressHash, addressRespChan)
+
+	_, err := handler.cosmosClient.Account(accountParam)
+	if err != nil {
+		httpapi.NotFound(ctx)
+		return
 	}
 
 	info := AccountInfo{
@@ -85,7 +91,7 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 
 	if balance, queryErr := handler.cosmosClient.Balances(accountParam); queryErr != nil {
 		handler.logger.Errorf("error fetching account balance: %v", queryErr)
-		httpapi.NotFound(ctx)
+		httpapi.InternalServerError(ctx)
 		return
 	} else {
 		info.Balance = balance

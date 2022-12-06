@@ -94,6 +94,7 @@ func InitRouteRegistry(
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(
 		logger, rdbConn.ToHandle(),
+		cosmosAppClient,
 		*blockscoutClient,
 	)
 	routes = append(routes,

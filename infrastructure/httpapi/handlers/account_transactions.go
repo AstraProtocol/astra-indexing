@@ -9,6 +9,7 @@ import (
 	evm_utils "github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/valyala/fasthttp"
 
+	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
@@ -19,6 +20,7 @@ import (
 type AccountTransactions struct {
 	logger applogger.Logger
 
+	cosmosClient                 cosmosapp.Client
 	blockscoutClient             blockscout_infrastructure.HTTPClient
 	accountTransactionsView      *account_transaction_view.AccountTransactions
 	accountTransactionsTotalView *account_transaction_view.AccountTransactionsTotal
@@ -27,6 +29,7 @@ type AccountTransactions struct {
 func NewAccountTransactions(
 	logger applogger.Logger,
 	rdbHandle *rdb.Handle,
+	cosmosClient cosmosapp.Client,
 	blockscoutClient blockscout_infrastructure.HTTPClient,
 ) *AccountTransactions {
 	return &AccountTransactions{
@@ -34,6 +37,7 @@ func NewAccountTransactions(
 			"module": "AccountTransactionsHandler",
 		}),
 
+		cosmosClient,
 		blockscoutClient,
 		account_transaction_view.NewAccountTransactions(rdbHandle),
 		account_transaction_view.NewAccountTransactionsTotal(rdbHandle),
@@ -49,17 +53,23 @@ func (handler *AccountTransactions) GetCounters(ctx *fasthttp.RequestCtx) {
 	addressCounterRespChan := make(chan blockscout_infrastructure.AddressCounterResp)
 
 	// Using simultaneously blockscout get address counters api
+	var addressHash string
 	if evm_utils.IsHexAddress(accountParam) {
-		addressHash := accountParam
+		addressHash = accountParam
 		converted, _ := hex.DecodeString(accountParam[2:])
 		accountParam, _ = tmcosmosutils.EncodeHexToAddress("astra", converted)
-		go handler.blockscoutClient.GetAddressCountersAsync(addressHash, addressCounterRespChan)
 	} else {
 		if tmcosmosutils.IsValidCosmosAddress(accountParam) {
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(accountParam)
-			addressHash := "0x" + hex.EncodeToString(converted)
-			go handler.blockscoutClient.GetAddressCountersAsync(addressHash, addressCounterRespChan)
+			addressHash = "0x" + hex.EncodeToString(converted)
 		}
+	}
+	go handler.blockscoutClient.GetAddressCountersAsync(addressHash, addressCounterRespChan)
+
+	_, err := handler.cosmosClient.Account(accountParam)
+	if err != nil {
+		httpapi.NotFound(ctx)
+		return
 	}
 
 	numberOfTxs, err := handler.accountTransactionsTotalView.Total.FindBy(fmt.Sprintf("%s:-", accountParam))
