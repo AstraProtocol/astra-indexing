@@ -4,12 +4,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"github.com/AstraProtocol/astra-indexing/external/cache"
-	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
-	"github.com/AstraProtocol/astra-indexing/usecase/coin"
-	"github.com/AstraProtocol/astra-indexing/usecase/model"
-	"github.com/hashicorp/go-retryablehttp"
-	jsoniter "github.com/json-iterator/go"
 	"io"
 	"net/http"
 	"net/url"
@@ -17,6 +11,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/AstraProtocol/astra-indexing/external/cache"
+	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
+	"github.com/AstraProtocol/astra-indexing/usecase/coin"
+	"github.com/AstraProtocol/astra-indexing/usecase/model"
+	"github.com/hashicorp/go-retryablehttp"
+	jsoniter "github.com/json-iterator/go"
 
 	cosmosapp_interface "github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 )
@@ -89,8 +90,9 @@ func baseRetryPolicy(resp *http.Response, err error) (bool, error) {
 	if resp.StatusCode == http.StatusTooManyRequests {
 		return true, nil
 	}
+
 	if resp.StatusCode == http.StatusNotFound {
-		return true, nil
+		return false, nil
 	}
 
 	// Check the response code. We retry on 500-range responses to allow

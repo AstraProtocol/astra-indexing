@@ -69,7 +69,7 @@ func baseRetryPolicy(resp *http.Response, err error) (bool, error) {
 		return true, nil
 	}
 	if resp.StatusCode == http.StatusNotFound {
-		return true, nil
+		return false, nil
 	}
 	if resp.StatusCode == 0 || (resp.StatusCode >= 500 && resp.StatusCode != http.StatusNotImplemented) {
 		return true, fmt.Errorf("unexpected HTTP status %s", resp.Status)
@@ -111,7 +111,6 @@ func (client *HTTPClient) request(endpoint string, queryParams ...string) (io.Re
 func NewHTTPClient(logger applogger.Logger, url string) *HTTPClient {
 	httpClient := retryablehttp.NewClient()
 	httpClient.Logger = nil
-	httpClient.RetryMax = 0
 	httpClient.CheckRetry = defaultRetryPolicy
 
 	return &HTTPClient{
