@@ -110,12 +110,21 @@ func InitRouteRegistry(
 		},
 	)
 
-	statusHandlers := httpapi_handlers.NewStatusHandler(logger, cosmosAppClient, rdbConn.ToHandle())
+	statusHandlers := httpapi_handlers.NewStatusHandler(
+		logger,
+		cosmosAppClient,
+		rdbConn.ToHandle(),
+	)
 	routes = append(routes,
 		Route{
 			Method:  GET,
 			path:    "api/v1/status",
 			handler: statusHandlers.GetStatus,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/estimate-counted-info",
+			handler: statusHandlers.EstimateCounted,
 		},
 	)
 

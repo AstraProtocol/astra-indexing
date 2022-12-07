@@ -19,6 +19,12 @@ func (accountsView *MockAccountsView) Upsert(account *AccountRow) error {
 	return mockArgs.Error(0)
 }
 
+func (accountsView *MockAccountsView) TotalAccount() (int64, error) {
+	mockArgs := accountsView.Called()
+	result, _ := mockArgs.Get(0).(int64)
+	return result, mockArgs.Error(1)
+}
+
 func (accountsView *MockAccountsView) FindBy(identity *AccountIdentity) (*AccountRow, error) {
 	mockArgs := accountsView.Called(identity)
 	result, _ := mockArgs.Get(0).(*AccountRow)

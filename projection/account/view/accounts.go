@@ -17,6 +17,7 @@ import (
 
 type Accounts interface {
 	Upsert(*AccountRow) error
+	TotalAccount() (int64, error)
 	FindBy(*AccountIdentity) (*AccountRow, error)
 	List(AccountsListOrder, *pagination.Pagination) ([]AccountRow, *pagination.Result, error)
 }
@@ -78,6 +79,31 @@ func (accountsView *AccountsView) Upsert(account *AccountRow) error {
 	}
 
 	return nil
+}
+
+func (accountsView *AccountsView) TotalAccount() (int64, error) {
+	var err error
+
+	selectStmtBuilder := accountsView.rdb.StmtBuilder.Select(
+		"MAX(account_number)",
+	).From("view_accounts")
+
+	sql, sqlArgs, err := selectStmtBuilder.ToSql()
+	if err != nil {
+		return -1, fmt.Errorf("error building total account selection sql: %v: %w", err, rdb.ErrPrepare)
+	}
+
+	var totalAccount int64
+	if err = accountsView.rdb.QueryRow(sql, sqlArgs...).Scan(
+		&totalAccount,
+	); err != nil {
+		if errors.Is(err, rdb.ErrNoRows) {
+			return -1, rdb.ErrNoRows
+		}
+		return -1, fmt.Errorf("error scanning account row: %v: %w", err, rdb.ErrQuery)
+	}
+
+	return totalAccount, nil
 }
 
 func (accountsView *AccountsView) FindBy(identity *AccountIdentity) (*AccountRow, error) {

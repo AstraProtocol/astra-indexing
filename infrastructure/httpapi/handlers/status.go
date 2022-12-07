@@ -9,6 +9,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/external/json"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 
+	account_view "github.com/AstraProtocol/astra-indexing/projection/account/view"
 	"github.com/AstraProtocol/astra-indexing/projection/chainstats"
 
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
@@ -31,6 +32,7 @@ type StatusHandler struct {
 
 	cosmosAppClient       cosmosapp.Client
 	blocksView            *block_view.Blocks
+	accountsView          account_view.Accounts
 	chainStatsView        *chainstats_view.ChainStats
 	transactionsTotalView transaction_view.TransactionsTotal
 	validatorsView        *validator_view.Validators
@@ -41,7 +43,11 @@ type StatusHandler struct {
 	totalDelegatedLastUpdatedAt time.Time
 }
 
-func NewStatusHandler(logger applogger.Logger, cosmosAppClient cosmosapp.Client, rdbHandle *rdb.Handle) *StatusHandler {
+func NewStatusHandler(
+	logger applogger.Logger,
+	cosmosAppClient cosmosapp.Client,
+	rdbHandle *rdb.Handle,
+) *StatusHandler {
 	return &StatusHandler{
 		logger.WithFields(applogger.LogFields{
 			"module": "StatusHandler",
@@ -49,6 +55,7 @@ func NewStatusHandler(logger applogger.Logger, cosmosAppClient cosmosapp.Client,
 
 		cosmosAppClient,
 		block_view.NewBlocks(rdbHandle),
+		account_view.NewAccountsView(rdbHandle),
 		chainstats_view.NewChainStats(rdbHandle),
 		transaction_view.NewTransactionsTotalView(rdbHandle),
 		validator_view.NewValidators(rdbHandle),
@@ -58,6 +65,36 @@ func NewStatusHandler(logger applogger.Logger, cosmosAppClient cosmosapp.Client,
 		coin.NewEmptyCoins(),
 		time.Unix(int64(0), int64(0)),
 	}
+}
+
+func (handler *StatusHandler) EstimateCounted(ctx *fasthttp.RequestCtx) {
+	blocksCount, err := handler.blocksView.Count()
+	if err != nil {
+		handler.logger.Errorf("error fetching block count: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	transactionsCount, err := handler.transactionsTotalView.FindBy("-")
+	if err != nil {
+		handler.logger.Errorf("error fetching transaction count: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	addressesCount, err := handler.accountsView.TotalAccount()
+	if err != nil {
+		handler.logger.Errorf("error fetching address count: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	estimateCounted := EstimateCountedInfo{}
+	estimateCounted.TotalTransactions = transactionsCount
+	estimateCounted.TotalBlocks = blocksCount
+	estimateCounted.TotalAddresses = addressesCount
+
+	httpapi.Success(ctx, estimateCounted)
 }
 
 func (handler *StatusHandler) GetStatus(ctx *fasthttp.RequestCtx) {
@@ -214,4 +251,10 @@ type Status struct {
 	ActiveValidatorCount        int64         `json:"activeValidatorCount"`
 	LatestHeight                int64         `json:"latestHeight"`
 	AverageBlockTimeMillisecond string        `json:"averageBlockTimeMillisecond"`
+}
+
+type EstimateCountedInfo struct {
+	TotalBlocks       int64 `json:"total_blocks"`
+	TotalTransactions int64 `json:"total_transactions"`
+	TotalAddresses    int64 `json:"wallet_addresses"`
 }
