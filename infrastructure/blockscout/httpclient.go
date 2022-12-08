@@ -22,6 +22,7 @@ const GET_DETAIL_EVM_TX_BY_COSMOS_TX_HASH = "/api/v1?module=transaction&action=g
 const GET_DETAIL_EVM_TX_BY_EVM_TX_HASH = "/api/v1?module=transaction&action=gettxinfo&txhash="
 const GET_DETAIL_ADDRESS_BY_ADDRESS_HASH = "/api/v1?module=account&action=getaddress&address="
 const GET_ADDRESS_COUNTERS = "/api/v1?module=account&action=getaddresscounters&address="
+const GET_COMMON_STATS = "/api/v1/common-stats"
 const GET_SEARCH_RESULTS = "/token-autocomplete?q="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
@@ -165,10 +166,36 @@ func (client *HTTPClient) GetDetailEvmTxByEvmTxHash(evmTxHash string) (*Transact
 	return &txResp.Result, nil
 }
 
-func (client *HTTPClient) GetAddressCountersAsync(addressHash string, addressChan chan AddressCounterResp) {
+func (client *HTTPClient) GetCommonStatsAsync(commonStatsChan chan CommonStats) {
 	// Make sure we close these channels when we're done with them
 	defer func() {
-		close(addressChan)
+		close(commonStatsChan)
+	}()
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_COMMON_STATS, ""), "",
+	)
+	if err != nil {
+		client.logger.Errorf("error getting common stats from blockscout: %v", err)
+		commonStatsChan <- CommonStats{}
+		return
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonStats CommonStats
+	if err := json.Unmarshal(respBody.Bytes(), &commonStats); err != nil {
+		client.logger.Errorf("error parsing common stats from blockscout: %v", err)
+	}
+	commonStatsChan <- commonStats
+}
+
+func (client *HTTPClient) GetAddressCountersAsync(addressHash string, addressCountersChan chan AddressCounterResp) {
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(addressCountersChan)
 	}()
 
 	rawRespBody, err := client.request(
@@ -176,7 +203,7 @@ func (client *HTTPClient) GetAddressCountersAsync(addressHash string, addressCha
 	)
 	if err != nil {
 		client.logger.Errorf("error getting address counters from blockscout: %v", err)
-		addressChan <- AddressCounterResp{}
+		addressCountersChan <- AddressCounterResp{}
 		return
 	}
 	defer rawRespBody.Close()
@@ -188,7 +215,7 @@ func (client *HTTPClient) GetAddressCountersAsync(addressHash string, addressCha
 	if err := json.Unmarshal(respBody.Bytes(), &addressCounterResp); err != nil {
 		client.logger.Errorf("error parsing address counters from blockscout: %v", err)
 	}
-	addressChan <- addressCounterResp
+	addressCountersChan <- addressCounterResp
 }
 
 func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string, addressChan chan AddressResp) {

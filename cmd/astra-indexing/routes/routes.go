@@ -113,6 +113,7 @@ func InitRouteRegistry(
 	statusHandlers := httpapi_handlers.NewStatusHandler(
 		logger,
 		cosmosAppClient,
+		*blockscoutClient,
 		rdbConn.ToHandle(),
 	)
 	routes = append(routes,
@@ -125,6 +126,11 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/estimate-counted-info",
 			handler: statusHandlers.EstimateCounted,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/common-stats",
+			handler: statusHandlers.GetCommonStats,
 		},
 	)
 

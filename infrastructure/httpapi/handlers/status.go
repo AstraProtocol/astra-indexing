@@ -16,6 +16,7 @@ import (
 
 	status_polling "github.com/AstraProtocol/astra-indexing/appinterface/polling"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
 	block_view "github.com/AstraProtocol/astra-indexing/projection/block/view"
 	chainstats_view "github.com/AstraProtocol/astra-indexing/projection/chainstats/view"
@@ -31,6 +32,7 @@ type StatusHandler struct {
 	logger applogger.Logger
 
 	cosmosAppClient       cosmosapp.Client
+	blockscoutClient      blockscout_infrastructure.HTTPClient
 	blocksView            *block_view.Blocks
 	accountsView          account_view.Accounts
 	chainStatsView        *chainstats_view.ChainStats
@@ -46,6 +48,7 @@ type StatusHandler struct {
 func NewStatusHandler(
 	logger applogger.Logger,
 	cosmosAppClient cosmosapp.Client,
+	blockscoutClient blockscout_infrastructure.HTTPClient,
 	rdbHandle *rdb.Handle,
 ) *StatusHandler {
 	return &StatusHandler{
@@ -54,6 +57,7 @@ func NewStatusHandler(
 		}),
 
 		cosmosAppClient,
+		blockscoutClient,
 		block_view.NewBlocks(rdbHandle),
 		account_view.NewAccountsView(rdbHandle),
 		chainstats_view.NewChainStats(rdbHandle),
@@ -65,6 +69,14 @@ func NewStatusHandler(
 		coin.NewEmptyCoins(),
 		time.Unix(int64(0), int64(0)),
 	}
+}
+
+func (handler *StatusHandler) GetCommonStats(ctx *fasthttp.RequestCtx) {
+	commonStatsChan := make(chan blockscout_infrastructure.CommonStats)
+	go handler.blockscoutClient.GetCommonStatsAsync(commonStatsChan)
+	commonStats := <-commonStatsChan
+
+	httpapi.Success(ctx, commonStats)
 }
 
 func (handler *StatusHandler) EstimateCounted(ctx *fasthttp.RequestCtx) {
