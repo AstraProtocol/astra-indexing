@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 
@@ -285,6 +286,33 @@ func (blocksView *Blocks) Count() (int64, error) {
 		return 0, nil
 	}
 	return *count, nil
+}
+
+func (blocksView *Blocks) TotalTransactionsPerDay() (int, error) {
+	startOfDay := time.Now().Truncate(24 * time.Hour).UnixNano()
+
+	sql, sqlArgs, err := blocksView.rdb.StmtBuilder.Select(
+		"SUM(transaction_count)",
+	).From(
+		"view_blocks",
+	).Where(
+		"time >= ?", startOfDay,
+	).ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("error building transactions count per day selection sql: %v", err)
+	}
+
+	var count int
+	if err = blocksView.rdb.QueryRow(sql, sqlArgs...).Scan(
+		&count,
+	); err != nil {
+		if errors.Is(err, rdb.ErrNoRows) {
+			return 0, rdb.ErrNoRows
+		}
+		return 0, fmt.Errorf("error scanning transactions count per day selection sql: %v", err)
+	}
+
+	return count, nil
 }
 
 func NewRdbBlockCommittedCouncilNodeFromRaw(raw *BlockCommittedCouncilNode) *RdbBlockCommittedCouncilNode {
