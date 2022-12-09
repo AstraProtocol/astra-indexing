@@ -77,13 +77,14 @@ func (handler *StatusHandler) GetCommonStats(ctx *fasthttp.RequestCtx) {
 
 	transactionsCountPerDay, err := handler.blocksView.TotalTransactionsPerDay()
 	if err != nil {
-		handler.logger.Errorf("error fetching blocks count per day: %v", err)
+		handler.logger.Errorf("error fetching transactions count per day: %v", err)
 		httpapi.InternalServerError(ctx)
 		return
 	}
 
 	commonStats := <-commonStatsChan
 	commonStats.TransactionStats.NumberOfTransactions = transactionsCountPerDay
+	commonStats.TransactionStats.Date = time.Now().Local().String()
 
 	httpapi.Success(ctx, commonStats)
 }
