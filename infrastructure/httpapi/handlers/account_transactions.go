@@ -96,6 +96,11 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	if evm_utils.IsHexAddress(account) {
+		converted, _ := hex.DecodeString(account[2:])
+		account, _ = tmcosmosutils.EncodeHexToAddress("astra", converted)
+	}
+
 	queryArgs := ctx.QueryArgs()
 
 	idOrder := view.ORDER_ASC
