@@ -3,6 +3,9 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -14,8 +17,6 @@ import (
 	transaction_view "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 	validator_view "github.com/AstraProtocol/astra-indexing/projection/validator/view"
 	"github.com/valyala/fasthttp"
-	"strconv"
-	"time"
 )
 
 type BlocksPaginationResult struct {
@@ -116,8 +117,14 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 		httpapi.InternalServerError(ctx)
 		return
 	}
-	err = handler.astraCache.Set(blockPaginationKey,
+	_ = handler.astraCache.Set(blockPaginationKey,
 		NewBlocksPaginationResult(blocks, *paginationResult), 2400*time.Millisecond)
+
+	if paginationResult.Por.TotalRecord > pagination.MAX_ELEMENTS {
+		paginationResult.Por.TotalRecord = pagination.MAX_ELEMENTS
+		paginationResult.Por.TotalPage()
+	}
+
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
 

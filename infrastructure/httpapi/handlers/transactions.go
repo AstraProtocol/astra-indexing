@@ -156,5 +156,11 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 	}
 	_ = handler.astraCache.Set(transactionPaginationKey,
 		NewTransactionsPaginationResult(blocks, *paginationResult), 2400*time.Millisecond)
+
+	if paginationResult.Por.TotalRecord > pagination.MAX_ELEMENTS {
+		paginationResult.Por.TotalRecord = pagination.MAX_ELEMENTS
+		paginationResult.Por.TotalPage()
+	}
+
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
