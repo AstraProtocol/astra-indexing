@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS transaction_stats_date_unique_index;
