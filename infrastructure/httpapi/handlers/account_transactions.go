@@ -77,7 +77,7 @@ func (handler *AccountTransactions) GetCounters(ctx *fasthttp.RequestCtx) {
 	blockscoutAddressCounterResp := <-addressCounterRespChan
 	addressCounter := blockscoutAddressCounterResp.Result
 
-	if err == nil && numberOfTxs > addressCounter.TransactionCount {
+	if err == nil && addressCounter.Type == "address" {
 		addressCounter.TransactionCount = numberOfTxs
 	}
 

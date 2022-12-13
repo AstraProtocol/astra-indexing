@@ -1,10 +1,11 @@
 package blockscout
 
 type AddressCounter struct {
-	GasUsageCount      int64 `json:"gasUsageCount"`
-	TokenTransferCount int   `json:"tokenTransferCount"`
-	TransactionCount   int64 `json:"transactionCount"`
-	ValidationCount    int   `json:"validationCount"`
+	GasUsageCount      int64  `json:"gasUsageCount"`
+	TokenTransferCount int    `json:"tokenTransferCount"`
+	TransactionCount   int64  `json:"transactionCount"`
+	ValidationCount    int    `json:"validationCount"`
+	Type               string `json:"type"`
 }
 
 type AddressCounterResp struct {
