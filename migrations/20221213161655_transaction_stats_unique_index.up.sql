@@ -1,1 +1,1 @@
-CREATE UNIQUE INDEX transaction_stats_date_unique_index ON transaction_stats (date);
+CREATE UNIQUE INDEX transaction_stats_date_unique_index ON transaction_stats (date_time);
