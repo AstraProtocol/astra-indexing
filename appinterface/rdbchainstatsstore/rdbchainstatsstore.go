@@ -1,4 +1,4 @@
-package rdbtransactionstatsstore
+package rdbchainstatsstore
 
 import (
 	"errors"
@@ -9,16 +9,16 @@ import (
 	"gopkg.in/robfig/cron.v2"
 )
 
-const DEFAULT_TABLE = "transaction_stats"
+const DEFAULT_TABLE = "chain_stats"
 
-type RDbTransactionStatsStore struct {
+type RDbChainStatsStore struct {
 	selectRDbHandle *rdb.Handle
 
 	table string
 }
 
-func NewRDbTransactionStatsStore(rdbHandle *rdb.Handle) *RDbTransactionStatsStore {
-	return &RDbTransactionStatsStore{
+func NewRDbChainStatsStore(rdbHandle *rdb.Handle) *RDbChainStatsStore {
+	return &RDbChainStatsStore{
 		selectRDbHandle: rdbHandle,
 
 		table: DEFAULT_TABLE,
@@ -26,7 +26,7 @@ func NewRDbTransactionStatsStore(rdbHandle *rdb.Handle) *RDbTransactionStatsStor
 }
 
 // init initializes transaction stats store DB when it is first time running
-func (impl *RDbTransactionStatsStore) init() error {
+func (impl *RDbChainStatsStore) init() error {
 	var err error
 
 	var exist bool
@@ -44,7 +44,7 @@ func (impl *RDbTransactionStatsStore) init() error {
 }
 
 // isStatusRowExist returns true if the row exists
-func (impl *RDbTransactionStatsStore) isRowExist() (bool, error) {
+func (impl *RDbChainStatsStore) isRowExist() (bool, error) {
 	currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Select(
@@ -67,7 +67,7 @@ func (impl *RDbTransactionStatsStore) isRowExist() (bool, error) {
 }
 
 // InitLatestStatus creates one row for initial latest status
-func (impl *RDbTransactionStatsStore) initRow() error {
+func (impl *RDbChainStatsStore) initRow() error {
 	currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 	// Insert initial latest status to the row
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Insert(
@@ -91,7 +91,7 @@ func (impl *RDbTransactionStatsStore) initRow() error {
 	return nil
 }
 
-func (impl *RDbTransactionStatsStore) UpdateCountedTransactionsWithRDbHandle() error {
+func (impl *RDbChainStatsStore) UpdateCountedTransactionsWithRDbHandle() error {
 	currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 
 	if err := impl.init(); err != nil {
@@ -142,10 +142,11 @@ func (impl *RDbTransactionStatsStore) UpdateCountedTransactionsWithRDbHandle() e
 }
 
 func RunCronJobs(rdbHandle *rdb.Handle) {
-	rdbTransactionStatsStore := NewRDbTransactionStatsStore(rdbHandle)
+	rdbTransactionStatsStore := NewRDbChainStatsStore(rdbHandle)
 	s := cron.New()
 
-	s.AddFunc("@midnight", func() {
+	// At minute 59 past every hour from 0 through 23
+	s.AddFunc("59 0-23 * * *", func() {
 		rdbTransactionStatsStore.UpdateCountedTransactionsWithRDbHandle()
 	})
 

@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS chain_stats_date_unique_index;
