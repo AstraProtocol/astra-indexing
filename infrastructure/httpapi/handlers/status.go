@@ -71,6 +71,20 @@ func NewStatusHandler(
 	}
 }
 
+func (handler *StatusHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
+	// Fetch transactions history of last 30 days
+	date_range := 30
+	transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistoryByDateRange(date_range)
+
+	if err != nil {
+		handler.logger.Errorf("error fetching transactions history: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	httpapi.Success(ctx, transactionsHistoryList)
+}
+
 func (handler *StatusHandler) GetCommonStats(ctx *fasthttp.RequestCtx) {
 	commonStatsChan := make(chan blockscout_infrastructure.CommonStats)
 	go handler.blockscoutClient.GetCommonStatsAsync(commonStatsChan)

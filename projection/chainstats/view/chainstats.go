@@ -3,6 +3,7 @@ package view
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 )
@@ -105,7 +106,59 @@ func (view *ChainStats) FindBy(metrics string) (string, error) {
 	return value, nil
 }
 
+func (view *ChainStats) GetTransactionsHistoryByDateRange(date_range int) ([]TransactionHistory, error) {
+	currentDate := time.Now().Truncate(24 * time.Hour)
+	latest := currentDate.Add(-24 * time.Hour)
+	earliest := latest.Add(-time.Duration(date_range) * 24 * time.Hour)
+
+	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
+		"date_time",
+		"number_of_transactions",
+	).From(
+		"chain_stats",
+	).Where(
+		"date_time >= ? AND date_time <= ?", earliest.UnixNano(), latest.UnixNano(),
+	).OrderBy(
+		"date_time DESC",
+	).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("error building transactions history by date range select SQL: %v, %w", err, rdb.ErrBuildSQLStmt)
+	}
+
+	rowsResult, err := view.rdbHandle.Query(sql, sqlArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("error executing transactions history by date range select SQL: %v: %w", err, rdb.ErrQuery)
+	}
+	defer rowsResult.Close()
+
+	transactionHistoryList := make([]TransactionHistory, 0)
+	for rowsResult.Next() {
+		var transactionHistory TransactionHistory
+		var unixTime int64
+
+		if err = rowsResult.Scan(
+			&unixTime,
+			&transactionHistory.NumberOfTransactions,
+		); err != nil {
+			if errors.Is(err, rdb.ErrNoRows) {
+				return nil, rdb.ErrNoRows
+			}
+			return nil, fmt.Errorf("error scanning transactions history by date range row: %v: %w", err, rdb.ErrQuery)
+		}
+
+		transactionHistory.Date = time.Unix(0, unixTime).UTC().String()
+		transactionHistoryList = append(transactionHistoryList, transactionHistory)
+	}
+
+	return transactionHistoryList, nil
+}
+
 type ValidatorStatsRow struct {
 	Metrics string
 	Value   string
+}
+
+type TransactionHistory struct {
+	Date                 string `json:"date"`
+	NumberOfTransactions int64  `json:"numberOfTransactions"`
 }

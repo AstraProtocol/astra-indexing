@@ -25,7 +25,7 @@ func NewRDbChainStatsStore(rdbHandle *rdb.Handle) *RDbChainStatsStore {
 	}
 }
 
-// init initializes transaction stats store DB when it is first time running
+// Init initializes chain stats store DB when it is first time running
 func (impl *RDbChainStatsStore) init() error {
 	var err error
 
@@ -43,7 +43,7 @@ func (impl *RDbChainStatsStore) init() error {
 	return nil
 }
 
-// isStatusRowExist returns true if the row exists
+// isRowExist returns true if the row exists
 func (impl *RDbChainStatsStore) isRowExist() (bool, error) {
 	currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 
@@ -66,10 +66,10 @@ func (impl *RDbChainStatsStore) isRowExist() (bool, error) {
 	return count > 0, nil
 }
 
-// InitLatestStatus creates one row for initial latest status
+// initRow creates one row for current day chain stats
 func (impl *RDbChainStatsStore) initRow() error {
 	currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-	// Insert initial latest status to the row
+	// Insert initial current day to the row
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Insert(
 		impl.table,
 	).Columns(

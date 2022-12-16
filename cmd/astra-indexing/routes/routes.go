@@ -132,6 +132,11 @@ func InitRouteRegistry(
 			path:    "api/v1/common-stats",
 			handler: statusHandlers.GetCommonStats,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/transactions-history",
+			handler: statusHandlers.GetTransactionsHistory,
+		},
 	)
 
 	transactionHandler := httpapi_handlers.NewTransactions(logger, *blockscoutClient, rdbConn.ToHandle())
