@@ -9,7 +9,6 @@ import (
 	"github.com/AstraProtocol/astra-indexing/external/json"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 
-	account_view "github.com/AstraProtocol/astra-indexing/projection/account/view"
 	"github.com/AstraProtocol/astra-indexing/projection/chainstats"
 
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
@@ -34,7 +33,6 @@ type StatusHandler struct {
 	cosmosAppClient       cosmosapp.Client
 	blockscoutClient      blockscout_infrastructure.HTTPClient
 	blocksView            *block_view.Blocks
-	accountsView          account_view.Accounts
 	chainStatsView        *chainstats_view.ChainStats
 	transactionsTotalView transaction_view.TransactionsTotal
 	validatorsView        *validator_view.Validators
@@ -59,7 +57,6 @@ func NewStatusHandler(
 		cosmosAppClient,
 		blockscoutClient,
 		block_view.NewBlocks(rdbHandle),
-		account_view.NewAccountsView(rdbHandle),
 		chainstats_view.NewChainStats(rdbHandle),
 		transaction_view.NewTransactionsTotalView(rdbHandle),
 		validator_view.NewValidators(rdbHandle),
