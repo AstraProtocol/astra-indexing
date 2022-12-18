@@ -71,68 +71,6 @@ func NewStatusHandler(
 	}
 }
 
-func (handler *StatusHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
-	// Fetch transactions history of last 30 days
-	date_range := 30
-	transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistoryByDateRange(date_range)
-
-	if err != nil {
-		handler.logger.Errorf("error fetching transactions history: %v", err)
-		httpapi.InternalServerError(ctx)
-		return
-	}
-
-	httpapi.Success(ctx, transactionsHistoryList)
-}
-
-func (handler *StatusHandler) GetCommonStats(ctx *fasthttp.RequestCtx) {
-	commonStatsChan := make(chan blockscout_infrastructure.CommonStats)
-	go handler.blockscoutClient.GetCommonStatsAsync(commonStatsChan)
-
-	transactionsCountPerDay, err := handler.blocksView.TotalTransactionsPerDay()
-	if err != nil {
-		handler.logger.Errorf("error fetching transactions count per day: %v", err)
-		httpapi.InternalServerError(ctx)
-		return
-	}
-
-	commonStats := <-commonStatsChan
-	commonStats.TransactionStats.NumberOfTransactions = transactionsCountPerDay
-	commonStats.TransactionStats.Date = time.Now().Local().String()
-
-	httpapi.Success(ctx, commonStats)
-}
-
-func (handler *StatusHandler) EstimateCounted(ctx *fasthttp.RequestCtx) {
-	blocksCount, err := handler.blocksView.Count()
-	if err != nil {
-		handler.logger.Errorf("error fetching block count: %v", err)
-		httpapi.InternalServerError(ctx)
-		return
-	}
-
-	transactionsCount, err := handler.transactionsTotalView.FindBy("-")
-	if err != nil {
-		handler.logger.Errorf("error fetching transaction count: %v", err)
-		httpapi.InternalServerError(ctx)
-		return
-	}
-
-	addressesCount, err := handler.accountsView.TotalAccount()
-	if err != nil {
-		handler.logger.Errorf("error fetching address count: %v", err)
-		httpapi.InternalServerError(ctx)
-		return
-	}
-
-	estimateCounted := EstimateCountedInfo{}
-	estimateCounted.TotalTransactions = transactionsCount
-	estimateCounted.TotalBlocks = blocksCount
-	estimateCounted.TotalAddresses = addressesCount
-
-	httpapi.Success(ctx, estimateCounted)
-}
-
 func (handler *StatusHandler) GetStatus(ctx *fasthttp.RequestCtx) {
 	blockCount, err := handler.blocksView.Count()
 	if err != nil {
@@ -287,10 +225,4 @@ type Status struct {
 	ActiveValidatorCount        int64         `json:"activeValidatorCount"`
 	LatestHeight                int64         `json:"latestHeight"`
 	AverageBlockTimeMillisecond string        `json:"averageBlockTimeMillisecond"`
-}
-
-type EstimateCountedInfo struct {
-	TotalBlocks       int64 `json:"total_blocks"`
-	TotalTransactions int64 `json:"total_transactions"`
-	TotalAddresses    int64 `json:"wallet_addresses"`
 }

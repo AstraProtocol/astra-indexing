@@ -110,6 +110,29 @@ func InitRouteRegistry(
 		},
 	)
 
+	statsHandlers := httpapi_handlers.NewStatsHandler(
+		logger,
+		*blockscoutClient,
+		rdbConn.ToHandle(),
+	)
+	routes = append(routes,
+		Route{
+			Method:  GET,
+			path:    "api/v1/estimate-counted-info",
+			handler: statsHandlers.EstimateCounted,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/common-stats",
+			handler: statsHandlers.GetCommonStats,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/transactions-history",
+			handler: statsHandlers.GetTransactionsHistory,
+		},
+	)
+
 	statusHandlers := httpapi_handlers.NewStatusHandler(
 		logger,
 		cosmosAppClient,
@@ -121,21 +144,6 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/status",
 			handler: statusHandlers.GetStatus,
-		},
-		Route{
-			Method:  GET,
-			path:    "api/v1/estimate-counted-info",
-			handler: statusHandlers.EstimateCounted,
-		},
-		Route{
-			Method:  GET,
-			path:    "api/v1/common-stats",
-			handler: statusHandlers.GetCommonStats,
-		},
-		Route{
-			Method:  GET,
-			path:    "api/v1/transactions-history",
-			handler: statusHandlers.GetTransactionsHistory,
 		},
 	)
 

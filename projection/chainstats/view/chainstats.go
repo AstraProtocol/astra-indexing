@@ -3,6 +3,7 @@ package view
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -146,7 +147,7 @@ func (view *ChainStats) GetTransactionsHistoryByDateRange(date_range int) ([]Tra
 			return nil, fmt.Errorf("error scanning transactions history by date range row: %v: %w", err, rdb.ErrQuery)
 		}
 
-		transactionHistory.Date = time.Unix(0, unixTime).UTC().String()
+		transactionHistory.Date = strings.Split(time.Unix(0, unixTime).UTC().String(), " ")[0]
 		transactionHistoryList = append(transactionHistoryList, transactionHistory)
 	}
 
