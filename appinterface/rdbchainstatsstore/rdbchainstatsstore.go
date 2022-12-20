@@ -98,31 +98,16 @@ func (impl *RDbChainStatsStore) UpdateCountedTransactionsWithRDbHandle() error {
 		return fmt.Errorf("error initializing transaction stats store: %v", err)
 	}
 
-	sql, sqlArgs, err := impl.selectRDbHandle.StmtBuilder.Select(
+	transactionsCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(
 		"SUM(transaction_count)",
 	).From(
 		"view_blocks",
-	).Where(
-		"time >= ?", currentDate,
-	).ToSql()
-	if err != nil {
-		return fmt.Errorf("error building transactions count per day selection sql: %v", err)
-	}
-
-	var count int
-	if err = impl.selectRDbHandle.QueryRow(sql, sqlArgs...).Scan(
-		&count,
-	); err != nil {
-		if errors.Is(err, rdb.ErrNoRows) {
-			return rdb.ErrNoRows
-		}
-		return fmt.Errorf("error scanning transactions count per day selection sql: %v", err)
-	}
+	).Where("time >= ?", currentDate)
 
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
 		impl.table,
 	).Set(
-		"number_of_transactions", count,
+		"number_of_transactions", impl.selectRDbHandle.StmtBuilder.SubQuery(transactionsCountSubQuery),
 	).Where(
 		"date_time = ?", currentDate,
 	).ToSql()
@@ -146,8 +131,9 @@ func RunCronJobs(rdbHandle *rdb.Handle) {
 	s := cron.New()
 
 	// At minute 59 past every hour from 0 through 23
+	// @every 0h0m5s
 	s.AddFunc("59 0-23 * * *", func() {
-		rdbTransactionStatsStore.UpdateCountedTransactionsWithRDbHandle()
+		go rdbTransactionStatsStore.UpdateCountedTransactionsWithRDbHandle()
 	})
 
 	s.Start()
