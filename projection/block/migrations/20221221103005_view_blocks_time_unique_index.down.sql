@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS view_blocks_time_unique_index;
