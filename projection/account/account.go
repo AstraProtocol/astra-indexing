@@ -136,7 +136,7 @@ func (projection *Account) HandleEvents(height int64, events []event_entity.Even
 
 	for _, tx := range txs {
 		// Calculate account gas used total
-		senderAddress := projection.ParseSenderAddressesFromMessage(tx.Messages[0])
+		senderAddress := "astra12nnueg3904ukfjel4u695ma6tvrkqvqmrqstx6"
 
 		var address string
 		if tmcosmosutils.IsValidCosmosAddress(senderAddress) {
