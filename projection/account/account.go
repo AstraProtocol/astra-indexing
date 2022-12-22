@@ -59,12 +59,12 @@ var (
 )
 
 func (_ *Account) GetEventsToListen() []string {
-	return []string{
+	return append([]string{
 		// TODO: Genesis account
 		event_usecase.ACCOUNT_TRANSFERRED,
 		event_usecase.TRANSACTION_CREATED,
 		event_usecase.TRANSACTION_FAILED,
-	}
+	}, event_usecase.MSG_EVENTS...)
 }
 
 func (projection *Account) OnInit() error {
@@ -94,6 +94,7 @@ func (projection *Account) HandleEvents(height int64, events []event_entity.Even
 
 	// Handle and insert a single copy of transaction data
 	txs := make([]account_transaction_view.TransactionRow, 0)
+	txMsgs := make(map[string][]event_usecase.MsgEvent)
 	for _, event := range events {
 		if transactionCreatedEvent, ok := event.(*event_usecase.TransactionCreated); ok {
 			txs = append(txs, account_transaction_view.TransactionRow{
@@ -131,13 +132,27 @@ func (projection *Account) HandleEvents(height int64, events []event_entity.Even
 				TimeoutHeight: transactionFailedEvent.TimeoutHeight,
 				Messages:      make([]account_transaction_view.TransactionRowMessage, 0),
 			})
+		} else if msgEvent, ok := event.(event_usecase.MsgEvent); ok {
+			if _, exist := txMsgs[msgEvent.TxHash()]; !exist {
+				txMsgs[msgEvent.TxHash()] = make([]event_usecase.MsgEvent, 0)
+			}
+			txMsgs[msgEvent.TxHash()] = append(txMsgs[msgEvent.TxHash()], msgEvent)
 		}
 	}
 
 	for _, tx := range txs {
-		// Calculate account gas used total
-		senderAddress := "astra12nnueg3904ukfjel4u695ma6tvrkqvqmrqstx6"
+		// Parse sender address from message
+		var message account_transaction_view.TransactionRowMessage
+		for _, msg := range txMsgs[tx.Hash] {
+			message = account_transaction_view.TransactionRowMessage{
+				Type:    msg.MsgType(),
+				Content: msg,
+			}
+			break
+		}
+		senderAddress := projection.ParseSenderAddressFromMessage(message)
 
+		// Calculate account gas used total
 		var address string
 		if tmcosmosutils.IsValidCosmosAddress(senderAddress) {
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(senderAddress)
@@ -241,7 +256,8 @@ func (projection *Account) writeAccountInfo(accountsView view.Accounts, address 
 	return nil
 }
 
-func (projection *Account) ParseSenderAddressesFromMessage(message account_transaction_view.TransactionRowMessage) string {
+func (projection *Account) ParseSenderAddressFromMessage(message account_transaction_view.TransactionRowMessage) string {
+	// TODO: implement this
 	println(message.Content)
 	return "astra12nnueg3904ukfjel4u695ma6tvrkqvqmrqstx6"
 }
