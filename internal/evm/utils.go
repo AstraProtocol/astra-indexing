@@ -17,8 +17,7 @@ type EvmUtils struct {
 }
 
 func NewEvmUtils() (EvmUtils, error) {
-	pwd, err := os.Getwd()
-	fmt.Println("hoank", pwd)
+	pwd, _ := os.Getwd()
 	db, err := pogreb.Open(pwd+"/4bytes.db", &pogreb.Options{FileSystem: fs.OSMMap})
 	if err != nil {
 		fmt.Println(err)
@@ -30,10 +29,13 @@ func NewEvmUtils() (EvmUtils, error) {
 }
 
 func (utils *EvmUtils) GetSignature(signature string) (string, error) {
-	key := signature
-	if strings.HasPrefix(key, "0x") {
-		key = key[2:]
-	}
+	/*
+		key := signature
+		if strings.HasPrefix(key, "0x") {
+			key = key[2:]
+		}
+	*/
+	key := strings.TrimPrefix(signature, "0x")
 	value, err := utils.db.Get([]byte(key))
 	if err != nil {
 		return "", err

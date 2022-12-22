@@ -91,9 +91,7 @@ func (impl *RDbChainStatsStore) initRow() error {
 	return nil
 }
 
-func (impl *RDbChainStatsStore) UpdateCountedTransactionsWithRDbHandle() error {
-	currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-
+func (impl *RDbChainStatsStore) UpdateCountedTransactionsWithRDbHandle(currentDate int64) error {
 	if err := impl.init(); err != nil {
 		return fmt.Errorf("error initializing transaction stats store: %v", err)
 	}
@@ -133,7 +131,8 @@ func RunCronJobs(rdbHandle *rdb.Handle) {
 	// At minute 59 past every hour from 0 through 23
 	// @every 0h0m5s
 	s.AddFunc("59 0-23 * * *", func() {
-		go rdbTransactionStatsStore.UpdateCountedTransactionsWithRDbHandle()
+		currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+		go rdbTransactionStatsStore.UpdateCountedTransactionsWithRDbHandle(currentDate)
 	})
 
 	s.Start()
