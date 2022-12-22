@@ -185,6 +185,8 @@ func (projection *Account) HandleEvents(height int64, events []event_entity.Even
 				return fmt.Errorf("error preparing total gas used of account: account is invalid")
 			}
 
+			projection.logger.Infof("Incrementing total gas used of hex address: %s", address)
+
 			if err := accountGasUsedTotalView.Increment(address, int64(tx.GasUsed)); err != nil {
 				return fmt.Errorf("error incrementing total gas used of account: %w", err)
 			}
