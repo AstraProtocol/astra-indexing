@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+
 	sq "github.com/Masterminds/squirrel"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"

@@ -1,6 +1,7 @@
 package account
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -12,10 +13,15 @@ import (
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	event_entity "github.com/AstraProtocol/astra-indexing/entity/event"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
+	"github.com/AstraProtocol/astra-indexing/external/utctime"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg/migrationhelper"
-	account_view "github.com/AstraProtocol/astra-indexing/projection/account/view"
+	"github.com/AstraProtocol/astra-indexing/projection/account/view"
+	account_transaction "github.com/AstraProtocol/astra-indexing/projection/account_transaction"
+	account_transaction_view "github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 	event_usecase "github.com/AstraProtocol/astra-indexing/usecase/event"
+	"github.com/AstraProtocol/astra-indexing/usecase/model"
 )
 
 // Account number, sequence number, balances are fetched from the latest state (regardless of current replaying height)
@@ -50,7 +56,7 @@ func NewAccount(
 }
 
 var (
-	NewAccountsView              = account_view.NewAccountsView
+	NewAccountsView              = view.NewAccountsView
 	UpdateLastHandledEventHeight = (*Account).UpdateLastHandledEventHeight
 )
 
@@ -58,6 +64,8 @@ func (_ *Account) GetEventsToListen() []string {
 	return []string{
 		// TODO: Genesis account
 		event_usecase.ACCOUNT_TRANSFERRED,
+		event_usecase.TRANSACTION_CREATED,
+		event_usecase.TRANSACTION_FAILED,
 	}
 }
 
@@ -84,6 +92,106 @@ func (projection *Account) HandleEvents(height int64, events []event_entity.Even
 	rdbTxHandle := rdbTx.ToHandle()
 
 	accountsView := NewAccountsView(rdbTxHandle)
+	accountGasUsedTotalView := view.NewAccountGasUsedTotal(rdbTxHandle)
+
+	transactionInfos := make(map[string]*account_transaction.TransactionInfo)
+
+	// Handle and insert a single copy of transaction data
+	txs := make([]account_transaction_view.TransactionRow, 0)
+	for _, event := range events {
+		if transactionCreatedEvent, ok := event.(*event_usecase.TransactionCreated); ok {
+			txs = append(txs, account_transaction_view.TransactionRow{
+				BlockHeight:   height,
+				BlockTime:     utctime.UTCTime{}, // placeholder
+				Hash:          transactionCreatedEvent.TxHash,
+				Index:         transactionCreatedEvent.Index,
+				Success:       true,
+				Code:          transactionCreatedEvent.Code,
+				Log:           transactionCreatedEvent.Log,
+				Fee:           transactionCreatedEvent.Fee,
+				FeePayer:      transactionCreatedEvent.FeePayer,
+				FeeGranter:    transactionCreatedEvent.FeeGranter,
+				GasWanted:     transactionCreatedEvent.GasWanted,
+				GasUsed:       transactionCreatedEvent.GasUsed,
+				Memo:          transactionCreatedEvent.Memo,
+				TimeoutHeight: transactionCreatedEvent.TimeoutHeight,
+				Messages:      make([]account_transaction_view.TransactionRowMessage, 0),
+			})
+
+			transactionInfos[transactionCreatedEvent.TxHash] = account_transaction.NewTransactionInfo(
+				account_transaction_view.AccountTransactionBaseRow{
+					Account:      "", // placeholder
+					BlockHeight:  height,
+					BlockHash:    "",                // placeholder
+					BlockTime:    utctime.UTCTime{}, // placeholder
+					Hash:         transactionCreatedEvent.TxHash,
+					MessageTypes: []string{},
+					Success:      true,
+				},
+			)
+			senders := projection.ParseSenderAddresses(transactionCreatedEvent.Senders)
+			for _, sender := range senders {
+				transactionInfos[transactionCreatedEvent.TxHash].AddAccount(sender)
+			}
+		} else if transactionFailedEvent, ok := event.(*event_usecase.TransactionFailed); ok {
+			row := account_transaction_view.TransactionRow{
+				BlockHeight:   height,
+				BlockTime:     utctime.UTCTime{}, // placeholder
+				Hash:          transactionFailedEvent.TxHash,
+				Index:         transactionFailedEvent.Index,
+				Success:       false,
+				Code:          transactionFailedEvent.Code,
+				Log:           transactionFailedEvent.Log,
+				Fee:           transactionFailedEvent.Fee,
+				FeePayer:      transactionFailedEvent.FeePayer,
+				FeeGranter:    transactionFailedEvent.FeeGranter,
+				GasWanted:     transactionFailedEvent.GasWanted,
+				GasUsed:       transactionFailedEvent.GasUsed,
+				Memo:          transactionFailedEvent.Memo,
+				TimeoutHeight: transactionFailedEvent.TimeoutHeight,
+				Messages:      make([]account_transaction_view.TransactionRowMessage, 0),
+			}
+			txs = append(txs, row)
+
+			transactionInfos[transactionFailedEvent.TxHash] = account_transaction.NewTransactionInfo(
+				account_transaction_view.AccountTransactionBaseRow{
+					Account:      "", // placeholder
+					BlockHeight:  height,
+					BlockHash:    "",                // placeholder
+					BlockTime:    utctime.UTCTime{}, // placeholder
+					Hash:         transactionFailedEvent.TxHash,
+					MessageTypes: []string{},
+					Success:      false,
+				},
+			)
+			senders := projection.ParseSenderAddresses(transactionFailedEvent.Senders)
+			for _, sender := range senders {
+				transactionInfos[transactionFailedEvent.TxHash].AddAccount(sender)
+			}
+		}
+	}
+
+	for _, tx := range txs {
+		txInfo := transactionInfos[tx.Hash]
+		rows := txInfo.ToRows()
+
+		for _, row := range rows {
+			// Calculate account gas used total
+			var address string
+			if tmcosmosutils.IsValidCosmosAddress(row.Account) {
+				_, converted, _ := tmcosmosutils.DecodeAddressToHex(row.Account)
+				address = "0x" + hex.EncodeToString(converted)
+			} else {
+				return fmt.Errorf("error preparing total gas used of account: account is invalid")
+			}
+
+			projection.logger.Infof("Incrementing total gas used of hex address: %s", address)
+
+			if err := accountGasUsedTotalView.Increment(address, int64(tx.GasUsed)); err != nil {
+				return fmt.Errorf("error incrementing total gas used of account: %w", err)
+			}
+		}
+	}
 
 	for _, event := range events {
 		if accountCreatedEvent, ok := event.(*event_usecase.AccountTransferred); ok {
@@ -105,7 +213,7 @@ func (projection *Account) HandleEvents(height int64, events []event_entity.Even
 	return nil
 }
 
-func (projection *Account) handleAccountCreatedEvent(accountsView account_view.Accounts, event *event_usecase.AccountTransferred) error {
+func (projection *Account) handleAccountCreatedEvent(accountsView view.Accounts, event *event_usecase.AccountTransferred) error {
 
 	recipienterr := projection.writeAccountInfo(accountsView, event.Recipient)
 	if recipienterr != nil {
@@ -138,7 +246,7 @@ func (projection *Account) getAccountBalances(targetAddress string) (coin.Coins,
 	return balanceInfo, nil
 }
 
-func (projection *Account) writeAccountInfo(accountsView account_view.Accounts, address string) error {
+func (projection *Account) writeAccountInfo(accountsView view.Accounts, address string) error {
 	accountInfo, err := projection.getAccountInfo(address)
 	if err != nil {
 		return err
@@ -160,7 +268,7 @@ func (projection *Account) writeAccountInfo(accountsView account_view.Accounts, 
 	if err != nil {
 		return err
 	}
-	if err := accountsView.Upsert(&account_view.AccountRow{
+	if err := accountsView.Upsert(&view.AccountRow{
 		Type:           accountType,
 		Address:        address,
 		MaybeName:      name,
@@ -173,4 +281,12 @@ func (projection *Account) writeAccountInfo(accountsView account_view.Accounts, 
 	}
 
 	return nil
+}
+
+func (projection *Account) ParseSenderAddresses(senders []model.TransactionSigner) []string {
+	addresses := make([]string, 0, len(senders))
+	for _, sender := range senders {
+		addresses = append(addresses, sender.Address)
+	}
+	return addresses
 }
