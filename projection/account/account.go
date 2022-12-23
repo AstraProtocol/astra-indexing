@@ -141,16 +141,13 @@ func (projection *Account) HandleEvents(height int64, events []event_entity.Even
 	}
 
 	for _, tx := range txs {
-		// Parse sender address from message
-		var message account_transaction_view.TransactionRowMessage
+		// Parse sender address from message event
+		var msgEvent event_usecase.MsgEvent
 		for _, msg := range txMsgs[tx.Hash] {
-			message = account_transaction_view.TransactionRowMessage{
-				Type:    msg.MsgType(),
-				Content: msg,
-			}
+			msgEvent = msg
 			break
 		}
-		senderAddress := projection.ParseSenderAddressFromMessage(message)
+		senderAddress := projection.ParseSenderAddressFromMsgEvent(msgEvent)
 
 		// Calculate account gas used total
 		var address string
@@ -256,9 +253,8 @@ func (projection *Account) writeAccountInfo(accountsView view.Accounts, address 
 	return nil
 }
 
-func (projection *Account) ParseSenderAddressFromMessage(message account_transaction_view.TransactionRowMessage) string {
+func (projection *Account) ParseSenderAddressFromMsgEvent(msgEvent event_usecase.MsgEvent) string {
 	// TODO: implement this
-	str, _ := message.Content.(string)
-	println(str)
+	println(msgEvent.String())
 	return "astra12nnueg3904ukfjel4u695ma6tvrkqvqmrqstx6"
 }
