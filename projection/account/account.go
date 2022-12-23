@@ -3,6 +3,8 @@ package account
 import (
 	"encoding/hex"
 	"fmt"
+	"regexp"
+	"strings"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -148,6 +150,7 @@ func (projection *Account) HandleEvents(height int64, events []event_entity.Even
 			break
 		}
 		senderAddress := projection.ParseSenderAddressFromMsgEvent(msgEvent)
+		projection.logger.Infof("Sender address: %v", senderAddress)
 
 		// Calculate account gas used total
 		var address string
@@ -255,6 +258,24 @@ func (projection *Account) writeAccountInfo(accountsView view.Accounts, address 
 
 func (projection *Account) ParseSenderAddressFromMsgEvent(msgEvent event_usecase.MsgEvent) string {
 	// TODO: implement this
-	println(msgEvent.String())
-	return "astra12nnueg3904ukfjel4u695ma6tvrkqvqmrqstx6"
+	msg := msgEvent.String()
+	projection.logger.Infof("Message event: %v", msg)
+	if strings.Contains(msg, "FromAddress") {
+		rgx := regexp.MustCompile(`FromAddress:"([a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return rs[1]
+	} else if strings.Contains(msg, "From") {
+		rgx := regexp.MustCompile(`From:"(0x[a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return rs[1]
+	} else if strings.Contains(msg, "Grantee") {
+		rgx := regexp.MustCompile(`Grantee:"([a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return rs[1]
+	} else if strings.Contains(msg, "DelegatorAddress") {
+		rgx := regexp.MustCompile(`DelegatorAddress:"([a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return rs[1]
+	}
+	return ""
 }
