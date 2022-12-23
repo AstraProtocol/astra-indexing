@@ -540,7 +540,6 @@ func (projection *AccountTransaction) ParseSenderAddresses(senders []model.Trans
 }
 
 func (projection *AccountTransaction) ParseSenderAddressFromMsgEvent(msgEvent event_usecase.MsgEvent) string {
-	// TODO: implement this
 	msg := msgEvent.String()
 	projection.logger.Infof("Message event: %v", msg)
 	if strings.Contains(msg, "FromAddress") {
