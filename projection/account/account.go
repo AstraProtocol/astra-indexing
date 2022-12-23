@@ -258,6 +258,7 @@ func (projection *Account) writeAccountInfo(accountsView view.Accounts, address 
 
 func (projection *Account) ParseSenderAddressFromMessage(message account_transaction_view.TransactionRowMessage) string {
 	// TODO: implement this
-	println(message.Content)
+	str, _ := message.Content.(string)
+	println(str)
 	return "astra12nnueg3904ukfjel4u695ma6tvrkqvqmrqstx6"
 }
