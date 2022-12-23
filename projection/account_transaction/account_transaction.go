@@ -3,8 +3,10 @@ package account_transaction
 import (
 	"encoding/hex"
 	"fmt"
-	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
+	"regexp"
 	"strings"
+
+	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/rdbprojectionbase"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -107,6 +109,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 	accountTransactionsView := view.NewAccountTransactions(rdbTxHandle)
 	accountTransactionDataView := view.NewAccountTransactionData(rdbTxHandle)
 	accountTransactionsTotalView := view.NewAccountTransactionsTotal(rdbTxHandle)
+	accountGasUsedTotalView := view.NewAccountGasUsedTotal(rdbTxHandle)
 
 	var blockTime utctime.UTCTime
 	var blockHash string
@@ -438,6 +441,23 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			}
 			txs[i].Messages = append(txs[i].Messages, tmpMessage)
 		}
+
+		msgEvent := txMsgs[tx.Hash][0]
+		senderAddress := projection.ParseSenderAddressFromMsgEvent(msgEvent)
+		projection.logger.Infof("Sender address: %v", senderAddress)
+
+		// Calculate account gas used total
+		var address string
+		if tmcosmosutils.IsValidCosmosAddress(senderAddress) {
+			_, converted, _ := tmcosmosutils.DecodeAddressToHex(senderAddress)
+			address = "0x" + hex.EncodeToString(converted)
+		} else {
+			return fmt.Errorf("error preparing total gas used of account: account is invalid")
+		}
+
+		if err := accountGasUsedTotalView.Increment(address, int64(tx.GasUsed)); err != nil {
+			return fmt.Errorf("error incrementing total gas used of account: %w", err)
+		}
 	}
 	if insertErr := accountTransactionDataView.InsertAll(txs); insertErr != nil {
 		return fmt.Errorf("error inserting account transaction data into view: %v", insertErr)
@@ -517,6 +537,30 @@ func (projection *AccountTransaction) ParseSenderAddresses(senders []model.Trans
 		addresses = append(addresses, sender.Address)
 	}
 	return addresses
+}
+
+func (projection *AccountTransaction) ParseSenderAddressFromMsgEvent(msgEvent event_usecase.MsgEvent) string {
+	// TODO: implement this
+	msg := msgEvent.String()
+	projection.logger.Infof("Message event: %v", msg)
+	if strings.Contains(msg, "FromAddress") {
+		rgx := regexp.MustCompile(`FromAddress:"([a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return rs[1]
+	} else if strings.Contains(msg, "From") {
+		rgx := regexp.MustCompile(`From:"(0x[a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return rs[1]
+	} else if strings.Contains(msg, "Grantee") {
+		rgx := regexp.MustCompile(`Grantee:"([a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return rs[1]
+	} else if strings.Contains(msg, "DelegatorAddress") {
+		rgx := regexp.MustCompile(`DelegatorAddress:"([a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return rs[1]
+	}
+	return ""
 }
 
 type TransactionInfo struct {
