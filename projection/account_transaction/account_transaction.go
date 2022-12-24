@@ -16,7 +16,6 @@ import (
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg/migrationhelper"
-	"github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
 	event_usecase "github.com/AstraProtocol/astra-indexing/usecase/event"
 	"github.com/AstraProtocol/astra-indexing/usecase/model"
@@ -455,7 +454,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 				return fmt.Errorf("error incrementing total gas used of account: %w", err)
 			}
 		} else {
-			if evm.IsHexAddress(senderAddress) {
+			if evmUtil.IsHexAddress(senderAddress) {
 				if err := accountGasUsedTotalView.Increment(senderAddress, int64(tx.GasUsed)); err != nil {
 					return fmt.Errorf("error incrementing total gas used of account: %w", err)
 				}
