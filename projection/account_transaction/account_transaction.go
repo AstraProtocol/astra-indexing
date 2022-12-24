@@ -16,6 +16,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg/migrationhelper"
+	"github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
 	event_usecase "github.com/AstraProtocol/astra-indexing/usecase/event"
 	"github.com/AstraProtocol/astra-indexing/usecase/model"
@@ -446,17 +447,22 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 		senderAddress := projection.ParseSenderAddressFromMsgEvent(msgEvent)
 
 		// Calculate account gas used total
-		var address string
 		if tmcosmosutils.IsValidCosmosAddress(senderAddress) {
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(senderAddress)
-			address = "0x" + hex.EncodeToString(converted)
-		} else {
-			projection.logger.Debugf("Message event: %v", msgEvent.String())
-			return fmt.Errorf("error preparing total gas used of account: %v", senderAddress)
-		}
+			address := "0x" + hex.EncodeToString(converted)
 
-		if err := accountGasUsedTotalView.Increment(address, int64(tx.GasUsed)); err != nil {
-			return fmt.Errorf("error incrementing total gas used of account: %w", err)
+			if err := accountGasUsedTotalView.Increment(address, int64(tx.GasUsed)); err != nil {
+				return fmt.Errorf("error incrementing total gas used of account: %w", err)
+			}
+		} else {
+			if evm.IsHexTx(senderAddress) {
+				if err := accountGasUsedTotalView.Increment(senderAddress, int64(tx.GasUsed)); err != nil {
+					return fmt.Errorf("error incrementing total gas used of account: %w", err)
+				}
+			} else {
+				projection.logger.Errorf("error message event: %v", msgEvent.String())
+				projection.logger.Errorf("error preparing total gas used of account: %v", senderAddress)
+			}
 		}
 	}
 	if insertErr := accountTransactionDataView.InsertAll(txs); insertErr != nil {
