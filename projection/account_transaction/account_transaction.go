@@ -455,7 +455,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 				return fmt.Errorf("error incrementing total gas used of account: %w", err)
 			}
 		} else {
-			if evm.IsHexTx(senderAddress) {
+			if evm.IsHexAddress(senderAddress) {
 				if err := accountGasUsedTotalView.Increment(senderAddress, int64(tx.GasUsed)); err != nil {
 					return fmt.Errorf("error incrementing total gas used of account: %w", err)
 				}
