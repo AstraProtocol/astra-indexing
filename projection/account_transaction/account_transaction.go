@@ -444,7 +444,6 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 
 		msgEvent := txMsgs[tx.Hash][0]
 		senderAddress := projection.ParseSenderAddressFromMsgEvent(msgEvent)
-		projection.logger.Infof("Sender address: %v", senderAddress)
 
 		// Calculate account gas used total
 		var address string
@@ -452,7 +451,8 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(senderAddress)
 			address = "0x" + hex.EncodeToString(converted)
 		} else {
-			return fmt.Errorf("error preparing total gas used of account: account is invalid")
+			projection.logger.Debugf("Message event: %v", msgEvent.String())
+			return fmt.Errorf("error preparing total gas used of account: %v", senderAddress)
 		}
 
 		if err := accountGasUsedTotalView.Increment(address, int64(tx.GasUsed)); err != nil {
@@ -541,7 +541,6 @@ func (projection *AccountTransaction) ParseSenderAddresses(senders []model.Trans
 
 func (projection *AccountTransaction) ParseSenderAddressFromMsgEvent(msgEvent event_usecase.MsgEvent) string {
 	msg := msgEvent.String()
-	projection.logger.Infof("Message event: %v", msg)
 	if strings.Contains(msg, "FromAddress") {
 		rgx := regexp.MustCompile(`FromAddress:"([a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
