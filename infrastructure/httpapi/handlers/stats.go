@@ -62,15 +62,15 @@ func (handler *StatsHandler) GetCommonStats(ctx *fasthttp.RequestCtx) {
 	go handler.blockscoutClient.GetCommonStatsAsync(commonStatsChan)
 
 	transactionsCountPerDay, err := handler.blocksView.TotalTransactionsPerDay()
+	commonStats := <-commonStatsChan
+	commonStats.TransactionStats.Date = time.Now().Local().String()
+
 	if err != nil {
 		handler.logger.Errorf("error fetching transactions count per day: %v", err)
-		httpapi.InternalServerError(ctx)
-		return
+		commonStats.TransactionStats.NumberOfTransactions = 0
+	} else {
+		commonStats.TransactionStats.NumberOfTransactions = transactionsCountPerDay
 	}
-
-	commonStats := <-commonStatsChan
-	commonStats.TransactionStats.NumberOfTransactions = transactionsCountPerDay
-	commonStats.TransactionStats.Date = time.Now().Local().String()
 
 	httpapi.Success(ctx, commonStats)
 }
