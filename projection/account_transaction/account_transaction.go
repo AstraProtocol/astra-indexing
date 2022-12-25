@@ -549,19 +549,19 @@ func (projection *AccountTransaction) ParseSenderAddressFromMsgEvent(msgEvent ev
 	if strings.Contains(msg, "FromAddress") {
 		rgx := regexp.MustCompile(`FromAddress:"([a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
-		return rs[1]
+		return strings.ToLower(rs[1])
 	} else if strings.Contains(msg, "From") {
 		rgx := regexp.MustCompile(`From:"(0x[a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
-		return rs[1]
+		return strings.ToLower(rs[1])
 	} else if strings.Contains(msg, "Grantee") {
 		rgx := regexp.MustCompile(`Grantee:"([a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
-		return rs[1]
+		return strings.ToLower(rs[1])
 	} else if strings.Contains(msg, "DelegatorAddress") {
 		rgx := regexp.MustCompile(`DelegatorAddress:"([a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
-		return rs[1]
+		return strings.ToLower(rs[1])
 	}
 	return ""
 }
