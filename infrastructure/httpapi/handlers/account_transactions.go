@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
@@ -24,6 +25,7 @@ type AccountTransactions struct {
 	blockscoutClient             blockscout_infrastructure.HTTPClient
 	accountTransactionsView      *account_transaction_view.AccountTransactions
 	accountTransactionsTotalView *account_transaction_view.AccountTransactionsTotal
+	accountGasUsedTotalView      *account_transaction_view.AccountGasUsedTotal
 }
 
 func NewAccountTransactions(
@@ -41,6 +43,7 @@ func NewAccountTransactions(
 		blockscoutClient,
 		account_transaction_view.NewAccountTransactions(rdbHandle),
 		account_transaction_view.NewAccountTransactionsTotal(rdbHandle),
+		account_transaction_view.NewAccountGasUsedTotal(rdbHandle),
 	}
 }
 
@@ -79,6 +82,11 @@ func (handler *AccountTransactions) GetCounters(ctx *fasthttp.RequestCtx) {
 
 	if err == nil && addressCounter.Type == "address" {
 		addressCounter.TransactionCount = numberOfTxs
+	}
+
+	totalGasUsed, err := handler.accountGasUsedTotalView.Total.FindBy(strings.ToLower(addressHash))
+	if err == nil && addressCounter.GasUsageCount < totalGasUsed {
+		addressCounter.GasUsageCount = totalGasUsed
 	}
 
 	httpapi.Success(ctx, addressCounter)
