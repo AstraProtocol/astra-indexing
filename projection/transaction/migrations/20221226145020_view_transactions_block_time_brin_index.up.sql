@@ -1,0 +1,1 @@
+CREATE INDEX view_transactions_block_time_brin_index ON view_transactions USING brin (block_time);

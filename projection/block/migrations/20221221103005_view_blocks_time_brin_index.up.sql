@@ -1,0 +1,1 @@
+CREATE INDEX view_blocks_time_brin_index ON view_blocks USING brin (time);
