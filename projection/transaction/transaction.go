@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strconv"
 
@@ -223,7 +224,16 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 			txs[i].EvmHash = txEvmHash[tx.Hash]
 		}
 
-		txs[i].FromAddress = tmcosmosutils.ParseSenderAddressFromMsgEvent(txMsgs[tx.Hash][0])
+		fromAddress := tmcosmosutils.ParseSenderAddressFromMsgEvent(txMsgs[tx.Hash][0])
+		if tmcosmosutils.IsValidCosmosAddress(fromAddress) {
+			_, converted, _ := tmcosmosutils.DecodeAddressToHex(fromAddress)
+			fromAddress = "0x" + hex.EncodeToString(converted)
+		} else {
+			if !evmUtil.IsHexAddress(fromAddress) {
+				fromAddress = ""
+			}
+		}
+		txs[i].FromAddress = fromAddress
 	}
 	if insertErr := transactionsView.InsertAll(txs); insertErr != nil {
 		return fmt.Errorf("error inserting transaction into view: %v", insertErr)
