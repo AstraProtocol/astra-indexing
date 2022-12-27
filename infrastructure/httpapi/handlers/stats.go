@@ -43,7 +43,7 @@ func NewStatsHandler(
 	}
 }
 
-func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
+func (handler *StatsHandler) GetTransactionsHistoryChart(ctx *fasthttp.RequestCtx) {
 	// Fetch transactions history of last 30 days
 	date_range := 30
 	transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistoryByDateRange(date_range)
@@ -55,6 +55,51 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 	}
 
 	httpapi.Success(ctx, transactionsHistoryList)
+}
+
+func (handler *StatsHandler) GetTransactionsHistoryDaily(ctx *fasthttp.RequestCtx) {
+	// Fetch transactions history of the year
+	first_day_of_year := time.Date(time.Now().Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
+	date_range := int(time.Since(first_day_of_year).Hours() / 24)
+	transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistoryByDateRange(date_range)
+
+	if err != nil {
+		handler.logger.Errorf("error fetching transactions history: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	httpapi.Success(ctx, transactionsHistoryList)
+}
+
+func (handler *StatsHandler) GetGasUsedHistoryDaily(ctx *fasthttp.RequestCtx) {
+	// Fetch total gas used history of the year
+	first_day_of_year := time.Date(time.Now().Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
+	date_range := int(time.Since(first_day_of_year).Hours() / 24)
+	totalGasUsedHistoryList, err := handler.chainStatsView.GetGasUsedHistoryByDateRange(date_range)
+
+	if err != nil {
+		handler.logger.Errorf("error fetching gas used history: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	httpapi.Success(ctx, totalGasUsedHistoryList)
+}
+
+func (handler *StatsHandler) GetTotalFeeHistoryDaily(ctx *fasthttp.RequestCtx) {
+	// Fetch total fee history of the year
+	first_day_of_year := time.Date(time.Now().Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
+	date_range := int(time.Since(first_day_of_year).Hours() / 24)
+	totalGasUsedHistoryList, err := handler.chainStatsView.GetTotalFeeHistoryByDateRange(date_range)
+
+	if err != nil {
+		handler.logger.Errorf("error fetching gas used history: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	httpapi.Success(ctx, totalGasUsedHistoryList)
 }
 
 func (handler *StatsHandler) GetCommonStats(ctx *fasthttp.RequestCtx) {

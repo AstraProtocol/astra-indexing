@@ -1,9 +1,7 @@
 package routes
 
 import (
-	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
-	"github.com/AstraProtocol/astra-indexing/appinterface/tendermint"
 	"github.com/AstraProtocol/astra-indexing/bootstrap"
 	"github.com/AstraProtocol/astra-indexing/bootstrap/config"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
@@ -18,14 +16,12 @@ func InitRouteRegistry(
 	rdbConn rdb.Conn,
 	config *config.Config,
 ) bootstrap.RouteRegistry {
-	var cosmosAppClient cosmosapp.Client
-	cosmosAppClient = cosmosapp_infrastructure.NewHTTPClient(
+	cosmosAppClient := cosmosapp_infrastructure.NewHTTPClient(
 		config.CosmosApp.HTTPRPCUrl,
 		config.Blockchain.BondingDenom,
 	)
 
-	var tendermintClient tendermint.Client
-	tendermintClient = tendermint_infrastructure.NewHTTPClient(
+	tendermintClient := tendermint_infrastructure.NewHTTPClient(
 		config.TendermintApp.HTTPRPCUrl,
 		config.TendermintApp.StrictGenesisParsing,
 	)
@@ -128,8 +124,23 @@ func InitRouteRegistry(
 		},
 		Route{
 			Method:  GET,
-			path:    "api/v1/transactions-history",
-			handler: statsHandlers.GetTransactionsHistory,
+			path:    "api/v1/transactions-history-chart",
+			handler: statsHandlers.GetTransactionsHistoryChart,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/transactions-history-daily",
+			handler: statsHandlers.GetTransactionsHistoryDaily,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/gas-used-history-daily",
+			handler: statsHandlers.GetGasUsedHistoryDaily,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/total-fee-history-daily",
+			handler: statsHandlers.GetTotalFeeHistoryDaily,
 		},
 	)
 

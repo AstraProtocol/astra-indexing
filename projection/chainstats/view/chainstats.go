@@ -108,8 +108,7 @@ func (view *ChainStats) FindBy(metrics string) (string, error) {
 }
 
 func (view *ChainStats) GetTransactionsHistoryByDateRange(date_range int) ([]TransactionHistory, error) {
-	currentDate := time.Now().Truncate(24 * time.Hour)
-	latest := currentDate.Add(-24 * time.Hour)
+	latest := time.Now().Truncate(24 * time.Hour)
 	earliest := latest.Add(-time.Duration(date_range) * 24 * time.Hour)
 
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
@@ -154,6 +153,98 @@ func (view *ChainStats) GetTransactionsHistoryByDateRange(date_range int) ([]Tra
 	return transactionHistoryList, nil
 }
 
+func (view *ChainStats) GetGasUsedHistoryByDateRange(date_range int) ([]TotalGasUsedHistory, error) {
+	latest := time.Now().Truncate(24 * time.Hour)
+	earliest := latest.Add(-time.Duration(date_range) * 24 * time.Hour)
+
+	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
+		"date_time",
+		"total_gas_used",
+	).From(
+		"chain_stats",
+	).Where(
+		"date_time >= ? AND date_time <= ?", earliest.UnixNano(), latest.UnixNano(),
+	).OrderBy(
+		"date_time DESC",
+	).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("error building total gas used history by date range select SQL: %v, %w", err, rdb.ErrBuildSQLStmt)
+	}
+
+	rowsResult, err := view.rdbHandle.Query(sql, sqlArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("error executing total gas used history by date range select SQL: %v: %w", err, rdb.ErrQuery)
+	}
+	defer rowsResult.Close()
+
+	totalGasUsedHistoryList := make([]TotalGasUsedHistory, 0)
+	for rowsResult.Next() {
+		var totalGasUsedHistory TotalGasUsedHistory
+		var unixTime int64
+
+		if err = rowsResult.Scan(
+			&unixTime,
+			&totalGasUsedHistory.TotalGasUsed,
+		); err != nil {
+			if errors.Is(err, rdb.ErrNoRows) {
+				return nil, rdb.ErrNoRows
+			}
+			return nil, fmt.Errorf("error scanning total gas used history by date range row: %v: %w", err, rdb.ErrQuery)
+		}
+
+		totalGasUsedHistory.Date = strings.Split(time.Unix(0, unixTime).UTC().String(), " ")[0]
+		totalGasUsedHistoryList = append(totalGasUsedHistoryList, totalGasUsedHistory)
+	}
+
+	return totalGasUsedHistoryList, nil
+}
+
+func (view *ChainStats) GetTotalFeeHistoryByDateRange(date_range int) ([]TotalFeeHistory, error) {
+	latest := time.Now().Truncate(24 * time.Hour)
+	earliest := latest.Add(-time.Duration(date_range) * 24 * time.Hour)
+
+	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
+		"date_time",
+		"total_fee",
+	).From(
+		"chain_stats",
+	).Where(
+		"date_time >= ? AND date_time <= ?", earliest.UnixNano(), latest.UnixNano(),
+	).OrderBy(
+		"date_time DESC",
+	).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("error building total fee history by date range select SQL: %v, %w", err, rdb.ErrBuildSQLStmt)
+	}
+
+	rowsResult, err := view.rdbHandle.Query(sql, sqlArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("error executing total fee history by date range select SQL: %v: %w", err, rdb.ErrQuery)
+	}
+	defer rowsResult.Close()
+
+	totalFeeHistoryList := make([]TotalFeeHistory, 0)
+	for rowsResult.Next() {
+		var totalFeeHistory TotalFeeHistory
+		var unixTime int64
+
+		if err = rowsResult.Scan(
+			&unixTime,
+			&totalFeeHistory.TotalFee,
+		); err != nil {
+			if errors.Is(err, rdb.ErrNoRows) {
+				return nil, rdb.ErrNoRows
+			}
+			return nil, fmt.Errorf("error scanning total fee history by date range row: %v: %w", err, rdb.ErrQuery)
+		}
+
+		totalFeeHistory.Date = strings.Split(time.Unix(0, unixTime).UTC().String(), " ")[0]
+		totalFeeHistoryList = append(totalFeeHistoryList, totalFeeHistory)
+	}
+
+	return totalFeeHistoryList, nil
+}
+
 type ValidatorStatsRow struct {
 	Metrics string
 	Value   string
@@ -162,4 +253,14 @@ type ValidatorStatsRow struct {
 type TransactionHistory struct {
 	Date                 string `json:"date"`
 	NumberOfTransactions int64  `json:"numberOfTransactions"`
+}
+
+type TotalGasUsedHistory struct {
+	Date         string `json:"date"`
+	TotalGasUsed int64  `json:"totalGasUsed"`
+}
+
+type TotalFeeHistory struct {
+	Date     string `json:"date"`
+	TotalFee int64  `json:"totalFee"`
 }
