@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX view_blocks_time_unique_index ON view_blocks (time);

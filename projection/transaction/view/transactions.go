@@ -62,6 +62,7 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 				"code",
 				"log",
 				"fee",
+				"fee_value",
 				"fee_payer",
 				"fee_granter",
 				"gas_wanted",
@@ -86,6 +87,7 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 				"error JSON marshalling block transation fee for insertion: %v: %w", marshalErr, rdb.ErrBuildSQLStmt,
 			)
 		}
+		feeValue := transaction.Fee.AmountOf("aastra").Int64()
 
 		var signersJSON string
 		if signersJSON, marshalErr = json.MarshalToString(transaction.Signers); marshalErr != nil {
@@ -105,6 +107,7 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 			transaction.Code,
 			transaction.Log,
 			feeJSON,
+			feeValue,
 			transaction.FeePayer,
 			transaction.FeeGranter,
 			transaction.GasWanted,
@@ -154,6 +157,7 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 		"code",
 		"log",
 		"fee",
+		"fee_value",
 		"fee_payer",
 		"fee_granter",
 		"gas_wanted",
@@ -162,7 +166,7 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 		"timeout_height",
 		"messages",
 		"signers",
-	).Values("?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?").ToSql()
+	).Values("?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?").ToSql()
 	if err != nil {
 		return fmt.Errorf("error building block transactions insertion sql: %v: %w", err, rdb.ErrBuildSQLStmt)
 	}
@@ -176,6 +180,7 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 	if feeJSON, err = json.MarshalToString(transaction.Fee); err != nil {
 		return fmt.Errorf("error JSON marshalling block transation fee for insertion: %v: %w", err, rdb.ErrBuildSQLStmt)
 	}
+	feeValue := transaction.Fee.AmountOf("aastra").Int64()
 
 	var signersJSON string
 	if signersJSON, err = json.MarshalToString(transaction.Signers); err != nil {
@@ -193,6 +198,7 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 		transaction.Code,
 		transaction.Log,
 		feeJSON,
+		feeValue,
 		transaction.FeePayer,
 		transaction.FeeGranter,
 		transaction.GasWanted,
@@ -676,6 +682,7 @@ type TransactionRow struct {
 	Code          int                     `json:"code"`
 	Log           string                  `json:"log"`
 	Fee           coin.Coins              `json:"fee"`
+	FeeValue      int64                   `json:"feeValue"`
 	FeePayer      string                  `json:"feePayer"`
 	FeeGranter    string                  `json:"feeGranter"`
 	GasWanted     int                     `json:"gasWanted"`
