@@ -3,13 +3,16 @@ package tmcosmosutils
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"sort"
+	"strings"
 
-	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
+	event_usecase "github.com/AstraProtocol/astra-indexing/usecase/event"
 
 	"github.com/btcsuite/btcutil/bech32"
 	"github.com/cosmos/cosmos-sdk/codec/legacy"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	tmed25519 "github.com/tendermint/tendermint/crypto/ed25519"
@@ -270,4 +273,26 @@ func DecodeAddressToHex(text string) (string, []byte, error) {
 		return "", nil, fmt.Errorf("decoding bech32 failed: %w", err)
 	}
 	return hrp, converted, nil
+}
+
+func ParseSenderAddressFromMsgEvent(msgEvent event_usecase.MsgEvent) string {
+	msg := msgEvent.String()
+	if strings.Contains(msg, "FromAddress") {
+		rgx := regexp.MustCompile(`FromAddress:"([a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return strings.ToLower(rs[1])
+	} else if strings.Contains(msg, "From") {
+		rgx := regexp.MustCompile(`From:"(0x[a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return strings.ToLower(rs[1])
+	} else if strings.Contains(msg, "Grantee") {
+		rgx := regexp.MustCompile(`Grantee:"([a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return strings.ToLower(rs[1])
+	} else if strings.Contains(msg, "DelegatorAddress") {
+		rgx := regexp.MustCompile(`DelegatorAddress:"([a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return strings.ToLower(rs[1])
+	}
+	return ""
 }

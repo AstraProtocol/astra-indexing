@@ -67,6 +67,7 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 				"fee_granter",
 				"gas_wanted",
 				"gas_used",
+				"from_address",
 				"memo",
 				"timeout_height",
 				"messages",
@@ -112,6 +113,7 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 			transaction.FeeGranter,
 			transaction.GasWanted,
 			transaction.GasUsed,
+			transaction.FromAddress,
 			transaction.Memo,
 			transaction.TimeoutHeight,
 			transactionMessagesJSON,
@@ -162,11 +164,12 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 		"fee_granter",
 		"gas_wanted",
 		"gas_used",
+		"from_address",
 		"memo",
 		"timeout_height",
 		"messages",
 		"signers",
-	).Values("?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?").ToSql()
+	).Values("?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?").ToSql()
 	if err != nil {
 		return fmt.Errorf("error building block transactions insertion sql: %v: %w", err, rdb.ErrBuildSQLStmt)
 	}
@@ -203,6 +206,7 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 		transaction.FeeGranter,
 		transaction.GasWanted,
 		transaction.GasUsed,
+		transaction.FromAddress,
 		transaction.Memo,
 		transaction.TimeoutHeight,
 		transactionMessagesJSON,
@@ -687,6 +691,7 @@ type TransactionRow struct {
 	FeeGranter    string                  `json:"feeGranter"`
 	GasWanted     int                     `json:"gasWanted"`
 	GasUsed       int                     `json:"gasUsed"`
+	FromAddress   string                  `json:"fromAddress"`
 	Memo          string                  `json:"memo"`
 	TimeoutHeight int64                   `json:"timeoutHeight"`
 	Messages      []TransactionRowMessage `json:"messages"`

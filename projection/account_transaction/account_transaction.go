@@ -3,7 +3,6 @@ package account_transaction
 import (
 	"encoding/hex"
 	"fmt"
-	"regexp"
 	"strings"
 
 	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
@@ -443,7 +442,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 		}
 
 		msgEvent := txMsgs[tx.Hash][0]
-		senderAddress := projection.ParseSenderAddressFromMsgEvent(msgEvent)
+		senderAddress := tmcosmosutils.ParseSenderAddressFromMsgEvent(msgEvent)
 
 		// Calculate account gas used total
 		if tmcosmosutils.IsValidCosmosAddress(senderAddress) {
@@ -542,28 +541,6 @@ func (projection *AccountTransaction) ParseSenderAddresses(senders []model.Trans
 		addresses = append(addresses, sender.Address)
 	}
 	return addresses
-}
-
-func (projection *AccountTransaction) ParseSenderAddressFromMsgEvent(msgEvent event_usecase.MsgEvent) string {
-	msg := msgEvent.String()
-	if strings.Contains(msg, "FromAddress") {
-		rgx := regexp.MustCompile(`FromAddress:"([a-zA-Z0-9]+)"`)
-		rs := rgx.FindStringSubmatch(msg)
-		return strings.ToLower(rs[1])
-	} else if strings.Contains(msg, "From") {
-		rgx := regexp.MustCompile(`From:"(0x[a-zA-Z0-9]+)"`)
-		rs := rgx.FindStringSubmatch(msg)
-		return strings.ToLower(rs[1])
-	} else if strings.Contains(msg, "Grantee") {
-		rgx := regexp.MustCompile(`Grantee:"([a-zA-Z0-9]+)"`)
-		rs := rgx.FindStringSubmatch(msg)
-		return strings.ToLower(rs[1])
-	} else if strings.Contains(msg, "DelegatorAddress") {
-		rgx := regexp.MustCompile(`DelegatorAddress:"([a-zA-Z0-9]+)"`)
-		rs := rgx.FindStringSubmatch(msg)
-		return strings.ToLower(rs[1])
-	}
-	return ""
 }
 
 type TransactionInfo struct {

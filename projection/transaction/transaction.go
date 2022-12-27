@@ -11,6 +11,7 @@ import (
 	event_entity "github.com/AstraProtocol/astra-indexing/entity/event"
 	projection_entity "github.com/AstraProtocol/astra-indexing/entity/projection"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg/migrationhelper"
 	transaction_view "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
@@ -221,6 +222,8 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 			txs[i].Messages = append(txs[i].Messages, tmpMessage)
 			txs[i].EvmHash = txEvmHash[tx.Hash]
 		}
+
+		txs[i].FromAddress = tmcosmosutils.ParseSenderAddressFromMsgEvent(txMsgs[tx.Hash][0])
 	}
 	if insertErr := transactionsView.InsertAll(txs); insertErr != nil {
 		return fmt.Errorf("error inserting transaction into view: %v", insertErr)
