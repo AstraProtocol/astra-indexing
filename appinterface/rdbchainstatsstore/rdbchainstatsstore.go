@@ -31,12 +31,12 @@ func (impl *RDbChainStatsStore) init() error {
 
 	var exist bool
 	if exist, err = impl.isRowExist(); err != nil {
-		return fmt.Errorf("error checking transaction stats row existence: %v", err)
+		return fmt.Errorf("error checking chain stats row existence: %v", err)
 	}
 
 	if !exist {
 		if err = impl.initRow(); err != nil {
-			return fmt.Errorf("error initializing transaction stats row: %v", err)
+			return fmt.Errorf("error initializing chain stats row: %v", err)
 		}
 	}
 
@@ -55,12 +55,12 @@ func (impl *RDbChainStatsStore) isRowExist() (bool, error) {
 		"date_time = ?", currentDate,
 	).ToSql()
 	if err != nil {
-		return false, fmt.Errorf("error building transaction stats row count selection SQL: %v", err)
+		return false, fmt.Errorf("error building chain stats row count selection SQL: %v", err)
 	}
 
 	var count int64
 	if err := impl.selectRDbHandle.QueryRow(sql, args...).Scan(&count); err != nil {
-		return false, fmt.Errorf("error querying transaction stats row count: %v", err)
+		return false, fmt.Errorf("error querying chain stats row count: %v", err)
 	}
 
 	return count > 0, nil
@@ -75,17 +75,19 @@ func (impl *RDbChainStatsStore) initRow() error {
 	).Columns(
 		"date_time",
 		"number_of_transactions",
-	).Values(currentDate, 0).ToSql()
+		"total_gas_used",
+		"total_fee",
+	).Values(currentDate, 0, 0, 0).ToSql()
 	if err != nil {
-		return fmt.Errorf("error building getting row count insertion SQL: %v", err)
+		return fmt.Errorf("error building getting chain stats insertion SQL: %v", err)
 	}
 
 	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
 	if err != nil {
-		return fmt.Errorf("error inserting latest transaction stats SQL: %v", err)
+		return fmt.Errorf("error inserting latest chain stats SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
-		return errors.New("error executing initial latest transaction stats insertion SQL: no rows inserted")
+		return errors.New("error executing initial latest chain stats insertion SQL: no rows inserted")
 	}
 
 	return nil
@@ -93,7 +95,7 @@ func (impl *RDbChainStatsStore) initRow() error {
 
 func (impl *RDbChainStatsStore) UpdateCountedTransactionsWithRDbHandle(currentDate int64) error {
 	if err := impl.init(); err != nil {
-		return fmt.Errorf("error initializing transaction stats store: %v", err)
+		return fmt.Errorf("error initializing chain stats store: %v", err)
 	}
 
 	transactionsCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(
@@ -110,15 +112,81 @@ func (impl *RDbChainStatsStore) UpdateCountedTransactionsWithRDbHandle(currentDa
 		"date_time = ?", currentDate,
 	).ToSql()
 	if err != nil {
-		return fmt.Errorf("error building last transaction stats update SQL: %v", err)
+		return fmt.Errorf("error building transaction stats update SQL: %v", err)
 	}
 
 	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
 	if err != nil {
-		return fmt.Errorf("error executing last transaction stats update SQL: %v", err)
+		return fmt.Errorf("error executing transaction stats update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
-		return errors.New("error executing last transaction stats update SQL: no rows updated")
+		return errors.New("error executing transaction stats update SQL: no rows updated")
+	}
+
+	return nil
+}
+
+func (impl *RDbChainStatsStore) UpdateTotalGasUsedWithRDbHandle(currentDate int64) error {
+	if err := impl.init(); err != nil {
+		return fmt.Errorf("error initializing chain stats store: %v", err)
+	}
+
+	gasUsedCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(
+		"SUM(gas_used)",
+	).From(
+		"view_transactions",
+	).Where("block_time >= ?", currentDate)
+
+	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
+		impl.table,
+	).Set(
+		"total_gas_used", impl.selectRDbHandle.StmtBuilder.SubQuery(gasUsedCountSubQuery),
+	).Where(
+		"date_time = ?", currentDate,
+	).ToSql()
+	if err != nil {
+		return fmt.Errorf("error building gas used stats update SQL: %v", err)
+	}
+
+	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
+	if err != nil {
+		return fmt.Errorf("error executing gas used stats update SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		return errors.New("error executing gas used stats update SQL: no rows updated")
+	}
+
+	return nil
+}
+
+func (impl *RDbChainStatsStore) UpdateTotalFeeWithRDbHandle(currentDate int64) error {
+	if err := impl.init(); err != nil {
+		return fmt.Errorf("error initializing chain stats store: %v", err)
+	}
+
+	gasUsedCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(
+		"SUM(fee_value)",
+	).From(
+		"view_transactions",
+	).Where("block_time >= ?", currentDate)
+
+	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
+		impl.table,
+	).Set(
+		"total_fee", impl.selectRDbHandle.StmtBuilder.SubQuery(gasUsedCountSubQuery),
+	).Where(
+		"date_time = ?", currentDate,
+	).ToSql()
+	if err != nil {
+		return fmt.Errorf("error building fee stats update SQL: %v", err)
+	}
+
+	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
+	if err != nil {
+		return fmt.Errorf("error executing fee stats update SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		return errors.New("error executing fee stats update SQL: no rows updated")
 	}
 
 	return nil
@@ -128,11 +196,23 @@ func RunCronJobs(rdbHandle *rdb.Handle) {
 	rdbTransactionStatsStore := NewRDbChainStatsStore(rdbHandle)
 	s := cron.New()
 
-	// At minute 59 past every hour from 0 through 23
+	// At 59 seconds past the minute, at 59 minutes past every hour from 0 through 23
 	// @every 0h0m5s
-	s.AddFunc("59 0-23 * * *", func() {
+	s.AddFunc("59 59 0-23 * * *", func() {
 		currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 		go rdbTransactionStatsStore.UpdateCountedTransactionsWithRDbHandle(currentDate)
+	})
+
+	s.AddFunc("59 59 0-23 * * *", func() {
+		currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+		time.Sleep(2 * time.Second)
+		go rdbTransactionStatsStore.UpdateTotalGasUsedWithRDbHandle(currentDate)
+	})
+
+	s.AddFunc("59 59 0-23 * * *", func() {
+		currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+		time.Sleep(4 * time.Second)
+		go rdbTransactionStatsStore.UpdateTotalFeeWithRDbHandle(currentDate)
 	})
 
 	s.Start()
