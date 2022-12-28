@@ -77,7 +77,9 @@ func (impl *RDbChainStatsStore) initRow() error {
 		"number_of_transactions",
 		"total_gas_used",
 		"total_fee",
-	).Values(currentDate, 0, 0, 0).ToSql()
+		"total_addresses",
+		"active_addresses",
+	).Values(currentDate, 0, 0, 0, 0, 0).ToSql()
 	if err != nil {
 		return fmt.Errorf("error building getting chain stats insertion SQL: %v", err)
 	}
