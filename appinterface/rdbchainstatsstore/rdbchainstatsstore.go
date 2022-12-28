@@ -219,7 +219,25 @@ func (impl *RDbChainStatsStore) UpdateTotalAddressesWithRDbHandle(currentDate in
 		return fmt.Errorf("error executing total addresses stats update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
-		return errors.New("error executing fee stats update SQL: no rows updated")
+		return errors.New("error executing total addresses stats update SQL: no rows updated")
+	}
+
+	return nil
+}
+
+func (impl *RDbChainStatsStore) UpdateActiveAddressesWithRDbHandle(currentDate int64) error {
+	if err := impl.init(); err != nil {
+		return fmt.Errorf("error initializing chain stats store: %v", err)
+	}
+
+	sql := "UPDATE chain_stats SET active_addresses = (SELECT COUNT(*) FROM (SELECT DISTINCT (from_address) FROM view_transactions WHERE block_time >= $1) AS temp) WHERE date_time = $1"
+
+	execResult, err := impl.selectRDbHandle.Exec(sql, currentDate)
+	if err != nil {
+		return fmt.Errorf("error executing active addresses stats update SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		return errors.New("error executing active addresses stats update SQL: no rows updated")
 	}
 
 	return nil
@@ -252,6 +270,12 @@ func RunCronJobs(rdbHandle *rdb.Handle) {
 		currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 		time.Sleep(6 * time.Second)
 		go rdbTransactionStatsStore.UpdateTotalAddressesWithRDbHandle(currentDate)
+	})
+
+	s.AddFunc("59 59 0-23 * * *", func() {
+		currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+		time.Sleep(8 * time.Second)
+		go rdbTransactionStatsStore.UpdateActiveAddressesWithRDbHandle(currentDate)
 	})
 
 	s.Start()
