@@ -96,6 +96,9 @@ prometheus:
   export_path: "/"
   port: "9090"
 
+cronjobstats:
+  enable: true
+
 # Custom config for example
 server_github_api:
   migration_repo_ref: ""

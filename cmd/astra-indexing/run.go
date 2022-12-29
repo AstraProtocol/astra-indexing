@@ -8,7 +8,6 @@ import (
 	"github.com/AstraProtocol/astra-indexing/cmd/astra-indexing/routes"
 	"github.com/urfave/cli/v2"
 
-	chainstats "github.com/AstraProtocol/astra-indexing/appinterface/rdbchainstatsstore"
 	"github.com/AstraProtocol/astra-indexing/bootstrap"
 	configuration "github.com/AstraProtocol/astra-indexing/bootstrap/config"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
@@ -147,7 +146,7 @@ func run(args []string) error {
 			)
 			app.InitHTTPAPIServer(routes.InitRouteRegistry(logger, app.GetRDbConn(), &config))
 
-			chainstats.RunCronJobs(app.GetRDbConn().ToHandle())
+			app.RunCronJobsStats(app.GetRDbConn().ToHandle())
 
 			app.Run()
 

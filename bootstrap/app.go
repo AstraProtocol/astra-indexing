@@ -3,13 +3,17 @@ package bootstrap
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	"github.com/AstraProtocol/astra-indexing/appinterface/rdbchainstatsstore"
 	config "github.com/AstraProtocol/astra-indexing/bootstrap/config"
 	projection_entity "github.com/AstraProtocol/astra-indexing/entity/projection"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg"
 	"github.com/golang-migrate/migrate/v4"
+	"gopkg.in/robfig/cron.v2"
 )
 
 type app struct {
@@ -110,4 +114,44 @@ func (a *app) Run() {
 	}
 
 	select {}
+}
+
+func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
+	if a.config.CronjobStats.Enable {
+		rdbTransactionStatsStore := rdbchainstatsstore.NewRDbChainStatsStore(rdbHandle)
+		s := cron.New()
+
+		// At 59 seconds past the minute, at 59 minutes past every hour from 0 through 23
+		// @every 0h0m5s
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			go rdbTransactionStatsStore.UpdateCountedTransactionsWithRDbHandle(currentDate)
+		})
+
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			time.Sleep(2 * time.Second)
+			go rdbTransactionStatsStore.UpdateTotalGasUsedWithRDbHandle(currentDate)
+		})
+
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			time.Sleep(4 * time.Second)
+			go rdbTransactionStatsStore.UpdateTotalFeeWithRDbHandle(currentDate)
+		})
+
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			time.Sleep(6 * time.Second)
+			go rdbTransactionStatsStore.UpdateTotalAddressesWithRDbHandle(currentDate)
+		})
+
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			time.Sleep(8 * time.Second)
+			go rdbTransactionStatsStore.UpdateActiveAddressesWithRDbHandle(currentDate)
+		})
+
+		s.Start()
+	}
 }

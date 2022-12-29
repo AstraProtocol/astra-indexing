@@ -14,6 +14,7 @@ type Config struct {
 	Postgres      Postgres      `yaml:"postgres" toml:"postgres" xml:"postgres" json:"postgres"`
 	Logger        Logger        `yaml:"logger" toml:"logger" xml:"logger" json:"logger"`
 	Prometheus    Prometheus    `yaml:"prometheus" toml:"prometheus" xml:"prometheus" json:"prometheus"`
+	CronjobStats  CronjobStats  `yaml:"cronjobstats" toml:"cronjobstats" xml:"cronjobstats" json:"cronjobstats"`
 }
 
 type IndexService struct {
@@ -112,4 +113,8 @@ type Prometheus struct {
 	Enable     bool   `yaml:"enable" toml:"enable" xml:"enable" json:"enable,omitempty"`
 	ExportPath string `yaml:"export_path" toml:"export_path" xml:"export_path" json:"export_path,omitempty"`
 	Port       string `yaml:"port" toml:"port" xml:"port" json:"port,omitempty"`
+}
+
+type CronjobStats struct {
+	Enable bool `yaml:"enable" toml:"enable" xml:"enable" json:"enable,omitempty"`
 }
