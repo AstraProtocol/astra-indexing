@@ -107,7 +107,7 @@ func (view *ChainStats) FindBy(metrics string) (string, error) {
 	return value, nil
 }
 
-func (view *ChainStats) GetTransactionsHistoryByDateRange(date_range int) ([]TransactionHistory, error) {
+func (view *ChainStats) GetTransactionsHistoryForChart(date_range int) ([]TransactionHistory, error) {
 	latest := time.Now().Truncate(24 * time.Hour)
 	earliest := latest.Add(-time.Duration(date_range) * 24 * time.Hour)
 
@@ -118,6 +118,49 @@ func (view *ChainStats) GetTransactionsHistoryByDateRange(date_range int) ([]Tra
 		"chain_stats",
 	).Where(
 		"date_time >= ? AND date_time <= ?", earliest.UnixNano(), latest.UnixNano(),
+	).OrderBy(
+		"date_time DESC",
+	).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("error building transactions history by date range select SQL: %v, %w", err, rdb.ErrBuildSQLStmt)
+	}
+
+	rowsResult, err := view.rdbHandle.Query(sql, sqlArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("error executing transactions history by date range select SQL: %v: %w", err, rdb.ErrQuery)
+	}
+	defer rowsResult.Close()
+
+	transactionHistoryList := make([]TransactionHistory, 0)
+	for rowsResult.Next() {
+		var transactionHistory TransactionHistory
+		var unixTime int64
+
+		if err = rowsResult.Scan(
+			&unixTime,
+			&transactionHistory.NumberOfTransactions,
+		); err != nil {
+			if errors.Is(err, rdb.ErrNoRows) {
+				return nil, rdb.ErrNoRows
+			}
+			return nil, fmt.Errorf("error scanning transactions history by date range row: %v: %w", err, rdb.ErrQuery)
+		}
+
+		transactionHistory.Date = strings.Split(time.Unix(0, unixTime).UTC().String(), " ")[0]
+		transactionHistoryList = append(transactionHistoryList, transactionHistory)
+	}
+
+	return transactionHistoryList, nil
+}
+
+func (view *ChainStats) GetTransactionsHistory(from_date time.Time, end_date time.Time) ([]TransactionHistory, error) {
+	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
+		"date_time",
+		"number_of_transactions",
+	).From(
+		"chain_stats",
+	).Where(
+		"date_time >= ? AND date_time < ?", from_date.UnixNano(), end_date.UnixNano(),
 	).OrderBy(
 		"date_time DESC",
 	).ToSql()

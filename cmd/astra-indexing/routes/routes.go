@@ -129,8 +129,8 @@ func InitRouteRegistry(
 		},
 		Route{
 			Method:  GET,
-			path:    "api/v1/transactions-history-daily",
-			handler: statsHandlers.GetTransactionsHistoryDaily,
+			path:    "api/v1/transactions-history",
+			handler: statsHandlers.GetTransactionsHistory,
 		},
 		Route{
 			Method:  GET,

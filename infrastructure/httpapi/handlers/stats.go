@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -46,7 +47,7 @@ func NewStatsHandler(
 func (handler *StatsHandler) GetTransactionsHistoryChart(ctx *fasthttp.RequestCtx) {
 	// Fetch transactions history of last 30 days
 	date_range := 30
-	transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistoryByDateRange(date_range)
+	transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistoryForChart(date_range)
 
 	if err != nil {
 		handler.logger.Errorf("error fetching transactions history: %v", err)
@@ -57,11 +58,38 @@ func (handler *StatsHandler) GetTransactionsHistoryChart(ctx *fasthttp.RequestCt
 	httpapi.Success(ctx, transactionsHistoryList)
 }
 
-func (handler *StatsHandler) GetTransactionsHistoryDaily(ctx *fasthttp.RequestCtx) {
-	// Fetch transactions history of the year
-	first_day_of_year := time.Date(time.Now().Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
-	date_range := int(time.Since(first_day_of_year).Hours() / 24)
-	transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistoryByDateRange(date_range)
+func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
+	var err error
+	var year int64
+	year = int64(time.Now().Year())
+	if string(ctx.QueryArgs().Peek("year")) != "" {
+		year, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
+		if err != nil {
+			handler.logger.Error("year param is invalid")
+			httpapi.InternalServerError(ctx)
+			return
+		}
+		if int(year) > time.Now().Year() {
+			handler.logger.Error("year is too far")
+			httpapi.InternalServerError(ctx)
+			return
+		}
+	}
+
+	var month int64
+	month = 1
+	if string(ctx.QueryArgs().Peek("month")) != "" {
+		month, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("month")), 10, 0)
+		if err != nil || month > 12 || month < 1 {
+			handler.logger.Error("month param is invalid")
+			httpapi.InternalServerError(ctx)
+			return
+		}
+	}
+
+	from_date := time.Date(int(year), time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+	end_date := from_date.AddDate(0, 1, 0)
+	transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(from_date, end_date)
 
 	if err != nil {
 		handler.logger.Errorf("error fetching transactions history: %v", err)
