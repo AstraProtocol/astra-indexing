@@ -78,9 +78,9 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	is_daily := false
+	isDaily := false
 	if string(ctx.QueryArgs().Peek("daily")) == "true" {
-		is_daily = true
+		isDaily = true
 	}
 	//
 
@@ -91,38 +91,38 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	min_date, err := handler.chainStatsView.GetMinDate()
+	minDate, err := handler.chainStatsView.GetMinDate()
 	if err != nil {
 		handler.logger.Errorf("error fetching min date of chain_stats: %v", err)
 		httpapi.InternalServerError(ctx)
 		return
 	}
 
-	min_date_time := time.Unix(0, min_date).UTC()
-	diff_time := time.Now().Truncate(time.Hour * 24).Sub(min_date_time)
+	minDateTime := time.Unix(0, minDate).UTC()
+	diffTime := time.Now().Truncate(time.Hour * 24).Sub(minDateTime)
 
-	from_date := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
-	end_date := from_date.AddDate(1, 0, 0)
+	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
+	endDate := fromDate.AddDate(1, 0, 0)
 
-	if is_daily {
-		transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(from_date, end_date)
+	if isDaily {
+		transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(fromDate, endDate)
 		if err != nil {
 			handler.logger.Errorf("error fetching transactions history daily: %v", err)
 			httpapi.InternalServerError(ctx)
 			return
 		}
 
-		diff_day := int64(math.Ceil(diff_time.Hours() / 24))
+		diffDay := int64(math.Ceil(diffTime.Hours() / 24))
 
 		var transactionsHistoryDaily TransactionsHistoryDaily
 		transactionsHistoryDaily.TransactionsHistory = transactionsHistoryList
 		if len(transactionsHistoryList) > 0 {
-			transactionsHistoryDaily.DailyAverage = int(transactionsCount / diff_day)
+			transactionsHistoryDaily.DailyAverage = int(transactionsCount / diffDay)
 		}
 
 		httpapi.Success(ctx, transactionsHistoryDaily)
 	} else {
-		transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(from_date, end_date)
+		transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(fromDate, endDate)
 		if err != nil {
 			handler.logger.Errorf("error fetching transactions history monthly: %v", err)
 			httpapi.InternalServerError(ctx)
@@ -137,42 +137,42 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 		result := make([]chainstats_view.TransactionHistory, 0)
 
 		length := len(transactionsHistoryList)
-		check_year := transactionsHistoryList[0].Year
-		check_month := transactionsHistoryList[0].Month
-		var monthly_transactions int64
+		checkYear := transactionsHistoryList[0].Year
+		checkMonth := transactionsHistoryList[0].Month
+		var monthlyTransactions int64
 
 		for index, transactionHistory := range transactionsHistoryList {
 			// init counting
 			if index == 0 {
-				monthly_transactions = 0
+				monthlyTransactions = 0
 			}
 			// counting
-			if transactionHistory.Month == check_month {
-				monthly_transactions += transactionHistory.NumberOfTransactions
+			if transactionHistory.Month == checkMonth {
+				monthlyTransactions += transactionHistory.NumberOfTransactions
 			}
 			// add to result then reset counting
 			if (index < length-1 && transactionHistory.Month != transactionsHistoryList[index+1].Month) || index == length-1 {
 				var transactionHistoryMonthly chainstats_view.TransactionHistory
-				transactionHistoryMonthly.Year = check_year
-				transactionHistoryMonthly.Month = check_month
-				transactionHistoryMonthly.NumberOfTransactions = monthly_transactions
+				transactionHistoryMonthly.Year = checkYear
+				transactionHistoryMonthly.Month = checkMonth
+				transactionHistoryMonthly.NumberOfTransactions = monthlyTransactions
 				result = append(result, transactionHistoryMonthly)
 
 				if index == length-1 {
 					break
 				}
 
-				monthly_transactions = 0
-				check_month = transactionsHistoryList[index+1].Month
+				monthlyTransactions = 0
+				checkMonth = transactionsHistoryList[index+1].Month
 			}
 		}
 
-		diff_month := int64(math.Ceil(diff_time.Hours() / (24 * 30)))
+		diffMonth := int64(math.Ceil(diffTime.Hours() / (24 * 30)))
 
 		var transactionsHistoryMonthly TransactionsHistoryMonthly
 		transactionsHistoryMonthly.TransactionsHistory = result
 		if len(result) > 0 {
-			transactionsHistoryMonthly.MonthlyAverage = int(transactionsCount / diff_month)
+			transactionsHistoryMonthly.MonthlyAverage = int(transactionsCount / diffMonth)
 		}
 
 		httpapi.Success(ctx, transactionsHistoryMonthly)
@@ -198,9 +198,9 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 		}
 	}
 
-	is_daily := false
+	isDaily := false
 	if string(ctx.QueryArgs().Peek("daily")) == "true" {
-		is_daily = true
+		isDaily = true
 	}
 	//
 
@@ -211,21 +211,21 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 		return
 	}
 
-	min_date, err := handler.chainStatsView.GetMinDate()
+	minDate, err := handler.chainStatsView.GetMinDate()
 	if err != nil {
 		handler.logger.Errorf("error fetching min date of chain_stats: %v", err)
 		httpapi.InternalServerError(ctx)
 		return
 	}
 
-	min_date_time := time.Unix(0, min_date).UTC()
-	diff_time := time.Now().Truncate(time.Hour * 24).Sub(min_date_time)
+	minDateTime := time.Unix(0, minDate).UTC()
+	diffTime := time.Now().Truncate(time.Hour * 24).Sub(minDateTime)
 
-	from_date := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
-	end_date := from_date.AddDate(1, 0, 0)
+	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
+	endDate := fromDate.AddDate(1, 0, 0)
 
-	if is_daily {
-		activeAddressesHistoryList, err := handler.chainStatsView.GetActiveAddressesHistory(from_date, end_date)
+	if isDaily {
+		activeAddressesHistoryList, err := handler.chainStatsView.GetActiveAddressesHistory(fromDate, endDate)
 
 		if err != nil {
 			handler.logger.Errorf("error fetching active addresses history daily: %v", err)
@@ -233,7 +233,7 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 			return
 		}
 
-		diff_day := int64(math.Ceil(diff_time.Hours() / 24))
+		diff_day := int64(math.Ceil(diffTime.Hours() / 24))
 
 		var activeAddressesHistoryDaily ActiveAddressesHistoryDaily
 		activeAddressesHistoryDaily.ActiveAddressesHistory = activeAddressesHistoryList
@@ -243,7 +243,7 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 
 		httpapi.Success(ctx, activeAddressesHistoryDaily)
 	} else {
-		activeAddressesHistoryList, err := handler.chainStatsView.GetActiveAddressesHistory(from_date, end_date)
+		activeAddressesHistoryList, err := handler.chainStatsView.GetActiveAddressesHistory(fromDate, endDate)
 
 		if err != nil {
 			handler.logger.Errorf("error fetching active addresses history monthly: %v", err)
@@ -259,46 +259,91 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 		result := make([]chainstats_view.ActiveAddressHistory, 0)
 
 		length := len(activeAddressesHistoryList)
-		check_year := activeAddressesHistoryList[0].Year
-		check_month := activeAddressesHistoryList[0].Month
-		var monthly_active_addresses int64
+		checkYear := activeAddressesHistoryList[0].Year
+		checkMonth := activeAddressesHistoryList[0].Month
+		var monthlyActiveAddresses int64
 
 		for index, activeAddressesHistory := range activeAddressesHistoryList {
 			// init counting
 			if index == 0 {
-				monthly_active_addresses = 0
+				monthlyActiveAddresses = 0
 			}
 			// counting
-			if activeAddressesHistory.Month == check_month {
-				monthly_active_addresses += activeAddressesHistory.NumberOfActiveAddresses
+			if activeAddressesHistory.Month == checkMonth {
+				monthlyActiveAddresses += activeAddressesHistory.NumberOfActiveAddresses
 			}
 			// add to result then reset counting
 			if (index < length-1 && activeAddressesHistory.Month != activeAddressesHistoryList[index+1].Month) || index == length-1 {
 				var activeAddressesHistoryMonthly chainstats_view.ActiveAddressHistory
-				activeAddressesHistoryMonthly.Year = check_year
-				activeAddressesHistoryMonthly.Month = check_month
-				activeAddressesHistoryMonthly.NumberOfActiveAddresses = monthly_active_addresses
+				activeAddressesHistoryMonthly.Year = checkYear
+				activeAddressesHistoryMonthly.Month = checkMonth
+				activeAddressesHistoryMonthly.NumberOfActiveAddresses = monthlyActiveAddresses
 				result = append(result, activeAddressesHistoryMonthly)
 
 				if index == length-1 {
 					break
 				}
 
-				monthly_active_addresses = 0
-				check_month = activeAddressesHistoryList[index+1].Month
+				monthlyActiveAddresses = 0
+				checkMonth = activeAddressesHistoryList[index+1].Month
 			}
 		}
 
-		diff_month := int64(math.Ceil(diff_time.Hours() / (24 * 30)))
+		diffMonth := int64(math.Ceil(diffTime.Hours() / (24 * 30)))
 
 		var activeAddressesHistoryMonthly ActiveAddressesHistoryMonthly
 		activeAddressesHistoryMonthly.ActiveAddressesHistory = result
 		if len(result) > 0 {
-			activeAddressesHistoryMonthly.MonthlyAverage = int(totalActiveAddresses / diff_month)
+			activeAddressesHistoryMonthly.MonthlyAverage = int(totalActiveAddresses / diffMonth)
 		}
 
 		httpapi.Success(ctx, activeAddressesHistoryMonthly)
 	}
+}
+
+func (handler *StatsHandler) GetTotalAddressesGrowth(ctx *fasthttp.RequestCtx) {
+	// handle api's params
+	var err error
+	var year int64
+	year = int64(time.Now().Year())
+	if string(ctx.QueryArgs().Peek("year")) != "" {
+		year, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
+		if err != nil {
+			handler.logger.Error("year param is invalid")
+			httpapi.InternalServerError(ctx)
+			return
+		}
+		if int(year) > time.Now().Year() {
+			handler.logger.Error("year is too far")
+			httpapi.InternalServerError(ctx)
+			return
+		}
+	}
+	//
+
+	addressesCount, err := handler.accountsView.TotalAccount()
+	if err != nil {
+		handler.logger.Errorf("error fetching address count: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
+	endDate := fromDate.AddDate(1, 0, 0)
+
+	totalAddressesHistoryList, err := handler.chainStatsView.GetTotalAddressesGrowth(fromDate, endDate)
+
+	if err != nil {
+		handler.logger.Errorf("error fetching total addresses history daily: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	var totalAddressesHistoryDaily TotalAddressesGrowth
+	totalAddressesHistoryDaily.TotalAddressesGrowth = totalAddressesHistoryList
+	totalAddressesHistoryDaily.TotalAddresses = addressesCount
+
+	httpapi.Success(ctx, totalAddressesHistoryDaily)
 }
 
 func (handler *StatsHandler) GetGasUsedHistoryDaily(ctx *fasthttp.RequestCtx) {
@@ -403,4 +448,9 @@ type ActiveAddressesHistoryDaily struct {
 type ActiveAddressesHistoryMonthly struct {
 	ActiveAddressesHistory []chainstats_view.ActiveAddressHistory `json:"activeAddressesHistory"`
 	MonthlyAverage         int                                    `json:"monthlyAverage"`
+}
+
+type TotalAddressesGrowth struct {
+	TotalAddressesGrowth []chainstats_view.TotalAddressGrowth `json:"totalAddressesGrowth"`
+	TotalAddresses       int64                                `json:"totalAddresses"`
 }

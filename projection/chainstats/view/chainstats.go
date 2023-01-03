@@ -243,6 +243,59 @@ func (view *ChainStats) GetActiveAddressesHistory(from_date time.Time, end_date 
 	return activeAddressHistoryList, nil
 }
 
+func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date time.Time) ([]TotalAddressGrowth, error) {
+	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
+		"date_time",
+		"total_addresses",
+	).From(
+		"chain_stats",
+	).Where(
+		"date_time >= ? AND date_time < ?", from_date.UnixNano(), end_date.UnixNano(),
+	).OrderBy(
+		"date_time DESC",
+	).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("error building total addresses growth by date range select SQL: %v, %w", err, rdb.ErrBuildSQLStmt)
+	}
+
+	rowsResult, err := view.rdbHandle.Query(sql, sqlArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("error executing total addresses growth by date range select SQL: %v: %w", err, rdb.ErrQuery)
+	}
+	defer rowsResult.Close()
+
+	totalAddressGrowthList := make([]TotalAddressGrowth, 0)
+	for rowsResult.Next() {
+		var totalAddressGrowth TotalAddressGrowth
+		var unixTime int64
+
+		if err = rowsResult.Scan(
+			&unixTime,
+			&totalAddressGrowth.NumberOfAddresses,
+		); err != nil {
+			if errors.Is(err, rdb.ErrNoRows) {
+				return nil, rdb.ErrNoRows
+			}
+			return nil, fmt.Errorf("error scanning total addresses growth by date range row: %v: %w", err, rdb.ErrQuery)
+		}
+		totalAddressGrowth.Date = strings.Split(time.Unix(0, unixTime).UTC().String(), " ")[0]
+		totalAddressGrowth.Month = strings.Split(totalAddressGrowth.Date, "-")[1]
+		totalAddressGrowth.Year = strings.Split(totalAddressGrowth.Date, "-")[0]
+		totalAddressGrowthList = append(totalAddressGrowthList, totalAddressGrowth)
+	}
+
+	length := len(totalAddressGrowthList)
+	for index := range totalAddressGrowthList {
+		if index < length-1 {
+			totalAddressGrowthList[index].Growth = totalAddressGrowthList[index].NumberOfAddresses - totalAddressGrowthList[index+1].NumberOfAddresses
+		} else {
+			totalAddressGrowthList[index].Growth = 0
+		}
+	}
+
+	return totalAddressGrowthList, nil
+}
+
 func (view *ChainStats) GetGasUsedHistoryByDateRange(date_range int) ([]TotalGasUsedHistory, error) {
 	latest := time.Now().Truncate(24 * time.Hour)
 	earliest := latest.Add(-time.Duration(date_range) * 24 * time.Hour)
@@ -392,6 +445,14 @@ type ActiveAddressHistory struct {
 	Month                   string `json:"month"`
 	Year                    string `json:"year"`
 	NumberOfActiveAddresses int64  `json:"numberOfActiveAddresses"`
+}
+
+type TotalAddressGrowth struct {
+	Date              string `json:"date"`
+	Month             string `json:"month"`
+	Year              string `json:"year"`
+	NumberOfAddresses int64  `json:"numberOfAddresses"`
+	Growth            int64  `json:"growth"`
 }
 
 type TotalGasUsedHistory struct {

@@ -139,6 +139,11 @@ func InitRouteRegistry(
 		},
 		Route{
 			Method:  GET,
+			path:    "api/v1/total-addresses-growth",
+			handler: statsHandlers.GetTotalAddressesGrowth,
+		},
+		Route{
+			Method:  GET,
 			path:    "api/v1/gas-used-history-daily",
 			handler: statsHandlers.GetGasUsedHistoryDaily,
 		},
