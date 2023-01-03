@@ -133,9 +133,6 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 		end_date := from_date.AddDate(1, 0, 0)
 
 		transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(from_date, end_date)
-
-		result := make([]chainstats_view.TransactionHistory, 0)
-
 		if err != nil {
 			handler.logger.Errorf("error fetching transactions history monthly: %v", err)
 			httpapi.InternalServerError(ctx)
@@ -146,6 +143,8 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 			httpapi.Success(ctx, transactionsHistoryList)
 			return
 		}
+
+		result := make([]chainstats_view.TransactionHistory, 0)
 
 		length := len(transactionsHistoryList)
 		check_year := transactionsHistoryList[0].Year
@@ -187,6 +186,137 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 		}
 
 		httpapi.Success(ctx, transactionsHistoryMonthly)
+	}
+}
+
+func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx) {
+	// handle api's params
+	var err error
+	var year int64
+	year = int64(time.Now().Year())
+	if string(ctx.QueryArgs().Peek("year")) != "" {
+		year, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
+		if err != nil {
+			handler.logger.Error("year param is invalid")
+			httpapi.InternalServerError(ctx)
+			return
+		}
+		if int(year) > time.Now().Year() {
+			handler.logger.Error("year is too far")
+			httpapi.InternalServerError(ctx)
+			return
+		}
+	}
+
+	var month int64
+	month = 0
+	if string(ctx.QueryArgs().Peek("month")) != "" {
+		month, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("month")), 10, 0)
+		if err != nil || month > 12 || month < 1 {
+			handler.logger.Error("month param is invalid")
+			httpapi.InternalServerError(ctx)
+			return
+		}
+	}
+	//
+
+	totalActiveAddresses, err := handler.chainStatsView.GetTotalActiveAddresses()
+	if err != nil {
+		handler.logger.Errorf("error fetching total active addresses: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	min_date, err := handler.chainStatsView.GetMinDate()
+	if err != nil {
+		handler.logger.Errorf("error fetching min date of chain_stats: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	min_date_time := time.Unix(0, min_date).UTC()
+	diff_time := time.Now().Truncate(time.Hour * 24).Sub(min_date_time)
+
+	if month > 0 {
+		from_date := time.Date(int(year), time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+		end_date := from_date.AddDate(0, 1, 0)
+
+		activeAddressesHistoryList, err := handler.chainStatsView.GetActiveAddressesHistory(from_date, end_date)
+
+		if err != nil {
+			handler.logger.Errorf("error fetching active addresses history daily: %v", err)
+			httpapi.InternalServerError(ctx)
+			return
+		}
+
+		diff_day := int64(math.Ceil(diff_time.Hours() / 24))
+
+		var activeAddressesHistoryDaily ActiveAddressesHistoryDaily
+		activeAddressesHistoryDaily.ActiveAddressesHistory = activeAddressesHistoryList
+		if len(activeAddressesHistoryList) > 0 {
+			activeAddressesHistoryDaily.DailyAverage = int(totalActiveAddresses / diff_day)
+		}
+
+		httpapi.Success(ctx, activeAddressesHistoryDaily)
+	} else {
+		from_date := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
+		end_date := from_date.AddDate(1, 0, 0)
+
+		activeAddressesHistoryList, err := handler.chainStatsView.GetActiveAddressesHistory(from_date, end_date)
+
+		if err != nil {
+			handler.logger.Errorf("error fetching active addresses history monthly: %v", err)
+			httpapi.InternalServerError(ctx)
+			return
+		}
+
+		if len(activeAddressesHistoryList) == 0 {
+			httpapi.Success(ctx, activeAddressesHistoryList)
+			return
+		}
+
+		result := make([]chainstats_view.ActiveAddressHistory, 0)
+
+		length := len(activeAddressesHistoryList)
+		check_year := activeAddressesHistoryList[0].Year
+		check_month := activeAddressesHistoryList[0].Month
+		var monthly_active_addresses int64
+
+		for index, activeAddressesHistory := range activeAddressesHistoryList {
+			// init counting
+			if index == 0 {
+				monthly_active_addresses = 0
+			}
+			// counting
+			if activeAddressesHistory.Month == check_month {
+				monthly_active_addresses += activeAddressesHistory.NumberOfActiveAddresses
+			}
+			// add to result then reset counting
+			if (index < length-1 && activeAddressesHistory.Month != activeAddressesHistoryList[index+1].Month) || index == length-1 {
+				var activeAddressesHistoryMonthly chainstats_view.ActiveAddressHistory
+				activeAddressesHistoryMonthly.Year = check_year
+				activeAddressesHistoryMonthly.Month = check_month
+				activeAddressesHistoryMonthly.NumberOfActiveAddresses = monthly_active_addresses
+				result = append(result, activeAddressesHistoryMonthly)
+
+				if index == length-1 {
+					break
+				}
+
+				monthly_active_addresses = 0
+				check_month = activeAddressesHistoryList[index+1].Month
+			}
+		}
+
+		diff_month := int64(math.Ceil(diff_time.Hours() / (24 * 30)))
+
+		var activeAddressesHistoryMonthly ActiveAddressesHistoryMonthly
+		activeAddressesHistoryMonthly.ActiveAddressesHistory = result
+		if len(result) > 0 {
+			activeAddressesHistoryMonthly.MonthlyAverage = int(totalActiveAddresses / diff_month)
+		}
+
+		httpapi.Success(ctx, activeAddressesHistoryMonthly)
 	}
 }
 
@@ -282,4 +412,14 @@ type TransactionsHistoryDaily struct {
 type TransactionsHistoryMonthly struct {
 	TransactionsHistory []chainstats_view.TransactionHistory `json:"transactionsHistory"`
 	MonthlyAverage      int                                  `json:"monthlyAverage"`
+}
+
+type ActiveAddressesHistoryDaily struct {
+	ActiveAddressesHistory []chainstats_view.ActiveAddressHistory `json:"activeAddressesHistory"`
+	DailyAverage           int                                    `json:"dailyAverage"`
+}
+
+type ActiveAddressesHistoryMonthly struct {
+	ActiveAddressesHistory []chainstats_view.ActiveAddressHistory `json:"activeAddressesHistory"`
+	MonthlyAverage         int                                    `json:"monthlyAverage"`
 }

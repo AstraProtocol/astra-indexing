@@ -198,6 +198,51 @@ func (view *ChainStats) GetTransactionsHistory(from_date time.Time, end_date tim
 	return transactionHistoryList, nil
 }
 
+func (view *ChainStats) GetActiveAddressesHistory(from_date time.Time, end_date time.Time) ([]ActiveAddressHistory, error) {
+	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
+		"date_time",
+		"active_addresses",
+	).From(
+		"chain_stats",
+	).Where(
+		"date_time >= ? AND date_time < ?", from_date.UnixNano(), end_date.UnixNano(),
+	).OrderBy(
+		"date_time DESC",
+	).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("error building active addresses history by date range select SQL: %v, %w", err, rdb.ErrBuildSQLStmt)
+	}
+
+	rowsResult, err := view.rdbHandle.Query(sql, sqlArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("error executing active addresses history by date range select SQL: %v: %w", err, rdb.ErrQuery)
+	}
+	defer rowsResult.Close()
+
+	activeAddressHistoryList := make([]ActiveAddressHistory, 0)
+	for rowsResult.Next() {
+		var activeAddressHistory ActiveAddressHistory
+		var unixTime int64
+
+		if err = rowsResult.Scan(
+			&unixTime,
+			&activeAddressHistory.NumberOfActiveAddresses,
+		); err != nil {
+			if errors.Is(err, rdb.ErrNoRows) {
+				return nil, rdb.ErrNoRows
+			}
+			return nil, fmt.Errorf("error scanning active addresses history by date range row: %v: %w", err, rdb.ErrQuery)
+		}
+
+		activeAddressHistory.Date = strings.Split(time.Unix(0, unixTime).UTC().String(), " ")[0]
+		activeAddressHistory.Month = strings.Split(activeAddressHistory.Date, "-")[1]
+		activeAddressHistory.Year = strings.Split(activeAddressHistory.Date, "-")[0]
+		activeAddressHistoryList = append(activeAddressHistoryList, activeAddressHistory)
+	}
+
+	return activeAddressHistoryList, nil
+}
+
 func (view *ChainStats) GetGasUsedHistoryByDateRange(date_range int) ([]TotalGasUsedHistory, error) {
 	latest := time.Now().Truncate(24 * time.Hour)
 	earliest := latest.Add(-time.Duration(date_range) * 24 * time.Hour)
@@ -310,6 +355,26 @@ func (view *ChainStats) GetMinDate() (int64, error) {
 	return *min_date, nil
 }
 
+func (view *ChainStats) GetTotalActiveAddresses() (int64, error) {
+	sql, _, err := view.rdbHandle.StmtBuilder.Select("SUM(active_addresses)").From(
+		"chain_stats",
+	).ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("error building total active addresses selection sql: %v", err)
+	}
+
+	result := view.rdbHandle.QueryRow(sql)
+	var total *int64
+	if err := result.Scan(&total); err != nil {
+		return 0, fmt.Errorf("error scanning total active addresses selection query: %v", err)
+	}
+
+	if total == nil {
+		return 0, nil
+	}
+	return *total, nil
+}
+
 type ValidatorStatsRow struct {
 	Metrics string
 	Value   string
@@ -320,6 +385,13 @@ type TransactionHistory struct {
 	Month                string `json:"month"`
 	Year                 string `json:"year"`
 	NumberOfTransactions int64  `json:"numberOfTransactions"`
+}
+
+type ActiveAddressHistory struct {
+	Date                    string `json:"date"`
+	Month                   string `json:"month"`
+	Year                    string `json:"year"`
+	NumberOfActiveAddresses int64  `json:"numberOfActiveAddresses"`
 }
 
 type TotalGasUsedHistory struct {
