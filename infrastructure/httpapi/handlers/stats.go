@@ -78,15 +78,9 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	var month int64
-	month = 0
-	if string(ctx.QueryArgs().Peek("month")) != "" {
-		month, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("month")), 10, 0)
-		if err != nil || month > 12 || month < 1 {
-			handler.logger.Error("month param is invalid")
-			httpapi.InternalServerError(ctx)
-			return
-		}
+	is_daily := false
+	if string(ctx.QueryArgs().Peek("daily")) == "true" {
+		is_daily = true
 	}
 	//
 
@@ -107,12 +101,11 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 	min_date_time := time.Unix(0, min_date).UTC()
 	diff_time := time.Now().Truncate(time.Hour * 24).Sub(min_date_time)
 
-	if month > 0 {
-		from_date := time.Date(int(year), time.Month(month), 1, 0, 0, 0, 0, time.UTC)
-		end_date := from_date.AddDate(0, 1, 0)
+	from_date := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
+	end_date := from_date.AddDate(1, 0, 0)
 
+	if is_daily {
 		transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(from_date, end_date)
-
 		if err != nil {
 			handler.logger.Errorf("error fetching transactions history daily: %v", err)
 			httpapi.InternalServerError(ctx)
@@ -129,9 +122,6 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 
 		httpapi.Success(ctx, transactionsHistoryDaily)
 	} else {
-		from_date := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
-		end_date := from_date.AddDate(1, 0, 0)
-
 		transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(from_date, end_date)
 		if err != nil {
 			handler.logger.Errorf("error fetching transactions history monthly: %v", err)
@@ -208,15 +198,9 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 		}
 	}
 
-	var month int64
-	month = 0
-	if string(ctx.QueryArgs().Peek("month")) != "" {
-		month, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("month")), 10, 0)
-		if err != nil || month > 12 || month < 1 {
-			handler.logger.Error("month param is invalid")
-			httpapi.InternalServerError(ctx)
-			return
-		}
+	is_daily := false
+	if string(ctx.QueryArgs().Peek("daily")) == "true" {
+		is_daily = true
 	}
 	//
 
@@ -237,10 +221,10 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 	min_date_time := time.Unix(0, min_date).UTC()
 	diff_time := time.Now().Truncate(time.Hour * 24).Sub(min_date_time)
 
-	if month > 0 {
-		from_date := time.Date(int(year), time.Month(month), 1, 0, 0, 0, 0, time.UTC)
-		end_date := from_date.AddDate(0, 1, 0)
+	from_date := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
+	end_date := from_date.AddDate(1, 0, 0)
 
+	if is_daily {
 		activeAddressesHistoryList, err := handler.chainStatsView.GetActiveAddressesHistory(from_date, end_date)
 
 		if err != nil {
@@ -259,9 +243,6 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 
 		httpapi.Success(ctx, activeAddressesHistoryDaily)
 	} else {
-		from_date := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
-		end_date := from_date.AddDate(1, 0, 0)
-
 		activeAddressesHistoryList, err := handler.chainStatsView.GetActiveAddressesHistory(from_date, end_date)
 
 		if err != nil {
