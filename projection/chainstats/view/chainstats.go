@@ -296,17 +296,14 @@ func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date ti
 	return totalAddressGrowthList, nil
 }
 
-func (view *ChainStats) GetGasUsedHistoryByDateRange(date_range int) ([]TotalGasUsedHistory, error) {
-	latest := time.Now().Truncate(24 * time.Hour)
-	earliest := latest.Add(-time.Duration(date_range) * 24 * time.Hour)
-
+func (view *ChainStats) GetGasUsedHistory(from_date time.Time, end_date time.Time) ([]TotalGasUsedHistory, error) {
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"date_time",
 		"total_gas_used",
 	).From(
 		"chain_stats",
 	).Where(
-		"date_time >= ? AND date_time <= ?", earliest.UnixNano(), latest.UnixNano(),
+		"date_time >= ? AND date_time < ?", from_date.UnixNano(), end_date.UnixNano(),
 	).OrderBy(
 		"date_time DESC",
 	).ToSql()
@@ -336,6 +333,8 @@ func (view *ChainStats) GetGasUsedHistoryByDateRange(date_range int) ([]TotalGas
 		}
 
 		totalGasUsedHistory.Date = strings.Split(time.Unix(0, unixTime).UTC().String(), " ")[0]
+		totalGasUsedHistory.Month = strings.Split(totalGasUsedHistory.Date, "-")[1]
+		totalGasUsedHistory.Year = strings.Split(totalGasUsedHistory.Date, "-")[0]
 		totalGasUsedHistoryList = append(totalGasUsedHistoryList, totalGasUsedHistory)
 	}
 
@@ -428,6 +427,26 @@ func (view *ChainStats) GetTotalActiveAddresses() (int64, error) {
 	return *total, nil
 }
 
+func (view *ChainStats) GetTotalGasUsed() (int64, error) {
+	sql, _, err := view.rdbHandle.StmtBuilder.Select("SUM(total_gas_used)").From(
+		"chain_stats",
+	).ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("error building total gas used selection sql: %v", err)
+	}
+
+	result := view.rdbHandle.QueryRow(sql)
+	var total *int64
+	if err := result.Scan(&total); err != nil {
+		return 0, fmt.Errorf("error scanning total gas used selection query: %v", err)
+	}
+
+	if total == nil {
+		return 0, nil
+	}
+	return *total, nil
+}
+
 type ValidatorStatsRow struct {
 	Metrics string
 	Value   string
@@ -457,6 +476,8 @@ type TotalAddressGrowth struct {
 
 type TotalGasUsedHistory struct {
 	Date         string `json:"date"`
+	Month        string `json:"month"`
+	Year         string `json:"year"`
 	TotalGasUsed int64  `json:"totalGasUsed"`
 }
 

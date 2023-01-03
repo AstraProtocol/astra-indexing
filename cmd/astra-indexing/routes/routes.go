@@ -144,8 +144,8 @@ func InitRouteRegistry(
 		},
 		Route{
 			Method:  GET,
-			path:    "api/v1/gas-used-history-daily",
-			handler: statsHandlers.GetGasUsedHistoryDaily,
+			path:    "api/v1/gas-used-history",
+			handler: statsHandlers.GetGasUsedHistory,
 		},
 		Route{
 			Method:  GET,
