@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"math"
 	"strconv"
 	"time"
 
@@ -59,6 +60,7 @@ func (handler *StatsHandler) GetTransactionsHistoryChart(ctx *fasthttp.RequestCt
 }
 
 func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
+	// handle api's params
 	var err error
 	var year int64
 	year = int64(time.Now().Year())
@@ -77,7 +79,7 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 	}
 
 	var month int64
-	month = 1
+	month = 0
 	if string(ctx.QueryArgs().Peek("month")) != "" {
 		month, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("month")), 10, 0)
 		if err != nil || month > 12 || month < 1 {
@@ -86,18 +88,106 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 			return
 		}
 	}
+	//
 
-	from_date := time.Date(int(year), time.Month(month), 1, 0, 0, 0, 0, time.UTC)
-	end_date := from_date.AddDate(0, 1, 0)
-	transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(from_date, end_date)
-
+	transactionsCount, err := handler.transactionsTotalView.FindBy("-")
 	if err != nil {
-		handler.logger.Errorf("error fetching transactions history: %v", err)
+		handler.logger.Errorf("error fetching transaction count: %v", err)
 		httpapi.InternalServerError(ctx)
 		return
 	}
 
-	httpapi.Success(ctx, transactionsHistoryList)
+	min_date, err := handler.chainStatsView.GetMinDate()
+	if err != nil {
+		handler.logger.Errorf("error fetching min date of chain_stats: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	min_date_time := time.Unix(0, min_date).UTC()
+	diff_time := time.Now().Truncate(time.Hour * 24).Sub(min_date_time)
+
+	if month > 0 {
+		from_date := time.Date(int(year), time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+		end_date := from_date.AddDate(0, 1, 0)
+
+		transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(from_date, end_date)
+
+		if err != nil {
+			handler.logger.Errorf("error fetching transactions history daily: %v", err)
+			httpapi.InternalServerError(ctx)
+			return
+		}
+
+		diff_day := int64(math.Ceil(diff_time.Hours() / 24))
+
+		var transactionsHistoryDaily TransactionsHistoryDaily
+		transactionsHistoryDaily.TransactionsHistory = transactionsHistoryList
+		if len(transactionsHistoryList) > 0 {
+			transactionsHistoryDaily.DailyAverage = int(transactionsCount / diff_day)
+		}
+
+		httpapi.Success(ctx, transactionsHistoryDaily)
+	} else {
+		from_date := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
+		end_date := from_date.AddDate(1, 0, 0)
+
+		transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(from_date, end_date)
+
+		result := make([]chainstats_view.TransactionHistory, 0)
+
+		if err != nil {
+			handler.logger.Errorf("error fetching transactions history monthly: %v", err)
+			httpapi.InternalServerError(ctx)
+			return
+		}
+
+		if len(transactionsHistoryList) == 0 {
+			httpapi.Success(ctx, transactionsHistoryList)
+			return
+		}
+
+		length := len(transactionsHistoryList)
+		check_year := transactionsHistoryList[0].Year
+		check_month := transactionsHistoryList[0].Month
+		var monthly_transactions int64
+
+		for index, transactionHistory := range transactionsHistoryList {
+			// init counting
+			if index == 0 {
+				monthly_transactions = 0
+			}
+			// counting
+			if transactionHistory.Month == check_month {
+				monthly_transactions += transactionHistory.NumberOfTransactions
+			}
+			// add to result then reset counting
+			if (index < length-1 && transactionHistory.Month != transactionsHistoryList[index+1].Month) || index == length-1 {
+				var transactionHistoryMonthly chainstats_view.TransactionHistory
+				transactionHistoryMonthly.Year = check_year
+				transactionHistoryMonthly.Month = check_month
+				transactionHistoryMonthly.NumberOfTransactions = monthly_transactions
+				result = append(result, transactionHistoryMonthly)
+
+				if index == length-1 {
+					break
+				}
+
+				monthly_transactions = 0
+				check_month = transactionsHistoryList[index+1].Month
+			}
+		}
+
+		diff_month := int64(math.Ceil(diff_time.Hours() / (24 * 30)))
+
+		var transactionsHistoryMonthly TransactionsHistoryMonthly
+		transactionsHistoryMonthly.TransactionsHistory = result
+		if len(result) > 0 {
+			transactionsHistoryMonthly.MonthlyAverage = int(transactionsCount / diff_month)
+		}
+
+		httpapi.Success(ctx, transactionsHistoryMonthly)
+	}
 }
 
 func (handler *StatsHandler) GetGasUsedHistoryDaily(ctx *fasthttp.RequestCtx) {
@@ -182,4 +272,14 @@ type EstimateCountedInfo struct {
 	TotalBlocks       int64 `json:"total_blocks"`
 	TotalTransactions int64 `json:"total_transactions"`
 	TotalAddresses    int64 `json:"wallet_addresses"`
+}
+
+type TransactionsHistoryDaily struct {
+	TransactionsHistory []chainstats_view.TransactionHistory `json:"transactionsHistory"`
+	DailyAverage        int                                  `json:"dailyAverage"`
+}
+
+type TransactionsHistoryMonthly struct {
+	TransactionsHistory []chainstats_view.TransactionHistory `json:"transactionsHistory"`
+	MonthlyAverage      int                                  `json:"monthlyAverage"`
 }

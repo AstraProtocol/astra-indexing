@@ -190,6 +190,8 @@ func (view *ChainStats) GetTransactionsHistory(from_date time.Time, end_date tim
 		}
 
 		transactionHistory.Date = strings.Split(time.Unix(0, unixTime).UTC().String(), " ")[0]
+		transactionHistory.Month = strings.Split(transactionHistory.Date, "-")[1]
+		transactionHistory.Year = strings.Split(transactionHistory.Date, "-")[0]
 		transactionHistoryList = append(transactionHistoryList, transactionHistory)
 	}
 
@@ -288,6 +290,26 @@ func (view *ChainStats) GetTotalFeeHistoryByDateRange(date_range int) ([]TotalFe
 	return totalFeeHistoryList, nil
 }
 
+func (view *ChainStats) GetMinDate() (int64, error) {
+	sql, _, err := view.rdbHandle.StmtBuilder.Select("MIN(date_time)").From(
+		"chain_stats",
+	).ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("error building min date selection sql: %v", err)
+	}
+
+	result := view.rdbHandle.QueryRow(sql)
+	var min_date *int64
+	if err := result.Scan(&min_date); err != nil {
+		return 0, fmt.Errorf("error scanning min date selection query: %v", err)
+	}
+
+	if min_date == nil {
+		return 0, nil
+	}
+	return *min_date, nil
+}
+
 type ValidatorStatsRow struct {
 	Metrics string
 	Value   string
@@ -295,6 +317,8 @@ type ValidatorStatsRow struct {
 
 type TransactionHistory struct {
 	Date                 string `json:"date"`
+	Month                string `json:"month"`
+	Year                 string `json:"year"`
 	NumberOfTransactions int64  `json:"numberOfTransactions"`
 }
 
