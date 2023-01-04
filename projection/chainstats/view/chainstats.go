@@ -161,7 +161,7 @@ func (view *ChainStats) GetTransactionsHistoryForChart(date_range int) ([]Transa
 		transactionHistoryList = append(transactionHistoryList, transactionHistory)
 	}
 
-	view.astraCache.Set(cacheKey, transactionHistoryList, 30*60*1000*time.Millisecond)
+	view.astraCache.Set(cacheKey, transactionHistoryList, 5*60*1000*time.Millisecond)
 
 	return transactionHistoryList, nil
 }
