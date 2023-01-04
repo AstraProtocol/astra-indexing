@@ -341,27 +341,24 @@ func (view *ChainStats) GetGasUsedHistory(from_date time.Time, end_date time.Tim
 	return totalGasUsedHistoryList, nil
 }
 
-func (view *ChainStats) GetTotalFeeHistoryByDateRange(date_range int) ([]TotalFeeHistory, error) {
-	latest := time.Now().Truncate(24 * time.Hour)
-	earliest := latest.Add(-time.Duration(date_range) * 24 * time.Hour)
-
+func (view *ChainStats) GetTotalFeeHistory(from_date time.Time, end_date time.Time) ([]TotalFeeHistory, error) {
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"date_time",
 		"total_fee",
 	).From(
 		"chain_stats",
 	).Where(
-		"date_time >= ? AND date_time <= ?", earliest.UnixNano(), latest.UnixNano(),
+		"date_time >= ? AND date_time < ?", from_date.UnixNano(), end_date.UnixNano(),
 	).OrderBy(
 		"date_time DESC",
 	).ToSql()
 	if err != nil {
-		return nil, fmt.Errorf("error building total fee history by date range select SQL: %v, %w", err, rdb.ErrBuildSQLStmt)
+		return nil, fmt.Errorf("error building total transaction fees history by date range select SQL: %v, %w", err, rdb.ErrBuildSQLStmt)
 	}
 
 	rowsResult, err := view.rdbHandle.Query(sql, sqlArgs...)
 	if err != nil {
-		return nil, fmt.Errorf("error executing total fee history by date range select SQL: %v: %w", err, rdb.ErrQuery)
+		return nil, fmt.Errorf("error executing total transaction fees history by date range select SQL: %v: %w", err, rdb.ErrQuery)
 	}
 	defer rowsResult.Close()
 
@@ -372,15 +369,17 @@ func (view *ChainStats) GetTotalFeeHistoryByDateRange(date_range int) ([]TotalFe
 
 		if err = rowsResult.Scan(
 			&unixTime,
-			&totalFeeHistory.TotalFee,
+			&totalFeeHistory.TotalTransactionFees,
 		); err != nil {
 			if errors.Is(err, rdb.ErrNoRows) {
 				return nil, rdb.ErrNoRows
 			}
-			return nil, fmt.Errorf("error scanning total fee history by date range row: %v: %w", err, rdb.ErrQuery)
+			return nil, fmt.Errorf("error scanning total transactions fee history by date range row: %v: %w", err, rdb.ErrQuery)
 		}
 
 		totalFeeHistory.Date = strings.Split(time.Unix(0, unixTime).UTC().String(), " ")[0]
+		totalFeeHistory.Month = strings.Split(totalFeeHistory.Date, "-")[1]
+		totalFeeHistory.Year = strings.Split(totalFeeHistory.Date, "-")[0]
 		totalFeeHistoryList = append(totalFeeHistoryList, totalFeeHistory)
 	}
 
@@ -447,6 +446,26 @@ func (view *ChainStats) GetTotalGasUsed() (int64, error) {
 	return *total, nil
 }
 
+func (view *ChainStats) GetTotalTransactionFees() (int64, error) {
+	sql, _, err := view.rdbHandle.StmtBuilder.Select("SUM(total_fee)").From(
+		"chain_stats",
+	).ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("error building total transactions fee selection sql: %v", err)
+	}
+
+	result := view.rdbHandle.QueryRow(sql)
+	var total *int64
+	if err := result.Scan(&total); err != nil {
+		return 0, fmt.Errorf("error scanning total transactions fee selection query: %v", err)
+	}
+
+	if total == nil {
+		return 0, nil
+	}
+	return *total, nil
+}
+
 type ValidatorStatsRow struct {
 	Metrics string
 	Value   string
@@ -482,6 +501,8 @@ type TotalGasUsedHistory struct {
 }
 
 type TotalFeeHistory struct {
-	Date     string `json:"date"`
-	TotalFee int64  `json:"totalFee"`
+	Date                 string `json:"date"`
+	Month                string `json:"month"`
+	Year                 string `json:"year"`
+	TotalTransactionFees int64  `json:"totalTransactionFees"`
 }

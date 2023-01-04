@@ -104,32 +104,25 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
 	endDate := fromDate.AddDate(1, 0, 0)
 
-	if isDaily {
-		transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(fromDate, endDate)
-		if err != nil {
-			handler.logger.Errorf("error fetching transactions history daily: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
-		}
+	transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(fromDate, endDate)
+	if err != nil {
+		handler.logger.Errorf("error fetching transactions history: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+	length := len(transactionsHistoryList)
 
+	if isDaily {
 		diffDay := int64(math.Ceil(diffTime.Hours() / 24))
 
 		var transactionsHistoryDaily TransactionsHistoryDaily
 		transactionsHistoryDaily.TransactionsHistory = transactionsHistoryList
-		if len(transactionsHistoryList) > 0 {
+		if length > 0 {
 			transactionsHistoryDaily.DailyAverage = float32(transactionsCount / diffDay)
 		}
 
 		httpapi.Success(ctx, transactionsHistoryDaily)
 	} else {
-		transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(fromDate, endDate)
-		if err != nil {
-			handler.logger.Errorf("error fetching transactions history monthly: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
-		}
-
-		length := len(transactionsHistoryList)
 		if length == 0 {
 			httpapi.Success(ctx, transactionsHistoryList)
 			return
@@ -224,34 +217,25 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
 	endDate := fromDate.AddDate(1, 0, 0)
 
+	activeAddressesHistoryList, err := handler.chainStatsView.GetActiveAddressesHistory(fromDate, endDate)
+	if err != nil {
+		handler.logger.Errorf("error fetching active addresses history: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+	length := len(activeAddressesHistoryList)
+
 	if isDaily {
-		activeAddressesHistoryList, err := handler.chainStatsView.GetActiveAddressesHistory(fromDate, endDate)
-
-		if err != nil {
-			handler.logger.Errorf("error fetching active addresses history daily: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
-		}
-
 		diff_day := int64(math.Ceil(diffTime.Hours() / 24))
 
 		var activeAddressesHistoryDaily ActiveAddressesHistoryDaily
 		activeAddressesHistoryDaily.ActiveAddressesHistory = activeAddressesHistoryList
-		if len(activeAddressesHistoryList) > 0 {
+		if length > 0 {
 			activeAddressesHistoryDaily.DailyAverage = float32(totalActiveAddresses / diff_day)
 		}
 
 		httpapi.Success(ctx, activeAddressesHistoryDaily)
 	} else {
-		activeAddressesHistoryList, err := handler.chainStatsView.GetActiveAddressesHistory(fromDate, endDate)
-
-		if err != nil {
-			handler.logger.Errorf("error fetching active addresses history monthly: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
-		}
-
-		length := len(activeAddressesHistoryList)
 		if length == 0 {
 			httpapi.Success(ctx, activeAddressesHistoryList)
 			return
@@ -391,32 +375,25 @@ func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
 	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
 	endDate := fromDate.AddDate(1, 0, 0)
 
-	if isDaily {
-		totalGasUsedList, err := handler.chainStatsView.GetGasUsedHistory(fromDate, endDate)
-		if err != nil {
-			handler.logger.Errorf("error fetching total gas used history daily: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
-		}
+	totalGasUsedList, err := handler.chainStatsView.GetGasUsedHistory(fromDate, endDate)
+	if err != nil {
+		handler.logger.Errorf("error fetching total gas used history: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+	length := len(totalGasUsedList)
 
+	if isDaily {
 		diffDay := int64(math.Ceil(diffTime.Hours() / 24))
 
 		var totalGasUsedHistoryDaily TotalGasUsedHistoryDaily
 		totalGasUsedHistoryDaily.TotalGasUsedHistory = totalGasUsedList
-		if len(totalGasUsedList) > 0 {
+		if length > 0 {
 			totalGasUsedHistoryDaily.DailyAverage = float32(totalGasUsed / diffDay)
 		}
 
 		httpapi.Success(ctx, totalGasUsedHistoryDaily)
 	} else {
-		totalGasUsedList, err := handler.chainStatsView.GetGasUsedHistory(fromDate, endDate)
-		if err != nil {
-			handler.logger.Errorf("error fetching total gas used history monthly: %v", err)
-			httpapi.InternalServerError(ctx)
-			return
-		}
-
-		length := len(totalGasUsedList)
 		if length == 0 {
 			httpapi.Success(ctx, totalGasUsedList)
 			return
@@ -466,19 +443,117 @@ func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
 	}
 }
 
-func (handler *StatsHandler) GetTotalFeeHistoryDaily(ctx *fasthttp.RequestCtx) {
-	// Fetch total fee history of the year
-	first_day_of_year := time.Date(time.Now().Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
-	date_range := int(time.Since(first_day_of_year).Hours() / 24)
-	totalGasUsedHistoryList, err := handler.chainStatsView.GetTotalFeeHistoryByDateRange(date_range)
+func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
+	// handle api's params
+	var err error
+	var year int64
+	year = int64(time.Now().Year())
+	if string(ctx.QueryArgs().Peek("year")) != "" {
+		year, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
+		if err != nil {
+			handler.logger.Error("year param is invalid")
+			httpapi.InternalServerError(ctx)
+			return
+		}
+		if int(year) > time.Now().Year() {
+			handler.logger.Error("year is too far")
+			httpapi.InternalServerError(ctx)
+			return
+		}
+	}
 
+	isDaily := false
+	if string(ctx.QueryArgs().Peek("daily")) == "true" {
+		isDaily = true
+	}
+	//
+
+	totalTransactionFees, err := handler.chainStatsView.GetTotalTransactionFees()
 	if err != nil {
-		handler.logger.Errorf("error fetching gas used history: %v", err)
+		handler.logger.Errorf("error fetching total transaction fees: %v", err)
 		httpapi.InternalServerError(ctx)
 		return
 	}
 
-	httpapi.Success(ctx, totalGasUsedHistoryList)
+	minDate, err := handler.chainStatsView.GetMinDate()
+	if err != nil {
+		handler.logger.Errorf("error fetching min date of chain_stats: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	minDateTime := time.Unix(0, minDate).UTC()
+	diffTime := time.Now().Truncate(time.Hour * 24).Sub(minDateTime)
+
+	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
+	endDate := fromDate.AddDate(1, 0, 0)
+
+	totalFeesHistoryList, err := handler.chainStatsView.GetTotalFeeHistory(fromDate, endDate)
+	if err != nil {
+		handler.logger.Errorf("error fetching total fee history: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+	length := len(totalFeesHistoryList)
+
+	if isDaily {
+		diffDay := int64(math.Ceil(diffTime.Hours() / 24))
+
+		var totalFeesHistoryDaily TotalFeesHistoryDaily
+		totalFeesHistoryDaily.TotalFeesHistory = totalFeesHistoryList
+		if length > 0 {
+			totalFeesHistoryDaily.DailyAverage = float32(totalTransactionFees / diffDay)
+		}
+
+		httpapi.Success(ctx, totalFeesHistoryDaily)
+	} else {
+		if length == 0 {
+			httpapi.Success(ctx, totalFeesHistoryList)
+			return
+		}
+
+		result := make([]chainstats_view.TotalFeeHistory, 0)
+
+		checkYear := totalFeesHistoryList[0].Year
+		checkMonth := totalFeesHistoryList[0].Month
+		var monthlyTotalTransactionFees int64
+
+		for index, totalFeesHistory := range totalFeesHistoryList {
+			// init counting
+			if index == 0 {
+				monthlyTotalTransactionFees = 0
+			}
+			// counting
+			if totalFeesHistory.Month == checkMonth {
+				monthlyTotalTransactionFees += totalFeesHistory.TotalTransactionFees
+			}
+			// add to result then reset counting
+			if (index < length-1 && totalFeesHistory.Month != totalFeesHistoryList[index+1].Month) || index == length-1 {
+				var totalFeesHistoryMonthly chainstats_view.TotalFeeHistory
+				totalFeesHistoryMonthly.Year = checkYear
+				totalFeesHistoryMonthly.Month = checkMonth
+				totalFeesHistoryMonthly.TotalTransactionFees = monthlyTotalTransactionFees
+				result = append(result, totalFeesHistoryMonthly)
+
+				if index == length-1 {
+					break
+				}
+
+				monthlyTotalTransactionFees = 0
+				checkMonth = totalFeesHistoryList[index+1].Month
+			}
+		}
+
+		diffMonth := int64(math.Ceil(diffTime.Hours() / (24 * 30)))
+
+		var totalFeesHistoryMonthly TotalFeesHistoryMonthly
+		totalFeesHistoryMonthly.TotalFeesHistory = result
+		if len(result) > 0 {
+			totalFeesHistoryMonthly.MonthlyAverage = float32(totalTransactionFees / diffMonth)
+		}
+
+		httpapi.Success(ctx, totalFeesHistoryMonthly)
+	}
 }
 
 func (handler *StatsHandler) GetCommonStats(ctx *fasthttp.RequestCtx) {
@@ -568,4 +643,14 @@ type TotalGasUsedHistoryDaily struct {
 type TotalGasUsedHistoryMonthly struct {
 	TotalGasUsedHistory []chainstats_view.TotalGasUsedHistory `json:"totalGasUsedHistory"`
 	MonthlyAverage      float32                               `json:"monthlyAverage"`
+}
+
+type TotalFeesHistoryDaily struct {
+	TotalFeesHistory []chainstats_view.TotalFeeHistory `json:"totalFeesHistory"`
+	DailyAverage     float32                           `json:"dailyAverage"`
+}
+
+type TotalFeesHistoryMonthly struct {
+	TotalFeesHistory []chainstats_view.TotalFeeHistory `json:"totalFeesHistory"`
+	MonthlyAverage   float32                           `json:"monthlyAverage"`
 }
