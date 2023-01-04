@@ -7,15 +7,18 @@ import (
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	"github.com/AstraProtocol/astra-indexing/external/cache"
 )
 
 type ChainStats struct {
-	rdbHandle *rdb.Handle
+	rdbHandle  *rdb.Handle
+	astraCache *cache.AstraCache
 }
 
 func NewChainStats(rdbHandle *rdb.Handle) *ChainStats {
 	return &ChainStats{
 		rdbHandle,
+		cache.NewCache("chain_stats"),
 	}
 }
 
@@ -108,6 +111,14 @@ func (view *ChainStats) FindBy(metrics string) (string, error) {
 }
 
 func (view *ChainStats) GetTransactionsHistoryForChart(date_range int) ([]TransactionHistory, error) {
+	cacheKey := "GetTransactionsHistoryForChart"
+	tmpTransactionHistoryList := []TransactionHistory{}
+
+	err := view.astraCache.Get(cacheKey, &tmpTransactionHistoryList)
+	if err == nil {
+		return tmpTransactionHistoryList, nil
+	}
+
 	latest := time.Now().Truncate(24 * time.Hour)
 	earliest := latest.Add(-time.Duration(date_range) * 24 * time.Hour)
 
@@ -150,10 +161,20 @@ func (view *ChainStats) GetTransactionsHistoryForChart(date_range int) ([]Transa
 		transactionHistoryList = append(transactionHistoryList, transactionHistory)
 	}
 
+	view.astraCache.Set(cacheKey, transactionHistoryList, 30*time.Minute)
+
 	return transactionHistoryList, nil
 }
 
 func (view *ChainStats) GetTransactionsHistory(from_date time.Time, end_date time.Time) ([]TransactionHistory, error) {
+	cacheKey := fmt.Sprintf("GetTransactionsHistory_%d_%d", from_date.UnixNano(), end_date.UnixNano())
+	tmpTransactionHistoryList := []TransactionHistory{}
+
+	err := view.astraCache.Get(cacheKey, &tmpTransactionHistoryList)
+	if err == nil {
+		return tmpTransactionHistoryList, nil
+	}
+
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"date_time",
 		"number_of_transactions",
@@ -195,10 +216,20 @@ func (view *ChainStats) GetTransactionsHistory(from_date time.Time, end_date tim
 		transactionHistoryList = append(transactionHistoryList, transactionHistory)
 	}
 
+	view.astraCache.Set(cacheKey, transactionHistoryList, 30*time.Minute)
+
 	return transactionHistoryList, nil
 }
 
 func (view *ChainStats) GetActiveAddressesHistory(from_date time.Time, end_date time.Time) ([]ActiveAddressHistory, error) {
+	cacheKey := fmt.Sprintf("GetActiveAddressesHistory_%d_%d", from_date.UnixNano(), end_date.UnixNano())
+	tmpActiveAddressHistoryList := []ActiveAddressHistory{}
+
+	err := view.astraCache.Get(cacheKey, &tmpActiveAddressHistoryList)
+	if err == nil {
+		return tmpActiveAddressHistoryList, nil
+	}
+
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"date_time",
 		"active_addresses",
@@ -240,10 +271,20 @@ func (view *ChainStats) GetActiveAddressesHistory(from_date time.Time, end_date 
 		activeAddressHistoryList = append(activeAddressHistoryList, activeAddressHistory)
 	}
 
+	view.astraCache.Set(cacheKey, activeAddressHistoryList, 30*time.Minute)
+
 	return activeAddressHistoryList, nil
 }
 
 func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date time.Time) ([]TotalAddressGrowth, error) {
+	cacheKey := fmt.Sprintf("GetTotalAddressesGrowth_%d_%d", from_date.UnixNano(), end_date.UnixNano())
+	tmpTotalAddressGrowthList := []TotalAddressGrowth{}
+
+	err := view.astraCache.Get(cacheKey, &tmpTotalAddressGrowthList)
+	if err == nil {
+		return tmpTotalAddressGrowthList, nil
+	}
+
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"date_time",
 		"total_addresses",
@@ -293,10 +334,20 @@ func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date ti
 		}
 	}
 
+	view.astraCache.Set(cacheKey, totalAddressGrowthList, 30*time.Minute)
+
 	return totalAddressGrowthList, nil
 }
 
 func (view *ChainStats) GetGasUsedHistory(from_date time.Time, end_date time.Time) ([]TotalGasUsedHistory, error) {
+	cacheKey := fmt.Sprintf("GetGasUsedHistory_%d_%d", from_date.UnixNano(), end_date.UnixNano())
+	tmpTotalGasUsedHistoryList := []TotalGasUsedHistory{}
+
+	err := view.astraCache.Get(cacheKey, &tmpTotalGasUsedHistoryList)
+	if err == nil {
+		return tmpTotalGasUsedHistoryList, nil
+	}
+
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"date_time",
 		"total_gas_used",
@@ -338,10 +389,20 @@ func (view *ChainStats) GetGasUsedHistory(from_date time.Time, end_date time.Tim
 		totalGasUsedHistoryList = append(totalGasUsedHistoryList, totalGasUsedHistory)
 	}
 
+	view.astraCache.Set(cacheKey, totalGasUsedHistoryList, 30*time.Minute)
+
 	return totalGasUsedHistoryList, nil
 }
 
 func (view *ChainStats) GetTotalFeeHistory(from_date time.Time, end_date time.Time) ([]TotalFeeHistory, error) {
+	cacheKey := fmt.Sprintf("GetTotalFeeHistory_%d_%d", from_date.UnixNano(), end_date.UnixNano())
+	tmpTotalFeeHistoryList := []TotalFeeHistory{}
+
+	err := view.astraCache.Get(cacheKey, &tmpTotalFeeHistoryList)
+	if err == nil {
+		return tmpTotalFeeHistoryList, nil
+	}
+
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"date_time",
 		"total_fee",
@@ -383,10 +444,20 @@ func (view *ChainStats) GetTotalFeeHistory(from_date time.Time, end_date time.Ti
 		totalFeeHistoryList = append(totalFeeHistoryList, totalFeeHistory)
 	}
 
+	view.astraCache.Set(cacheKey, totalFeeHistoryList, 30*time.Minute)
+
 	return totalFeeHistoryList, nil
 }
 
 func (view *ChainStats) GetMinDate() (int64, error) {
+	cacheKey := "GetMinDate"
+	var tmpMinDate int64
+
+	err := view.astraCache.Get(cacheKey, &tmpMinDate)
+	if err == nil {
+		return tmpMinDate, nil
+	}
+
 	sql, _, err := view.rdbHandle.StmtBuilder.Select("MIN(date_time)").From(
 		"chain_stats",
 	).ToSql()
@@ -395,18 +466,29 @@ func (view *ChainStats) GetMinDate() (int64, error) {
 	}
 
 	result := view.rdbHandle.QueryRow(sql)
-	var min_date *int64
-	if err := result.Scan(&min_date); err != nil {
+	var minDate *int64
+	if err := result.Scan(&minDate); err != nil {
 		return 0, fmt.Errorf("error scanning min date selection query: %v", err)
 	}
 
-	if min_date == nil {
+	if minDate == nil {
 		return 0, nil
 	}
-	return *min_date, nil
+
+	view.astraCache.Set(cacheKey, *minDate, 24*365*time.Hour)
+
+	return *minDate, nil
 }
 
 func (view *ChainStats) GetTotalActiveAddresses() (int64, error) {
+	cacheKey := "GetTotalActiveAddresses"
+	var tmpTotalActiveAddresses int64
+
+	err := view.astraCache.Get(cacheKey, &tmpTotalActiveAddresses)
+	if err == nil {
+		return tmpTotalActiveAddresses, nil
+	}
+
 	sql, _, err := view.rdbHandle.StmtBuilder.Select("SUM(active_addresses)").From(
 		"chain_stats",
 	).ToSql()
@@ -423,10 +505,21 @@ func (view *ChainStats) GetTotalActiveAddresses() (int64, error) {
 	if total == nil {
 		return 0, nil
 	}
+
+	view.astraCache.Set(cacheKey, *total, 30*time.Minute)
+
 	return *total, nil
 }
 
 func (view *ChainStats) GetTotalGasUsed() (int64, error) {
+	cacheKey := "GetTotalGasUsed"
+	var tmpTotalGasUsed int64
+
+	err := view.astraCache.Get(cacheKey, &tmpTotalGasUsed)
+	if err == nil {
+		return tmpTotalGasUsed, nil
+	}
+
 	sql, _, err := view.rdbHandle.StmtBuilder.Select("SUM(total_gas_used)").From(
 		"chain_stats",
 	).ToSql()
@@ -443,10 +536,21 @@ func (view *ChainStats) GetTotalGasUsed() (int64, error) {
 	if total == nil {
 		return 0, nil
 	}
+
+	view.astraCache.Set(cacheKey, *total, 30*time.Minute)
+
 	return *total, nil
 }
 
 func (view *ChainStats) GetTotalTransactionFees() (int64, error) {
+	cacheKey := "GetTotalTransactionFees"
+	var tmpTotalTransactionFees int64
+
+	err := view.astraCache.Get(cacheKey, &tmpTotalTransactionFees)
+	if err == nil {
+		return tmpTotalTransactionFees, nil
+	}
+
 	sql, _, err := view.rdbHandle.StmtBuilder.Select("SUM(total_fee)").From(
 		"chain_stats",
 	).ToSql()
@@ -463,6 +567,9 @@ func (view *ChainStats) GetTotalTransactionFees() (int64, error) {
 	if total == nil {
 		return 0, nil
 	}
+
+	view.astraCache.Set(cacheKey, *total, 30*time.Minute)
+
 	return *total, nil
 }
 
