@@ -506,7 +506,7 @@ func (view *ChainStats) GetTotalActiveAddresses() (int64, error) {
 		return 0, nil
 	}
 
-	view.astraCache.Set(cacheKey, *total, 30*time.Minute)
+	view.astraCache.Set(cacheKey, *total, 30*60*1000*time.Millisecond)
 
 	return *total, nil
 }
@@ -537,7 +537,7 @@ func (view *ChainStats) GetTotalGasUsed() (int64, error) {
 		return 0, nil
 	}
 
-	view.astraCache.Set(cacheKey, *total, 30*time.Minute)
+	view.astraCache.Set(cacheKey, *total, 30*60*1000*time.Millisecond)
 
 	return *total, nil
 }
@@ -568,7 +568,7 @@ func (view *ChainStats) GetTotalTransactionFees() (int64, error) {
 		return 0, nil
 	}
 
-	view.astraCache.Set(cacheKey, *total, 30*time.Minute)
+	view.astraCache.Set(cacheKey, *total, 30*60*1000*time.Millisecond)
 
 	return *total, nil
 }
