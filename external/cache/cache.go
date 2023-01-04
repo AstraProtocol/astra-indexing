@@ -3,10 +3,11 @@ package cache
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
-	"github.com/jellydator/ttlcache/v3"
 	"strconv"
 	"time"
+
+	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
+	"github.com/jellydator/ttlcache/v3"
 )
 
 type AstraCache struct {

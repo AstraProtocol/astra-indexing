@@ -161,7 +161,7 @@ func (view *ChainStats) GetTransactionsHistoryForChart(date_range int) ([]Transa
 		transactionHistoryList = append(transactionHistoryList, transactionHistory)
 	}
 
-	view.astraCache.Set(cacheKey, transactionHistoryList, 30*time.Minute)
+	view.astraCache.Set(cacheKey, transactionHistoryList, 30*60*1000*time.Millisecond)
 
 	return transactionHistoryList, nil
 }
@@ -216,7 +216,7 @@ func (view *ChainStats) GetTransactionsHistory(from_date time.Time, end_date tim
 		transactionHistoryList = append(transactionHistoryList, transactionHistory)
 	}
 
-	view.astraCache.Set(cacheKey, transactionHistoryList, 30*time.Minute)
+	view.astraCache.Set(cacheKey, transactionHistoryList, 30*60*1000*time.Millisecond)
 
 	return transactionHistoryList, nil
 }
@@ -271,7 +271,7 @@ func (view *ChainStats) GetActiveAddressesHistory(from_date time.Time, end_date 
 		activeAddressHistoryList = append(activeAddressHistoryList, activeAddressHistory)
 	}
 
-	view.astraCache.Set(cacheKey, activeAddressHistoryList, 30*time.Minute)
+	view.astraCache.Set(cacheKey, activeAddressHistoryList, 30*60*1000*time.Millisecond)
 
 	return activeAddressHistoryList, nil
 }
@@ -334,7 +334,7 @@ func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date ti
 		}
 	}
 
-	view.astraCache.Set(cacheKey, totalAddressGrowthList, 30*time.Minute)
+	view.astraCache.Set(cacheKey, totalAddressGrowthList, 30*60*1000*time.Millisecond)
 
 	return totalAddressGrowthList, nil
 }
@@ -389,7 +389,7 @@ func (view *ChainStats) GetGasUsedHistory(from_date time.Time, end_date time.Tim
 		totalGasUsedHistoryList = append(totalGasUsedHistoryList, totalGasUsedHistory)
 	}
 
-	view.astraCache.Set(cacheKey, totalGasUsedHistoryList, 30*time.Minute)
+	view.astraCache.Set(cacheKey, totalGasUsedHistoryList, 30*60*1000*time.Millisecond)
 
 	return totalGasUsedHistoryList, nil
 }
@@ -444,7 +444,7 @@ func (view *ChainStats) GetTotalFeeHistory(from_date time.Time, end_date time.Ti
 		totalFeeHistoryList = append(totalFeeHistoryList, totalFeeHistory)
 	}
 
-	view.astraCache.Set(cacheKey, totalFeeHistoryList, 30*time.Minute)
+	view.astraCache.Set(cacheKey, totalFeeHistoryList, 30*60*1000*time.Millisecond)
 
 	return totalFeeHistoryList, nil
 }
@@ -475,7 +475,7 @@ func (view *ChainStats) GetMinDate() (int64, error) {
 		return 0, nil
 	}
 
-	view.astraCache.Set(cacheKey, *minDate, 24*365*time.Hour)
+	view.astraCache.Set(cacheKey, *minDate, 365*24*time.Hour)
 
 	return *minDate, nil
 }
