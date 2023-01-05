@@ -128,7 +128,7 @@ func (impl *RDbChainStatsStore) UpdateCountedTransactionsWithRDbHandle(currentDa
 		return errors.New("error executing transaction stats update SQL: no rows updated")
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "cronjob", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())
 
 	return nil
 }
@@ -166,7 +166,7 @@ func (impl *RDbChainStatsStore) UpdateTotalGasUsedWithRDbHandle(currentDate int6
 		return errors.New("error executing gas used stats update SQL: no rows updated")
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "cronjob", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())
 
 	return nil
 }
@@ -204,7 +204,7 @@ func (impl *RDbChainStatsStore) UpdateTotalFeeWithRDbHandle(currentDate int64) e
 		return errors.New("error executing fee stats update SQL: no rows updated")
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "cronjob", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())
 
 	return nil
 }
@@ -240,7 +240,7 @@ func (impl *RDbChainStatsStore) UpdateTotalAddressesWithRDbHandle(currentDate in
 		return errors.New("error executing total addresses stats update SQL: no rows updated")
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "cronjob", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())
 
 	return nil
 }
@@ -263,7 +263,7 @@ func (impl *RDbChainStatsStore) UpdateActiveAddressesWithRDbHandle(currentDate i
 		return errors.New("error executing active addresses stats update SQL: no rows updated")
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "cronjob", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())
 
 	return nil
 }

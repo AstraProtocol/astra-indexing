@@ -165,7 +165,7 @@ func (view *ChainStats) GetTransactionsHistoryForChart(date_range int) ([]Transa
 		transactionHistoryList = append(transactionHistoryList, transactionHistory)
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
 	view.astraCache.Set(cacheKey, transactionHistoryList, 5*60*1000*time.Millisecond)
 
@@ -225,7 +225,7 @@ func (view *ChainStats) GetTransactionsHistory(from_date time.Time, end_date tim
 		transactionHistoryList = append(transactionHistoryList, transactionHistory)
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
 	view.astraCache.Set(cacheKey, transactionHistoryList, 10*60*1000*time.Millisecond)
 
@@ -285,7 +285,7 @@ func (view *ChainStats) GetActiveAddressesHistory(from_date time.Time, end_date 
 		activeAddressHistoryList = append(activeAddressHistoryList, activeAddressHistory)
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
 	view.astraCache.Set(cacheKey, activeAddressHistoryList, 10*60*1000*time.Millisecond)
 
@@ -353,7 +353,7 @@ func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date ti
 		}
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
 	view.astraCache.Set(cacheKey, totalAddressGrowthList, 10*60*1000*time.Millisecond)
 
@@ -413,7 +413,7 @@ func (view *ChainStats) GetGasUsedHistory(from_date time.Time, end_date time.Tim
 		totalGasUsedHistoryList = append(totalGasUsedHistoryList, totalGasUsedHistory)
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
 	view.astraCache.Set(cacheKey, totalGasUsedHistoryList, 10*60*1000*time.Millisecond)
 
@@ -473,7 +473,7 @@ func (view *ChainStats) GetTotalFeeHistory(from_date time.Time, end_date time.Ti
 		totalFeeHistoryList = append(totalFeeHistoryList, totalFeeHistory)
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
 	view.astraCache.Set(cacheKey, totalFeeHistoryList, 10*60*1000*time.Millisecond)
 
@@ -509,7 +509,7 @@ func (view *ChainStats) GetMinDate() (int64, error) {
 		return 0, nil
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
 	view.astraCache.Set(cacheKey, *minDate, 365*24*time.Hour)
 
@@ -545,7 +545,7 @@ func (view *ChainStats) GetTotalActiveAddresses() (int64, error) {
 		return 0, nil
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
 	view.astraCache.Set(cacheKey, *total, 10*60*1000*time.Millisecond)
 
@@ -581,7 +581,7 @@ func (view *ChainStats) GetTotalGasUsed() (int64, error) {
 		return 0, nil
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
 	view.astraCache.Set(cacheKey, *total, 10*60*1000*time.Millisecond)
 
@@ -617,7 +617,7 @@ func (view *ChainStats) GetTotalTransactionFees() (int64, error) {
 		return 0, nil
 	}
 
-	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
 	view.astraCache.Set(cacheKey, *total, 10*60*1000*time.Millisecond)
 
