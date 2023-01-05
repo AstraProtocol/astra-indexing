@@ -128,7 +128,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 		// @every 0h0m5s
 		s.AddFunc("59 59 0-23 * * *", func() {
 			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-			i := 1
+			i := 0
 			var err error
 			for i < retry {
 				err = rdbTransactionStatsStore.UpdateCountedTransactionsWithRDbHandle(currentDate)
@@ -143,7 +143,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 
 		s.AddFunc("59 59 0-23 * * *", func() {
 			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-			i := 1
+			i := 0
 			var err error
 			time.Sleep(2 * time.Second)
 			for i < retry {
@@ -159,7 +159,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 
 		s.AddFunc("59 59 0-23 * * *", func() {
 			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-			i := 1
+			i := 0
 			var err error
 			time.Sleep(4 * time.Second)
 			for i < retry {
@@ -175,7 +175,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 
 		s.AddFunc("59 59 0-23 * * *", func() {
 			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-			i := 1
+			i := 0
 			var err error
 			time.Sleep(6 * time.Second)
 			for i < retry {
@@ -191,7 +191,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 
 		s.AddFunc("59 59 0-23 * * *", func() {
 			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-			i := 1
+			i := 0
 			var err error
 			time.Sleep(8 * time.Second)
 			for i < retry {
