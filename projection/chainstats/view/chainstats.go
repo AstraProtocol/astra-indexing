@@ -8,6 +8,7 @@ import (
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/external/cache"
+	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 )
 
 type ChainStats struct {
@@ -119,6 +120,9 @@ func (view *ChainStats) GetTransactionsHistoryForChart(date_range int) ([]Transa
 		return tmpTransactionHistoryList, nil
 	}
 
+	startTime := time.Now()
+	recordMethod := "GetTransactionsHistoryForChart"
+
 	latest := time.Now().Truncate(24 * time.Hour)
 	earliest := latest.Add(-time.Duration(date_range) * 24 * time.Hour)
 
@@ -161,6 +165,8 @@ func (view *ChainStats) GetTransactionsHistoryForChart(date_range int) ([]Transa
 		transactionHistoryList = append(transactionHistoryList, transactionHistory)
 	}
 
+	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+
 	view.astraCache.Set(cacheKey, transactionHistoryList, 5*60*1000*time.Millisecond)
 
 	return transactionHistoryList, nil
@@ -174,6 +180,9 @@ func (view *ChainStats) GetTransactionsHistory(from_date time.Time, end_date tim
 	if err == nil {
 		return tmpTransactionHistoryList, nil
 	}
+
+	startTime := time.Now()
+	recordMethod := "GetTransactionsHistory"
 
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"date_time",
@@ -216,6 +225,8 @@ func (view *ChainStats) GetTransactionsHistory(from_date time.Time, end_date tim
 		transactionHistoryList = append(transactionHistoryList, transactionHistory)
 	}
 
+	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+
 	view.astraCache.Set(cacheKey, transactionHistoryList, 10*60*1000*time.Millisecond)
 
 	return transactionHistoryList, nil
@@ -229,6 +240,9 @@ func (view *ChainStats) GetActiveAddressesHistory(from_date time.Time, end_date 
 	if err == nil {
 		return tmpActiveAddressHistoryList, nil
 	}
+
+	startTime := time.Now()
+	recordMethod := "GetActiveAddressesHistory"
 
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"date_time",
@@ -271,6 +285,8 @@ func (view *ChainStats) GetActiveAddressesHistory(from_date time.Time, end_date 
 		activeAddressHistoryList = append(activeAddressHistoryList, activeAddressHistory)
 	}
 
+	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+
 	view.astraCache.Set(cacheKey, activeAddressHistoryList, 10*60*1000*time.Millisecond)
 
 	return activeAddressHistoryList, nil
@@ -284,6 +300,9 @@ func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date ti
 	if err == nil {
 		return tmpTotalAddressGrowthList, nil
 	}
+
+	startTime := time.Now()
+	recordMethod := "GetTotalAddressesGrowth"
 
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"date_time",
@@ -334,6 +353,8 @@ func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date ti
 		}
 	}
 
+	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+
 	view.astraCache.Set(cacheKey, totalAddressGrowthList, 10*60*1000*time.Millisecond)
 
 	return totalAddressGrowthList, nil
@@ -347,6 +368,9 @@ func (view *ChainStats) GetGasUsedHistory(from_date time.Time, end_date time.Tim
 	if err == nil {
 		return tmpTotalGasUsedHistoryList, nil
 	}
+
+	startTime := time.Now()
+	recordMethod := "GetGasUsedHistory"
 
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"date_time",
@@ -389,6 +413,8 @@ func (view *ChainStats) GetGasUsedHistory(from_date time.Time, end_date time.Tim
 		totalGasUsedHistoryList = append(totalGasUsedHistoryList, totalGasUsedHistory)
 	}
 
+	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+
 	view.astraCache.Set(cacheKey, totalGasUsedHistoryList, 10*60*1000*time.Millisecond)
 
 	return totalGasUsedHistoryList, nil
@@ -402,6 +428,9 @@ func (view *ChainStats) GetTotalFeeHistory(from_date time.Time, end_date time.Ti
 	if err == nil {
 		return tmpTotalFeeHistoryList, nil
 	}
+
+	startTime := time.Now()
+	recordMethod := "GetTotalFeeHistory"
 
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"date_time",
@@ -444,6 +473,8 @@ func (view *ChainStats) GetTotalFeeHistory(from_date time.Time, end_date time.Ti
 		totalFeeHistoryList = append(totalFeeHistoryList, totalFeeHistory)
 	}
 
+	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+
 	view.astraCache.Set(cacheKey, totalFeeHistoryList, 10*60*1000*time.Millisecond)
 
 	return totalFeeHistoryList, nil
@@ -457,6 +488,9 @@ func (view *ChainStats) GetMinDate() (int64, error) {
 	if err == nil {
 		return tmpMinDate, nil
 	}
+
+	startTime := time.Now()
+	recordMethod := "GetMinDate"
 
 	sql, _, err := view.rdbHandle.StmtBuilder.Select("MIN(date_time)").From(
 		"chain_stats",
@@ -475,6 +509,8 @@ func (view *ChainStats) GetMinDate() (int64, error) {
 		return 0, nil
 	}
 
+	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+
 	view.astraCache.Set(cacheKey, *minDate, 365*24*time.Hour)
 
 	return *minDate, nil
@@ -488,6 +524,9 @@ func (view *ChainStats) GetTotalActiveAddresses() (int64, error) {
 	if err == nil {
 		return tmpTotalActiveAddresses, nil
 	}
+
+	startTime := time.Now()
+	recordMethod := "GetTotalActiveAddresses"
 
 	sql, _, err := view.rdbHandle.StmtBuilder.Select("SUM(active_addresses)").From(
 		"chain_stats",
@@ -506,6 +545,8 @@ func (view *ChainStats) GetTotalActiveAddresses() (int64, error) {
 		return 0, nil
 	}
 
+	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+
 	view.astraCache.Set(cacheKey, *total, 10*60*1000*time.Millisecond)
 
 	return *total, nil
@@ -519,6 +560,9 @@ func (view *ChainStats) GetTotalGasUsed() (int64, error) {
 	if err == nil {
 		return tmpTotalGasUsed, nil
 	}
+
+	startTime := time.Now()
+	recordMethod := "GetTotalGasUsed"
 
 	sql, _, err := view.rdbHandle.StmtBuilder.Select("SUM(total_gas_used)").From(
 		"chain_stats",
@@ -537,6 +581,8 @@ func (view *ChainStats) GetTotalGasUsed() (int64, error) {
 		return 0, nil
 	}
 
+	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
+
 	view.astraCache.Set(cacheKey, *total, 10*60*1000*time.Millisecond)
 
 	return *total, nil
@@ -550,6 +596,9 @@ func (view *ChainStats) GetTotalTransactionFees() (int64, error) {
 	if err == nil {
 		return tmpTotalTransactionFees, nil
 	}
+
+	startTime := time.Now()
+	recordMethod := "GetTotalTransactionFees"
 
 	sql, _, err := view.rdbHandle.StmtBuilder.Select("SUM(total_fee)").From(
 		"chain_stats",
@@ -567,6 +616,8 @@ func (view *ChainStats) GetTotalTransactionFees() (int64, error) {
 	if total == nil {
 		return 0, nil
 	}
+
+	prometheus.RecordQueryExecTime(recordMethod, "chainstats", time.Since(startTime).Milliseconds())
 
 	view.astraCache.Set(cacheKey, *total, 10*60*1000*time.Millisecond)
 

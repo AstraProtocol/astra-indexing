@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 )
 
 const DEFAULT_TABLE = "chain_stats"
@@ -95,6 +96,9 @@ func (impl *RDbChainStatsStore) initRow() error {
 }
 
 func (impl *RDbChainStatsStore) UpdateCountedTransactionsWithRDbHandle(currentDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateCountedTransactionsWithRDbHandle"
+
 	if err := impl.init(); err != nil {
 		return fmt.Errorf("error initializing chain stats store: %v", err)
 	}
@@ -124,10 +128,15 @@ func (impl *RDbChainStatsStore) UpdateCountedTransactionsWithRDbHandle(currentDa
 		return errors.New("error executing transaction stats update SQL: no rows updated")
 	}
 
+	prometheus.RecordQueryExecTime(recordMethod, "cronjob", time.Since(startTime).Milliseconds())
+
 	return nil
 }
 
 func (impl *RDbChainStatsStore) UpdateTotalGasUsedWithRDbHandle(currentDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateTotalGasUsedWithRDbHandle"
+
 	if err := impl.init(); err != nil {
 		return fmt.Errorf("error initializing chain stats store: %v", err)
 	}
@@ -157,10 +166,15 @@ func (impl *RDbChainStatsStore) UpdateTotalGasUsedWithRDbHandle(currentDate int6
 		return errors.New("error executing gas used stats update SQL: no rows updated")
 	}
 
+	prometheus.RecordQueryExecTime(recordMethod, "cronjob", time.Since(startTime).Milliseconds())
+
 	return nil
 }
 
 func (impl *RDbChainStatsStore) UpdateTotalFeeWithRDbHandle(currentDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateTotalFeeWithRDbHandle"
+
 	if err := impl.init(); err != nil {
 		return fmt.Errorf("error initializing chain stats store: %v", err)
 	}
@@ -190,10 +204,15 @@ func (impl *RDbChainStatsStore) UpdateTotalFeeWithRDbHandle(currentDate int64) e
 		return errors.New("error executing fee stats update SQL: no rows updated")
 	}
 
+	prometheus.RecordQueryExecTime(recordMethod, "cronjob", time.Since(startTime).Milliseconds())
+
 	return nil
 }
 
 func (impl *RDbChainStatsStore) UpdateTotalAddressesWithRDbHandle(currentDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateTotalAddressesWithRDbHandle"
+
 	if err := impl.init(); err != nil {
 		return fmt.Errorf("error initializing chain stats store: %v", err)
 	}
@@ -221,10 +240,15 @@ func (impl *RDbChainStatsStore) UpdateTotalAddressesWithRDbHandle(currentDate in
 		return errors.New("error executing total addresses stats update SQL: no rows updated")
 	}
 
+	prometheus.RecordQueryExecTime(recordMethod, "cronjob", time.Since(startTime).Milliseconds())
+
 	return nil
 }
 
 func (impl *RDbChainStatsStore) UpdateActiveAddressesWithRDbHandle(currentDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateActiveAddressesWithRDbHandle"
+
 	if err := impl.init(); err != nil {
 		return fmt.Errorf("error initializing chain stats store: %v", err)
 	}
@@ -238,6 +262,8 @@ func (impl *RDbChainStatsStore) UpdateActiveAddressesWithRDbHandle(currentDate i
 	if execResult.RowsAffected() == 0 {
 		return errors.New("error executing active addresses stats update SQL: no rows updated")
 	}
+
+	prometheus.RecordQueryExecTime(recordMethod, "cronjob", time.Since(startTime).Milliseconds())
 
 	return nil
 }

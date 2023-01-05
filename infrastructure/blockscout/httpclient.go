@@ -10,10 +10,13 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/AstraProtocol/astra-indexing/external/cache"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	"github.com/hashicorp/go-retryablehttp"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -125,43 +128,59 @@ func NewHTTPClient(logger applogger.Logger, url string) *HTTPClient {
 }
 
 func (client *HTTPClient) GetDetailEvmTxByCosmosTxHash(txHash string) (*TransactionEvm, error) {
+	startTime := time.Now()
+	recordMethod := "GetDetailEvmTxByCosmosTxHash"
+
 	rawRespBody, err := client.request(
 		client.getUrl(GET_DETAIL_EVM_TX_BY_COSMOS_TX_HASH, txHash), "",
 	)
 	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "blockscout", time.Since(startTime).Milliseconds())
 		return nil, err
 	}
 	defer rawRespBody.Close()
 
 	var txResp TxResp
 	if err := jsoniter.NewDecoder(rawRespBody).Decode(&txResp); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "blockscout", time.Since(startTime).Milliseconds())
 		return nil, err
 	}
 
 	if txResp.Status == "0" {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(0), "blockscout", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(1), "blockscout", time.Since(startTime).Milliseconds())
 
 	return &txResp.Result, nil
 }
 
 func (client *HTTPClient) GetDetailEvmTxByEvmTxHash(evmTxHash string) (*TransactionEvm, error) {
+	startTime := time.Now()
+	recordMethod := "GetDetailEvmTxByEvmTxHash"
+
 	rawRespBody, err := client.request(
 		client.getUrl(GET_DETAIL_EVM_TX_BY_EVM_TX_HASH, evmTxHash), "",
 	)
 	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "blockscout", time.Since(startTime).Milliseconds())
 		return nil, err
 	}
 	defer rawRespBody.Close()
 
 	var txResp TxResp
 	if err := jsoniter.NewDecoder(rawRespBody).Decode(&txResp); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "blockscout", time.Since(startTime).Milliseconds())
 		return nil, err
 	}
 
 	if txResp.Status == "0" {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(0), "blockscout", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(1), "blockscout", time.Since(startTime).Milliseconds())
 
 	return &txResp.Result, nil
 }
@@ -245,10 +264,14 @@ func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string,
 }
 
 func (client *HTTPClient) GetSearchResults(keyword string) []SearchResult {
+	startTime := time.Now()
+	recordMethod := "GetSearchResults"
+
 	rawRespBody, err := client.request(
 		client.getUrl(GET_SEARCH_RESULTS, keyword), "",
 	)
 	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "blockscout", time.Since(startTime).Milliseconds())
 		client.logger.Errorf("error getting search results from blockscout: %v", err)
 		return []SearchResult{}
 	}
@@ -259,9 +282,12 @@ func (client *HTTPClient) GetSearchResults(keyword string) []SearchResult {
 
 	var seachResults []SearchResult
 	if err := json.Unmarshal(respBody.Bytes(), &seachResults); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "blockscout", time.Since(startTime).Milliseconds())
 		client.logger.Errorf("error parsing search results from blockscout: %v", err)
 		return []SearchResult{}
 	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(1), "blockscout", time.Since(startTime).Milliseconds())
 
 	return seachResults
 }
