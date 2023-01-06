@@ -354,31 +354,6 @@ func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date ti
 	return totalAddressGrowthList, nil
 }
 
-func (view *ChainStats) getTotalAddressesByDate(date int64) (int64, error) {
-	sql, _, err := view.rdbHandle.StmtBuilder.Select(
-		"total_addresses",
-	).From(
-		"chain_stats",
-	).Where(
-		"date_time = ?",
-	).ToSql()
-	if err != nil {
-		return 0, fmt.Errorf("error building total addresses by date select SQL: %v, %w", err, rdb.ErrBuildSQLStmt)
-	}
-
-	result := view.rdbHandle.QueryRow(sql, date)
-	var totalAddresses *int64
-	if err := result.Scan(&totalAddresses); err != nil {
-		return 0, fmt.Errorf("error scanning total addresses by date selection query: %v", err)
-	}
-
-	if totalAddresses == nil {
-		return 0, nil
-	}
-
-	return *totalAddresses, nil
-}
-
 func (view *ChainStats) GetGasUsedHistory(from_date time.Time, end_date time.Time) ([]TotalGasUsedHistory, error) {
 	cacheKey := fmt.Sprintf("GetGasUsedHistory_%d_%d", from_date.UnixNano(), end_date.UnixNano())
 	tmpTotalGasUsedHistoryList := []TotalGasUsedHistory{}
