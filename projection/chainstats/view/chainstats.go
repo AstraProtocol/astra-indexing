@@ -306,6 +306,7 @@ func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date ti
 
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"date_time",
+		"active_addresses",
 		"total_addresses",
 	).From(
 		"chain_stats",
@@ -331,29 +332,19 @@ func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date ti
 
 		if err = rowsResult.Scan(
 			&unixTime,
-			&totalAddressGrowth.NumberOfAddresses,
+			&totalAddressGrowth.Active,
+			&totalAddressGrowth.Total,
 		); err != nil {
 			if errors.Is(err, rdb.ErrNoRows) {
 				return nil, rdb.ErrNoRows
 			}
 			return nil, fmt.Errorf("error scanning total addresses growth by date range row: %v: %w", err, rdb.ErrQuery)
 		}
+		totalAddressGrowth.NotActive = totalAddressGrowth.Total - totalAddressGrowth.Active
 		totalAddressGrowth.Date = strings.Split(time.Unix(0, unixTime).UTC().String(), " ")[0]
 		totalAddressGrowth.Month = strings.Split(totalAddressGrowth.Date, "-")[1]
 		totalAddressGrowth.Year = strings.Split(totalAddressGrowth.Date, "-")[0]
-		totalAddressGrowth.TimeStamp = unixTime
 		totalAddressGrowthList = append(totalAddressGrowthList, totalAddressGrowth)
-	}
-
-	length := len(totalAddressGrowthList)
-	for index := range totalAddressGrowthList {
-		if index < length-1 {
-			totalAddressGrowthList[index].Growth = totalAddressGrowthList[index].NumberOfAddresses - totalAddressGrowthList[index+1].NumberOfAddresses
-		} else {
-			timeStamp := totalAddressGrowthList[index].TimeStamp
-			totalAddressesByPrevDate, _ := view.getTotalAddressesByDate(time.Unix(0, timeStamp).UTC().AddDate(0, 0, -1).UnixNano())
-			totalAddressGrowthList[index].Growth = totalAddressGrowthList[index].NumberOfAddresses - totalAddressesByPrevDate
-		}
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
@@ -672,12 +663,12 @@ type ActiveAddressHistory struct {
 }
 
 type TotalAddressGrowth struct {
-	Date              string `json:"date"`
-	Month             string `json:"month"`
-	Year              string `json:"year"`
-	TimeStamp         int64  `json:"timeStamp"`
-	NumberOfAddresses int64  `json:"numberOfAddresses"`
-	Growth            int64  `json:"growth"`
+	Date      string `json:"date"`
+	Month     string `json:"month"`
+	Year      string `json:"year"`
+	Total     int64  `json:"total"`
+	Active    int64  `json:"active"`
+	NotActive int64  `json:"notActive"`
 }
 
 type TotalGasUsedHistory struct {
