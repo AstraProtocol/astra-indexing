@@ -323,6 +323,15 @@ func (handler *StatsHandler) GetTotalAddressesGrowth(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	length := len(totalAddressesHistoryList)
+	if length > 0 && totalAddressesHistoryList[0].NumberOfAddresses == 0 {
+		totalAddressesHistoryList[0].NumberOfAddresses = addressesCount
+		totalAddressesHistoryList[0].Growth = 0
+		if length > 1 {
+			totalAddressesHistoryList[0].Growth = addressesCount - totalAddressesHistoryList[1].NumberOfAddresses
+		}
+	}
+
 	var totalAddressesHistoryDaily TotalAddressesGrowth
 	totalAddressesHistoryDaily.TotalAddressesGrowth = totalAddressesHistoryList
 	totalAddressesHistoryDaily.TotalAddresses = addressesCount
