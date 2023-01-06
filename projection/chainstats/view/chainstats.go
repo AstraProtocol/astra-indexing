@@ -341,6 +341,7 @@ func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date ti
 		totalAddressGrowth.Date = strings.Split(time.Unix(0, unixTime).UTC().String(), " ")[0]
 		totalAddressGrowth.Month = strings.Split(totalAddressGrowth.Date, "-")[1]
 		totalAddressGrowth.Year = strings.Split(totalAddressGrowth.Date, "-")[0]
+		totalAddressGrowth.TimeStamp = unixTime
 		totalAddressGrowthList = append(totalAddressGrowthList, totalAddressGrowth)
 	}
 
@@ -349,7 +350,9 @@ func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date ti
 		if index < length-1 {
 			totalAddressGrowthList[index].Growth = totalAddressGrowthList[index].NumberOfAddresses - totalAddressGrowthList[index+1].NumberOfAddresses
 		} else {
-			totalAddressGrowthList[index].Growth = 0
+			timeStamp := totalAddressGrowthList[index].TimeStamp
+			totalAddressesByPrevDate, _ := view.getTotalAddressesByDate(time.Unix(0, timeStamp).UTC().AddDate(0, 0, -1).UnixNano())
+			totalAddressGrowthList[index].Growth = totalAddressGrowthList[index].NumberOfAddresses - totalAddressesByPrevDate
 		}
 	}
 
@@ -358,6 +361,31 @@ func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date ti
 	view.astraCache.Set(cacheKey, totalAddressGrowthList, 10*60*1000*time.Millisecond)
 
 	return totalAddressGrowthList, nil
+}
+
+func (view *ChainStats) getTotalAddressesByDate(date int64) (int64, error) {
+	sql, _, err := view.rdbHandle.StmtBuilder.Select(
+		"total_addresses",
+	).From(
+		"chain_stats",
+	).Where(
+		"date_time = ?",
+	).ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("error building total addresses by date select SQL: %v, %w", err, rdb.ErrBuildSQLStmt)
+	}
+
+	result := view.rdbHandle.QueryRow(sql, date)
+	var totalAddresses *int64
+	if err := result.Scan(&totalAddresses); err != nil {
+		return 0, fmt.Errorf("error scanning total addresses by date selection query: %v", err)
+	}
+
+	if totalAddresses == nil {
+		return 0, nil
+	}
+
+	return *totalAddresses, nil
 }
 
 func (view *ChainStats) GetGasUsedHistory(from_date time.Time, end_date time.Time) ([]TotalGasUsedHistory, error) {
@@ -647,6 +675,7 @@ type TotalAddressGrowth struct {
 	Date              string `json:"date"`
 	Month             string `json:"month"`
 	Year              string `json:"year"`
+	TimeStamp         int64  `json:"timeStamp"`
 	NumberOfAddresses int64  `json:"numberOfAddresses"`
 	Growth            int64  `json:"growth"`
 }

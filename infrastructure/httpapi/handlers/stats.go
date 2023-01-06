@@ -302,6 +302,11 @@ func (handler *StatsHandler) GetTotalAddressesGrowth(ctx *fasthttp.RequestCtx) {
 			httpapi.InternalServerError(ctx)
 			return
 		}
+		if string(ctx.QueryArgs().Peek("daily")) != "true" {
+			handler.logger.Error("only implemented for show daily")
+			httpapi.InternalServerError(ctx)
+			return
+		}
 	}
 	//
 
