@@ -330,6 +330,7 @@ func (handler *StatsHandler) GetTotalAddressesGrowth(ctx *fasthttp.RequestCtx) {
 
 	if len(totalAddressesHistoryList) > 0 && totalAddressesHistoryList[0].Total == 0 {
 		totalAddressesHistoryList[0].Total = addressesCount
+		totalAddressesHistoryList[0].NotActive = addressesCount - totalAddressesHistoryList[0].Active
 	}
 
 	var totalAddressesHistoryDaily TotalAddressesGrowth
