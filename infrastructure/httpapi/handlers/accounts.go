@@ -102,6 +102,7 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 	blockscoutAddressResp := <-addressRespChan
 	if blockscoutAddressResp.Status == "1" {
 		addressDetail = blockscoutAddressResp.Result
+		addressDetail.Balance = info.Balance.AmountOf("aastra").String()
 	} else {
 		rawLatestHeight, err := handler.statusView.FindBy("LatestHeight")
 		if err != nil {
