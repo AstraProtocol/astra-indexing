@@ -13,3 +13,15 @@ type AddressCounterResp struct {
 	Result  AddressCounter `json:"result"`
 	Status  string         `json:"status"`
 }
+
+type TopAddressesBalanceResult struct {
+	Address  string `json:"address"`
+	Balance  string `json:"balance"`
+	TxnCount int64  `json:"txnCount"`
+}
+
+type TopAddressesBalanceResp struct {
+	HasNextPage  bool                        `json:"hasNextPage"`
+	NextPagePath string                      `json:"nextPagePath"`
+	Result       []TopAddressesBalanceResult `json:"result"`
+}

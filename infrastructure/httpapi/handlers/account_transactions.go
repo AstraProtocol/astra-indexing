@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
@@ -90,6 +91,90 @@ func (handler *AccountTransactions) GetCounters(ctx *fasthttp.RequestCtx) {
 	}
 
 	httpapi.Success(ctx, addressCounter)
+}
+
+func (handler *AccountTransactions) GetTopAddressesBalance(ctx *fasthttp.RequestCtx) {
+	// handle api's params
+	var err error
+	var page int64
+	var offset int64
+	page = blockscout_infrastructure.DEFAULT_PAGE
+	offset = blockscout_infrastructure.DEFAULT_OFFSET
+
+	queryParams := make([]string, 0)
+	mappingParams := make(map[string]string)
+
+	if string(ctx.QueryArgs().Peek("blockscout")) != "true" {
+		handler.logger.Error("invalid params")
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	if string(ctx.QueryArgs().Peek("page")) != "" {
+		page, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("page")), 10, 0)
+		if err != nil || page <= 0 {
+			handler.logger.Error("page param is invalid")
+			httpapi.InternalServerError(ctx)
+			return
+		}
+	}
+	queryParams = append(queryParams, "page")
+	mappingParams["page"] = strconv.FormatInt(page, 10)
+
+	if string(ctx.QueryArgs().Peek("offset")) != "" {
+		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("offset")), 10, 0)
+		if err != nil || offset <= 0 {
+			handler.logger.Error("offset param is invalid")
+			httpapi.InternalServerError(ctx)
+			return
+		}
+	}
+	queryParams = append(queryParams, "offset")
+	mappingParams["offset"] = strconv.FormatInt(offset, 10)
+
+	if string(ctx.QueryArgs().Peek("fetched_coin_balance")) != "" {
+		queryParams = append(queryParams, "fetched_coin_balance")
+		mappingParams["fetched_coin_balance"] = string(ctx.QueryArgs().Peek("fetched_coin_balance"))
+	}
+
+	if string(ctx.QueryArgs().Peek("hash")) != "" {
+		queryParams = append(queryParams, "hash")
+		mappingParams["hash"] = string(ctx.QueryArgs().Peek("hash"))
+	}
+	//
+
+	topAddressesBalanceResp, err := handler.blockscoutClient.GetTopAddressesBalance(queryParams, mappingParams)
+	if err != nil {
+		handler.logger.Errorf("error getting top addresses balance from blockscout: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	identities := make([]string, 0)
+	for _, topAddressesBalanceResult := range topAddressesBalanceResp.Result {
+		if evm_utils.IsHexAddress(topAddressesBalanceResult.Address) {
+			converted, _ := hex.DecodeString(topAddressesBalanceResult.Address[2:])
+			astraAddress, _ := tmcosmosutils.EncodeHexToAddress("astra", converted)
+			identities = append(identities, astraAddress+":-")
+		}
+	}
+
+	mappingAddressTotal, err := handler.accountTransactionsTotalView.Total.FindByList(identities)
+	if err != nil {
+		handler.logger.Errorf("error getting list total: %v", err)
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	for index, topAddressesBalanceResult := range topAddressesBalanceResp.Result {
+		if evm_utils.IsHexAddress(topAddressesBalanceResult.Address) {
+			converted, _ := hex.DecodeString(topAddressesBalanceResult.Address[2:])
+			astraAddress, _ := tmcosmosutils.EncodeHexToAddress("astra", converted)
+			topAddressesBalanceResp.Result[index].TxnCount = mappingAddressTotal[astraAddress+":-"]
+		}
+	}
+
+	httpapi.Success(ctx, topAddressesBalanceResp)
 }
 
 func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {

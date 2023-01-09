@@ -104,6 +104,11 @@ func InitRouteRegistry(
 			path:    "api/v1/accounts/{account}/counters",
 			handler: accountTransactionsHandler.GetCounters,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/get-top-addresses-balance",
+			handler: accountTransactionsHandler.GetTopAddressesBalance,
+		},
 	)
 
 	statsHandlers := httpapi_handlers.NewStatsHandler(
