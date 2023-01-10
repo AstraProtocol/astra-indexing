@@ -61,11 +61,11 @@ func (handler *StatsHandler) GetTransactionsHistoryChart(ctx *fasthttp.RequestCt
 
 func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 	// handle api's params
-	var err error
-	var year int64
-	year = int64(time.Now().Year())
+	var fromDate time.Time
+	var endDate time.Time
+
 	if string(ctx.QueryArgs().Peek("year")) != "" {
-		year, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
+		year, err := strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
 		if err != nil {
 			handler.logger.Error("year param is invalid")
 			httpapi.InternalServerError(ctx)
@@ -76,6 +76,11 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 			httpapi.InternalServerError(ctx)
 			return
 		}
+		fromDate = time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
+		endDate = fromDate.AddDate(1, 0, 0)
+	} else {
+		fromDate = time.Now().AddDate(0, 0, -365)
+		endDate = time.Now().AddDate(0, 0, 1)
 	}
 
 	isDaily := false
@@ -100,9 +105,6 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 
 	minDateTime := time.Unix(0, minDate).UTC()
 	diffTime := time.Since(minDateTime)
-
-	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
-	endDate := fromDate.AddDate(1, 0, 0)
 
 	transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(fromDate, endDate)
 	if err != nil {
@@ -139,6 +141,10 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 			if index == 0 {
 				monthlyTransactions = 0
 			}
+			// change checkYear
+			if checkYear != transactionHistory.Year {
+				checkYear = transactionHistory.Year
+			}
 			// counting
 			if transactionHistory.Month == checkMonth {
 				monthlyTransactions += transactionHistory.NumberOfTransactions
@@ -174,11 +180,11 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 
 func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx) {
 	// handle api's params
-	var err error
-	var year int64
-	year = int64(time.Now().Year())
+	var fromDate time.Time
+	var endDate time.Time
+
 	if string(ctx.QueryArgs().Peek("year")) != "" {
-		year, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
+		year, err := strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
 		if err != nil {
 			handler.logger.Error("year param is invalid")
 			httpapi.InternalServerError(ctx)
@@ -189,6 +195,11 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 			httpapi.InternalServerError(ctx)
 			return
 		}
+		fromDate = time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
+		endDate = fromDate.AddDate(1, 0, 0)
+	} else {
+		fromDate = time.Now().AddDate(0, 0, -365)
+		endDate = time.Now().AddDate(0, 0, 1)
 	}
 
 	isDaily := false
@@ -213,9 +224,6 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 
 	minDateTime := time.Unix(0, minDate).UTC()
 	diffTime := time.Since(minDateTime)
-
-	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
-	endDate := fromDate.AddDate(1, 0, 0)
 
 	activeAddressesHistoryList, err := handler.chainStatsView.GetActiveAddressesHistory(fromDate, endDate)
 	if err != nil {
@@ -252,6 +260,10 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 			if index == 0 {
 				monthlyActiveAddresses = 0
 			}
+			// change checkYear
+			if checkYear != activeAddressesHistory.Year {
+				checkYear = activeAddressesHistory.Year
+			}
 			// counting
 			if activeAddressesHistory.Month == checkMonth {
 				monthlyActiveAddresses += activeAddressesHistory.NumberOfActiveAddresses
@@ -287,11 +299,11 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 
 func (handler *StatsHandler) GetTotalAddressesGrowth(ctx *fasthttp.RequestCtx) {
 	// handle api's params
-	var err error
-	var year int64
-	year = int64(time.Now().Year())
+	var fromDate time.Time
+	var endDate time.Time
+
 	if string(ctx.QueryArgs().Peek("year")) != "" {
-		year, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
+		year, err := strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
 		if err != nil {
 			handler.logger.Error("year param is invalid")
 			httpapi.InternalServerError(ctx)
@@ -302,11 +314,17 @@ func (handler *StatsHandler) GetTotalAddressesGrowth(ctx *fasthttp.RequestCtx) {
 			httpapi.InternalServerError(ctx)
 			return
 		}
-		if string(ctx.QueryArgs().Peek("daily")) != "true" {
-			handler.logger.Error("only implemented for show daily")
-			httpapi.InternalServerError(ctx)
-			return
-		}
+		fromDate = time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
+		endDate = fromDate.AddDate(1, 0, 0)
+	} else {
+		fromDate = time.Now().AddDate(0, 0, -365)
+		endDate = time.Now().AddDate(0, 0, 1)
+	}
+
+	if string(ctx.QueryArgs().Peek("daily")) != "true" {
+		handler.logger.Error("only implemented for show daily")
+		httpapi.InternalServerError(ctx)
+		return
 	}
 	//
 
@@ -316,9 +334,6 @@ func (handler *StatsHandler) GetTotalAddressesGrowth(ctx *fasthttp.RequestCtx) {
 		httpapi.InternalServerError(ctx)
 		return
 	}
-
-	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
-	endDate := fromDate.AddDate(1, 0, 0)
 
 	totalAddressesHistoryList, err := handler.chainStatsView.GetTotalAddressesGrowth(fromDate, endDate)
 
@@ -342,11 +357,11 @@ func (handler *StatsHandler) GetTotalAddressesGrowth(ctx *fasthttp.RequestCtx) {
 
 func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
 	// handle api's params
-	var err error
-	var year int64
-	year = int64(time.Now().Year())
+	var fromDate time.Time
+	var endDate time.Time
+
 	if string(ctx.QueryArgs().Peek("year")) != "" {
-		year, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
+		year, err := strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
 		if err != nil {
 			handler.logger.Error("year param is invalid")
 			httpapi.InternalServerError(ctx)
@@ -357,6 +372,11 @@ func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
 			httpapi.InternalServerError(ctx)
 			return
 		}
+		fromDate = time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
+		endDate = fromDate.AddDate(1, 0, 0)
+	} else {
+		fromDate = time.Now().AddDate(0, 0, -365)
+		endDate = time.Now().AddDate(0, 0, 1)
 	}
 
 	isDaily := false
@@ -381,9 +401,6 @@ func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
 
 	minDateTime := time.Unix(0, minDate).UTC()
 	diffTime := time.Since(minDateTime)
-
-	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
-	endDate := fromDate.AddDate(1, 0, 0)
 
 	totalGasUsedList, err := handler.chainStatsView.GetGasUsedHistory(fromDate, endDate)
 	if err != nil {
@@ -420,6 +437,10 @@ func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
 			if index == 0 {
 				monthlyTotalGasUsed = 0
 			}
+			// change checkYear
+			if checkYear != totalGasUsedHistory.Year {
+				checkYear = totalGasUsedHistory.Year
+			}
 			// counting
 			if totalGasUsedHistory.Month == checkMonth {
 				monthlyTotalGasUsed += totalGasUsedHistory.TotalGasUsed
@@ -455,11 +476,11 @@ func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
 
 func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 	// handle api's params
-	var err error
-	var year int64
-	year = int64(time.Now().Year())
+	var fromDate time.Time
+	var endDate time.Time
+
 	if string(ctx.QueryArgs().Peek("year")) != "" {
-		year, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
+		year, err := strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
 		if err != nil {
 			handler.logger.Error("year param is invalid")
 			httpapi.InternalServerError(ctx)
@@ -470,6 +491,11 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 			httpapi.InternalServerError(ctx)
 			return
 		}
+		fromDate = time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
+		endDate = fromDate.AddDate(1, 0, 0)
+	} else {
+		fromDate = time.Now().AddDate(0, 0, -365)
+		endDate = time.Now().AddDate(0, 0, 1)
 	}
 
 	isDaily := false
@@ -494,9 +520,6 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 
 	minDateTime := time.Unix(0, minDate).UTC()
 	diffTime := time.Since(minDateTime)
-
-	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
-	endDate := fromDate.AddDate(1, 0, 0)
 
 	totalFeesHistoryList, err := handler.chainStatsView.GetTotalFeeHistory(fromDate, endDate)
 	if err != nil {
@@ -532,6 +555,10 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 			// init counting
 			if index == 0 {
 				monthlyTotalTransactionFees = 0
+			}
+			// change checkYear
+			if checkYear != totalFeesHistory.Year {
+				checkYear = totalFeesHistory.Year
 			}
 			// counting
 			if totalFeesHistory.Month == checkMonth {
