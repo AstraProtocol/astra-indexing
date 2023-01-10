@@ -99,7 +99,7 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 	}
 
 	minDateTime := time.Unix(0, minDate).UTC()
-	diffTime := time.Now().Truncate(time.Hour * 24).Sub(minDateTime)
+	diffTime := time.Since(minDateTime)
 
 	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
 	endDate := fromDate.AddDate(1, 0, 0)
@@ -212,7 +212,7 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 	}
 
 	minDateTime := time.Unix(0, minDate).UTC()
-	diffTime := time.Now().Truncate(time.Hour * 24).Sub(minDateTime)
+	diffTime := time.Since(minDateTime)
 
 	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
 	endDate := fromDate.AddDate(1, 0, 0)
@@ -380,7 +380,7 @@ func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
 	}
 
 	minDateTime := time.Unix(0, minDate).UTC()
-	diffTime := time.Now().Truncate(time.Hour * 24).Sub(minDateTime)
+	diffTime := time.Since(minDateTime)
 
 	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
 	endDate := fromDate.AddDate(1, 0, 0)
@@ -493,7 +493,7 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 	}
 
 	minDateTime := time.Unix(0, minDate).UTC()
-	diffTime := time.Now().Truncate(time.Hour * 24).Sub(minDateTime)
+	diffTime := time.Since(minDateTime)
 
 	fromDate := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
 	endDate := fromDate.AddDate(1, 0, 0)
