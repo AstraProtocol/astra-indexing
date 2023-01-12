@@ -183,7 +183,7 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 	if feeJSON, err = json.MarshalToString(transaction.Fee); err != nil {
 		return fmt.Errorf("error JSON marshalling block transation fee for insertion: %v: %w", err, rdb.ErrBuildSQLStmt)
 	}
-	feeValue := transaction.Fee.AmountOf("aastra").Int64()
+	feeValue := transaction.Fee.AmountOf("aastra").BigInt().Int64()
 
 	var signersJSON string
 	if signersJSON, err = json.MarshalToString(transaction.Signers); err != nil {
