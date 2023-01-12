@@ -88,7 +88,7 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 				"error JSON marshalling block transation fee for insertion: %v: %w", marshalErr, rdb.ErrBuildSQLStmt,
 			)
 		}
-		feeValue := transaction.Fee.AmountOf("aastra").Int64()
+		feeValue := transaction.Fee.AmountOf("aastra").BigInt().Int64()
 
 		var signersJSON string
 		if signersJSON, marshalErr = json.MarshalToString(transaction.Signers); marshalErr != nil {
