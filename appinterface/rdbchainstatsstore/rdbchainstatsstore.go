@@ -89,7 +89,7 @@ func (impl *RDbChainStatsStore) initRow() error {
 		return fmt.Errorf("error inserting latest chain stats SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
-		return errors.New("error executing initial latest chain stats insertion SQL: no rows inserted")
+		return errors.New("error executing initial latest chain stats insertion SQL: no rows affected")
 	}
 
 	return nil
@@ -125,7 +125,7 @@ func (impl *RDbChainStatsStore) UpdateCountedTransactionsWithRDbHandle(currentDa
 		return fmt.Errorf("error executing transaction stats update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
-		return errors.New("error executing transaction stats update SQL: no rows updated")
+		return errors.New("error executing transaction stats update SQL: no rows affected")
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())
@@ -163,7 +163,7 @@ func (impl *RDbChainStatsStore) UpdateTotalGasUsedWithRDbHandle(currentDate int6
 		return fmt.Errorf("error executing gas used stats update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
-		return errors.New("error executing gas used stats update SQL: no rows updated")
+		return errors.New("error executing gas used stats update SQL: no rows affected")
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())
@@ -179,7 +179,7 @@ func (impl *RDbChainStatsStore) UpdateTotalFeeWithRDbHandle(currentDate int64) e
 		return fmt.Errorf("error initializing chain stats store: %v", err)
 	}
 
-	gasUsedCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(
+	feeCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(
 		"SUM(fee_value)",
 	).From(
 		"view_transactions",
@@ -188,7 +188,7 @@ func (impl *RDbChainStatsStore) UpdateTotalFeeWithRDbHandle(currentDate int64) e
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
 		impl.table,
 	).Set(
-		"total_fee", impl.selectRDbHandle.StmtBuilder.SubQuery(gasUsedCountSubQuery),
+		"total_fee", impl.selectRDbHandle.StmtBuilder.SubQuery(feeCountSubQuery),
 	).Where(
 		"date_time = ?", currentDate,
 	).ToSql()
@@ -201,7 +201,7 @@ func (impl *RDbChainStatsStore) UpdateTotalFeeWithRDbHandle(currentDate int64) e
 		return fmt.Errorf("error executing fee stats update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
-		return errors.New("error executing fee stats update SQL: no rows updated")
+		return errors.New("error executing fee stats update SQL: no rows affected")
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())
@@ -237,7 +237,7 @@ func (impl *RDbChainStatsStore) UpdateTotalAddressesWithRDbHandle(currentDate in
 		return fmt.Errorf("error executing total addresses stats update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
-		return errors.New("error executing total addresses stats update SQL: no rows updated")
+		return errors.New("error executing total addresses stats update SQL: no rows affected")
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())
@@ -260,7 +260,7 @@ func (impl *RDbChainStatsStore) UpdateActiveAddressesWithRDbHandle(currentDate i
 		return fmt.Errorf("error executing active addresses stats update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
-		return errors.New("error executing active addresses stats update SQL: no rows updated")
+		return errors.New("error executing active addresses stats update SQL: no rows affected")
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())

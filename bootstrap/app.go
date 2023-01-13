@@ -129,6 +129,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 
 		// At 59 seconds past the minute, at 59 minutes past every hour from 0 through 23
 		// @every 0h0m5s
+		// 59 59 0-23 * * *
 		s.AddFunc("59 59 0-23 * * *", func() {
 			currentDate = time.Now().Truncate(24 * time.Hour).UnixNano()
 			i = 0
@@ -164,21 +165,6 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(4 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalFeeWithRDbHandle(currentDate)
-				if err == nil {
-					break
-				}
-				a.logger.Panicf("failed to run UpdateTotalFeeWithRDbHandle cronjob: %v", err)
-				time.Sleep(time.Duration(delayTime) * time.Second)
-				i += 1
-			}
-		})
-
-		s.AddFunc("59 59 0-23 * * *", func() {
-			i = 0
-			var err error
-			time.Sleep(6 * time.Second)
-			for i < retry {
 				err = rdbTransactionStatsStore.UpdateTotalAddressesWithRDbHandle(currentDate)
 				if err == nil {
 					break
@@ -192,13 +178,28 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 		s.AddFunc("59 59 0-23 * * *", func() {
 			i = 0
 			var err error
-			time.Sleep(8 * time.Second)
+			time.Sleep(6 * time.Second)
 			for i < retry {
 				err = rdbTransactionStatsStore.UpdateActiveAddressesWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
 				a.logger.Panicf("failed to run UpdateActiveAddressesWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.AddFunc("59 59 0-23 * * *", func() {
+			i = 0
+			var err error
+			time.Sleep(8 * time.Second)
+			for i < retry {
+				err = rdbTransactionStatsStore.UpdateTotalFeeWithRDbHandle(currentDate)
+				if err == nil {
+					break
+				}
+				a.logger.Panicf("failed to run UpdateTotalFeeWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
