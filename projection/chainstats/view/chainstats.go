@@ -3,12 +3,14 @@ package view
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/external/cache"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
+	"github.com/jackc/pgtype"
 )
 
 type ChainStats struct {
@@ -449,11 +451,12 @@ func (view *ChainStats) GetTotalFeeHistory(from_date time.Time, end_date time.Ti
 	totalFeeHistoryList := make([]TotalFeeHistory, 0)
 	for rowsResult.Next() {
 		var totalFeeHistory TotalFeeHistory
+		var totalTransactionFees interface{}
 		var unixTime int64
 
 		if err = rowsResult.Scan(
 			&unixTime,
-			&totalFeeHistory.TotalTransactionFees,
+			&totalTransactionFees,
 		); err != nil {
 			if errors.Is(err, rdb.ErrNoRows) {
 				return nil, rdb.ErrNoRows
@@ -461,6 +464,7 @@ func (view *ChainStats) GetTotalFeeHistory(from_date time.Time, end_date time.Ti
 			return nil, fmt.Errorf("error scanning total transactions fee history by date range row: %v: %w", err, rdb.ErrQuery)
 		}
 
+		totalFeeHistory.TotalTransactionFees = totalTransactionFees.(pgtype.Numeric).Int
 		totalFeeHistory.Date = strings.Split(time.Unix(0, unixTime).UTC().String(), " ")[0]
 		totalFeeHistory.Month = strings.Split(totalFeeHistory.Date, "-")[1]
 		totalFeeHistory.Year = strings.Split(totalFeeHistory.Date, "-")[0]
@@ -582,9 +586,9 @@ func (view *ChainStats) GetTotalGasUsed() (int64, error) {
 	return *total, nil
 }
 
-func (view *ChainStats) GetTotalTransactionFees() (int64, error) {
+func (view *ChainStats) GetTotalTransactionFees() (*big.Int, error) {
 	cacheKey := "GetTotalTransactionFees"
-	var tmpTotalTransactionFees int64
+	var tmpTotalTransactionFees *big.Int
 
 	err := view.astraCache.Get(cacheKey, &tmpTotalTransactionFees)
 	if err == nil {
@@ -598,24 +602,26 @@ func (view *ChainStats) GetTotalTransactionFees() (int64, error) {
 		"chain_stats",
 	).ToSql()
 	if err != nil {
-		return 0, fmt.Errorf("error building total transactions fee selection sql: %v", err)
+		return big.NewInt(0), fmt.Errorf("error building total transactions fee selection sql: %v", err)
 	}
 
 	result := view.rdbHandle.QueryRow(sql)
-	var total *int64
+	var total interface{}
 	if err := result.Scan(&total); err != nil {
-		return 0, fmt.Errorf("error scanning total transactions fee selection query: %v", err)
+		return big.NewInt(0), fmt.Errorf("error scanning total transactions fee selection query: %v", err)
 	}
 
 	if total == nil {
-		return 0, nil
+		return big.NewInt(0), nil
 	}
+
+	totalBigInt := total.(pgtype.Numeric).Int
 
 	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
-	view.astraCache.Set(cacheKey, *total, 10*60*1000*time.Millisecond)
+	view.astraCache.Set(cacheKey, totalBigInt, 10*60*1000*time.Millisecond)
 
-	return *total, nil
+	return totalBigInt, nil
 }
 
 type ValidatorStatsRow struct {
@@ -654,8 +660,8 @@ type TotalGasUsedHistory struct {
 }
 
 type TotalFeeHistory struct {
-	Date                 string `json:"date"`
-	Month                string `json:"month"`
-	Year                 string `json:"year"`
-	TotalTransactionFees int64  `json:"totalTransactionFees"`
+	Date                 string   `json:"date"`
+	Month                string   `json:"month"`
+	Year                 string   `json:"year"`
+	TotalTransactionFees *big.Int `json:"totalTransactionFees"`
 }

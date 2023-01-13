@@ -138,7 +138,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Panicf("failed to run UpdateCountedTransactionsWithRDbHandle cronjob: %v", err)
+				a.logger.Infof("failed to run UpdateCountedTransactionsWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -154,7 +154,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Panicf("failed to run UpdateTotalGasUsedWithRDbHandle cronjob: %v", err)
+				a.logger.Infof("failed to run UpdateTotalGasUsedWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -170,7 +170,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Panicf("failed to run UpdateTotalAddressesWithRDbHandle cronjob: %v", err)
+				a.logger.Infof("failed to run UpdateTotalAddressesWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -186,7 +186,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Panicf("failed to run UpdateActiveAddressesWithRDbHandle cronjob: %v", err)
+				a.logger.Infof("failed to run UpdateActiveAddressesWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -202,7 +202,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Panicf("failed to run UpdateTotalFeeWithRDbHandle cronjob: %v", err)
+				a.logger.Infof("failed to run UpdateTotalFeeWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}

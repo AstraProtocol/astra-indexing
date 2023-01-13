@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"math"
+	"math/big"
 	"strconv"
 	"time"
 
@@ -535,7 +536,7 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 		var totalFeesHistoryDaily TotalFeesHistoryDaily
 		totalFeesHistoryDaily.TotalFeesHistory = totalFeesHistoryList
 		if length > 0 {
-			totalFeesHistoryDaily.DailyAverage = float32(totalTransactionFees / diffDay)
+			totalFeesHistoryDaily.DailyAverage = big.NewInt(0).Div(totalTransactionFees, big.NewInt(diffDay))
 		}
 
 		httpapi.Success(ctx, totalFeesHistoryDaily)
@@ -549,12 +550,12 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 
 		checkYear := totalFeesHistoryList[0].Year
 		checkMonth := totalFeesHistoryList[0].Month
-		var monthlyTotalTransactionFees int64
+		var monthlyTotalTransactionFees *big.Int
 
 		for index, totalFeesHistory := range totalFeesHistoryList {
 			// init counting
 			if index == 0 {
-				monthlyTotalTransactionFees = 0
+				monthlyTotalTransactionFees = big.NewInt(0)
 			}
 			// change checkYear
 			if checkYear != totalFeesHistory.Year {
@@ -562,7 +563,7 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 			}
 			// counting
 			if totalFeesHistory.Month == checkMonth {
-				monthlyTotalTransactionFees += totalFeesHistory.TotalTransactionFees
+				monthlyTotalTransactionFees = monthlyTotalTransactionFees.Add(monthlyTotalTransactionFees, totalFeesHistory.TotalTransactionFees)
 			}
 			// add to result then reset counting
 			if (index < length-1 && totalFeesHistory.Month != totalFeesHistoryList[index+1].Month) || index == length-1 {
@@ -576,7 +577,7 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 					break
 				}
 
-				monthlyTotalTransactionFees = 0
+				monthlyTotalTransactionFees = big.NewInt(0)
 				checkMonth = totalFeesHistoryList[index+1].Month
 			}
 		}
@@ -586,7 +587,7 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 		var totalFeesHistoryMonthly TotalFeesHistoryMonthly
 		totalFeesHistoryMonthly.TotalFeesHistory = result
 		if len(result) > 0 {
-			totalFeesHistoryMonthly.MonthlyAverage = float32(totalTransactionFees / diffMonth)
+			totalFeesHistoryMonthly.MonthlyAverage = big.NewInt(0).Div(totalTransactionFees, big.NewInt(diffMonth))
 		}
 
 		httpapi.Success(ctx, totalFeesHistoryMonthly)
@@ -684,10 +685,10 @@ type TotalGasUsedHistoryMonthly struct {
 
 type TotalFeesHistoryDaily struct {
 	TotalFeesHistory []chainstats_view.TotalFeeHistory `json:"totalFeesHistory"`
-	DailyAverage     float32                           `json:"dailyAverage"`
+	DailyAverage     *big.Int                          `json:"dailyAverage"`
 }
 
 type TotalFeesHistoryMonthly struct {
 	TotalFeesHistory []chainstats_view.TotalFeeHistory `json:"totalFeesHistory"`
-	MonthlyAverage   float32                           `json:"monthlyAverage"`
+	MonthlyAverage   *big.Int                          `json:"monthlyAverage"`
 }
