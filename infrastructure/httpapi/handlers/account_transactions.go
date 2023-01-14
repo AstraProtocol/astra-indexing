@@ -72,12 +72,6 @@ func (handler *AccountTransactions) GetCounters(ctx *fasthttp.RequestCtx) {
 	}
 	go handler.blockscoutClient.GetAddressCountersAsync(blockscoutSearchParam, addressCounterRespChan)
 
-	_, err := handler.cosmosClient.Account(astraAddress)
-	if err != nil {
-		httpapi.NotFound(ctx)
-		return
-	}
-
 	numberOfTxs, err := handler.accountTransactionsTotalView.Total.FindBy(fmt.Sprintf("%s:-", astraAddress))
 
 	blockscoutAddressCounterResp := <-addressCounterRespChan
