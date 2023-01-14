@@ -10,6 +10,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
+	evm_utils "github.com/AstraProtocol/astra-indexing/internal/evm"
 	account_view "github.com/AstraProtocol/astra-indexing/projection/account/view"
 	account_transaction_view "github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
 	block_view "github.com/AstraProtocol/astra-indexing/projection/block/view"
@@ -115,6 +116,9 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 		return
 	} else {
 		// Using simultaneously blockscout and chainindexing search
+		if evm_utils.IsHexAddress(keyword) {
+			keyword = strings.ToLower(keyword)
+		}
 		go search.blockscoutClient.GetSearchResultsAsync(keyword, resultsChan)
 	}
 
