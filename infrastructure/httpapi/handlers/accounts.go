@@ -79,12 +79,6 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 	}
 	go handler.blockscoutClient.GetDetailAddressByAddressHashAsync(addressHash, addressRespChan)
 
-	_, err := handler.cosmosClient.Account(accountParam)
-	if err != nil {
-		httpapi.NotFound(ctx)
-		return
-	}
-
 	info := AccountInfo{
 		Balance: coin.NewEmptyCoins(),
 	}
