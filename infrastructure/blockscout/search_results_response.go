@@ -67,8 +67,8 @@ func SearchResultsToAddresses(data []SearchResult) []AddressResult {
 	for _, address_data := range data {
 		var address AddressResult
 		converted, _ := hex.DecodeString(address_data.AddressHash[2:])
-		address_bech32, _ := tmcosmosutils.EncodeHexToAddress("astra", converted)
-		address.Address = address_bech32
+		astraAddress, _ := tmcosmosutils.EncodeHexToAddress("astra", converted)
+		address.Address = astraAddress
 		address.AddressHash = address_data.AddressHash
 		address.Name = address_data.Name
 		addresses = append(addresses, address)
