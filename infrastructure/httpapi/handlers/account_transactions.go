@@ -55,39 +55,45 @@ func (handler *AccountTransactions) GetCounters(ctx *fasthttp.RequestCtx) {
 	}
 
 	addressCounterRespChan := make(chan blockscout_infrastructure.AddressCounterResp)
+	var blockscoutSearchParam string
+	var astraAddress string
 
 	// Using simultaneously blockscout get address counters api
-	var addressHash string
 	if evm_utils.IsHexAddress(accountParam) {
-		addressHash = accountParam
+		blockscoutSearchParam = accountParam
 		converted, _ := hex.DecodeString(accountParam[2:])
-		accountParam, _ = tmcosmosutils.EncodeHexToAddress("astra", converted)
+		astraAddress, _ = tmcosmosutils.EncodeHexToAddress("astra", converted)
 	} else {
 		if tmcosmosutils.IsValidCosmosAddress(accountParam) {
+			astraAddress = accountParam
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(accountParam)
-			addressHash = "0x" + hex.EncodeToString(converted)
+			blockscoutSearchParam = "0x" + hex.EncodeToString(converted)
 		}
 	}
-	go handler.blockscoutClient.GetAddressCountersAsync(addressHash, addressCounterRespChan)
+	go handler.blockscoutClient.GetAddressCountersAsync(blockscoutSearchParam, addressCounterRespChan)
 
-	_, err := handler.cosmosClient.Account(accountParam)
+	_, err := handler.cosmosClient.Account(astraAddress)
 	if err != nil {
 		httpapi.NotFound(ctx)
 		return
 	}
 
-	numberOfTxs, err := handler.accountTransactionsTotalView.Total.FindBy(fmt.Sprintf("%s:-", accountParam))
+	numberOfTxs, err := handler.accountTransactionsTotalView.Total.FindBy(fmt.Sprintf("%s:-", astraAddress))
 
 	blockscoutAddressCounterResp := <-addressCounterRespChan
 	addressCounter := blockscoutAddressCounterResp.Result
 
-	if err == nil && addressCounter.Type == "address" {
+	if err == nil && addressCounter.Type != "contractaddress" {
 		addressCounter.TransactionCount = numberOfTxs
 	}
 
-	totalGasUsed, err := handler.accountGasUsedTotalView.Total.FindBy(strings.ToLower(addressHash))
-	if err == nil && addressCounter.GasUsageCount < totalGasUsed {
+	totalGasUsed, err := handler.accountGasUsedTotalView.Total.FindBy(strings.ToLower(blockscoutSearchParam))
+	if err == nil && addressCounter.Type != "contractaddress" {
 		addressCounter.GasUsageCount = totalGasUsed
+	}
+
+	if addressCounter.Type == "" {
+		addressCounter.Type = "address"
 	}
 
 	httpapi.Success(ctx, addressCounter)

@@ -120,6 +120,7 @@ func NewHTTPClient(logger applogger.Logger, url string) *HTTPClient {
 	httpClient := retryablehttp.NewClient()
 	httpClient.Logger = nil
 	httpClient.CheckRetry = defaultRetryPolicy
+	httpClient.RetryMax = 0
 
 	return &HTTPClient{
 		logger.WithFields(applogger.LogFields{
