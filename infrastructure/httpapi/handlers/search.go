@@ -95,10 +95,10 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 		astraAddress, _ = tmcosmosutils.EncodeHexToAddress("astra", converted)
 	}
 
-	// Using simultaneously blockscout and chainindexing search
-	go search.blockscoutClient.GetSearchResultsAsync(blockscoutSearchParam, resultsChan)
-
 	if tmcosmosutils.IsValidCosmosAddress(keyword) || evm_utils.IsHexAddress(keyword) {
+		// Using simultaneously blockscout and chainindexing search
+		go search.blockscoutClient.GetSearchResultsAsync(blockscoutSearchParam, resultsChan)
+
 		// Using chainindexing search for astra address
 		accountIdentity := account_view.AccountIdentity{}
 		accountIdentity.Address = astraAddress
@@ -125,6 +125,9 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 		httpapi.Success(ctx, results)
 		return
 	}
+
+	// Using simultaneously blockscout and chainindexing search
+	go search.blockscoutClient.GetSearchResultsAsync(keyword, resultsChan)
 
 	// If keyword is cosmos tx (e.g: "90FEE96EE94CA74AD67FCF155E15488B901B3AE2530EBE4D35A9E77B609EB348")
 	// use chainindexing search for cosmos tx then merge with evm tx from blockscout's search result (if exist)
