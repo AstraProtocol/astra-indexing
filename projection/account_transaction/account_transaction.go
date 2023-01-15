@@ -490,7 +490,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 				}
 			}
 
-			// Calulate account/memo transaction total
+			// Calculate account/memo transaction total
 			if tx.Memo != "" {
 				accountWithMemo := row.Account + "/" + tx.Memo
 

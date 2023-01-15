@@ -430,7 +430,7 @@ func (view *ChainStats) GetTotalFeeHistory(from_date time.Time, end_date time.Ti
 
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"date_time",
-		"total_fee",
+		"CAST(total_fee AS VARCHAR)",
 	).From(
 		"chain_stats",
 	).Where(
@@ -451,7 +451,7 @@ func (view *ChainStats) GetTotalFeeHistory(from_date time.Time, end_date time.Ti
 	totalFeeHistoryList := make([]TotalFeeHistory, 0)
 	for rowsResult.Next() {
 		var totalFeeHistory TotalFeeHistory
-		var totalTransactionFees interface{}
+		var totalTransactionFees string
 		var unixTime int64
 
 		if err = rowsResult.Scan(
@@ -464,7 +464,11 @@ func (view *ChainStats) GetTotalFeeHistory(from_date time.Time, end_date time.Ti
 			return nil, fmt.Errorf("error scanning total transactions fee history by date range row: %v: %w", err, rdb.ErrQuery)
 		}
 
-		totalFeeHistory.TotalTransactionFees = totalTransactionFees.(pgtype.Numeric).Int
+		result, isValid := big.NewInt(0).SetString(totalTransactionFees, 10)
+		if !isValid {
+			result = big.NewInt(0)
+		}
+		totalFeeHistory.TotalTransactionFees = result
 		totalFeeHistory.Date = strings.Split(time.Unix(0, unixTime).UTC().String(), " ")[0]
 		totalFeeHistory.Month = strings.Split(totalFeeHistory.Date, "-")[1]
 		totalFeeHistory.Year = strings.Split(totalFeeHistory.Date, "-")[0]
