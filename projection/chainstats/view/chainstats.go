@@ -10,7 +10,6 @@ import (
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/external/cache"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
-	"github.com/jackc/pgtype"
 )
 
 type ChainStats struct {
@@ -602,7 +601,7 @@ func (view *ChainStats) GetTotalTransactionFees() (*big.Int, error) {
 	startTime := time.Now()
 	recordMethod := "GetTotalTransactionFees"
 
-	sql, _, err := view.rdbHandle.StmtBuilder.Select("SUM(total_fee)").From(
+	sql, _, err := view.rdbHandle.StmtBuilder.Select("CAST(SUM(total_fee) AS VARCHAR)").From(
 		"chain_stats",
 	).ToSql()
 	if err != nil {
@@ -610,16 +609,15 @@ func (view *ChainStats) GetTotalTransactionFees() (*big.Int, error) {
 	}
 
 	result := view.rdbHandle.QueryRow(sql)
-	var total interface{}
+	var total string
 	if err := result.Scan(&total); err != nil {
 		return big.NewInt(0), fmt.Errorf("error scanning total transactions fee selection query: %v", err)
 	}
 
-	if total == nil {
-		return big.NewInt(0), nil
+	totalBigInt, isValid := big.NewInt(0).SetString(total, 10)
+	if !isValid {
+		totalBigInt = big.NewInt(0)
 	}
-
-	totalBigInt := total.(pgtype.Numeric).Int
 
 	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
