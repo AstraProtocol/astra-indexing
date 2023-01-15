@@ -62,7 +62,7 @@ func NewAccountTransaction(
 	}
 }
 
-func (_ *AccountTransaction) GetEventsToListen() []string {
+func (*AccountTransaction) GetEventsToListen() []string {
 	return append([]string{
 		event_usecase.BLOCK_CREATED,
 		event_usecase.TRANSACTION_CREATED,
