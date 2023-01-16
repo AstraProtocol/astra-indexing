@@ -293,6 +293,10 @@ func ParseSenderAddressFromMsgEvent(msgEvent event_usecase.MsgEvent) string {
 		rgx := regexp.MustCompile(`DelegatorAddress:"([a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
 		return strings.ToLower(rs[1])
+	} else if strings.Contains(msg, "ProposerAddress") {
+		rgx := regexp.MustCompile(`ProposerAddress:"([a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return strings.ToLower(rs[1])
 	}
 	return ""
 }
