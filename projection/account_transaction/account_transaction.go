@@ -3,6 +3,8 @@ package account_transaction
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
+	"math/big"
 	"strings"
 
 	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
@@ -109,6 +111,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 	accountTransactionDataView := view.NewAccountTransactionData(rdbTxHandle)
 	accountTransactionsTotalView := view.NewAccountTransactionsTotal(rdbTxHandle)
 	accountGasUsedTotalView := view.NewAccountGasUsedTotal(rdbTxHandle)
+	accountFeesTotalView := view.NewAccountFeesTotal(rdbTxHandle)
 
 	var blockTime utctime.UTCTime
 	var blockHash string
@@ -444,6 +447,12 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 		msgEvent := txMsgs[tx.Hash][0]
 		senderAddress := tmcosmosutils.ParseSenderAddressFromMsgEvent(msgEvent)
 
+		// Convert fees unit from aastra to microAstra
+		dividend := big.NewFloat(0).SetInt(big.NewInt(0).Exp(big.NewInt(10), big.NewInt(12), nil))
+		microAstraFees := big.NewFloat(0).SetInt(tx.Fee.AmountOf("aastra").BigInt())
+		microAstraFees = microAstraFees.Quo(microAstraFees, dividend)
+		fees, _ := microAstraFees.Float64()
+
 		// Calculate account gas used total
 		if tmcosmosutils.IsValidCosmosAddress(senderAddress) {
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(senderAddress)
@@ -452,14 +461,22 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			if err := accountGasUsedTotalView.Increment(address, int64(tx.GasUsed)); err != nil {
 				return fmt.Errorf("error incrementing total gas used of account: %w", err)
 			}
+
+			if err := accountFeesTotalView.Increment(address, int64(math.Round(fees))); err != nil {
+				return fmt.Errorf("error incrementing total fees of account: %w", err)
+			}
 		} else {
 			if evmUtil.IsHexAddress(senderAddress) {
 				if err := accountGasUsedTotalView.Increment(senderAddress, int64(tx.GasUsed)); err != nil {
 					return fmt.Errorf("error incrementing total gas used of account: %w", err)
 				}
+
+				if err := accountGasUsedTotalView.Increment(senderAddress, int64(math.Round(fees))); err != nil {
+					return fmt.Errorf("error incrementing total fees of account: %w", err)
+				}
 			} else {
 				projection.logger.Errorf("error message event: %v", msgEvent.String())
-				projection.logger.Errorf("error preparing total gas used of account: %v", senderAddress)
+				projection.logger.Errorf("error preparing total gas used and total fees of account: %v", senderAddress)
 			}
 		}
 	}
