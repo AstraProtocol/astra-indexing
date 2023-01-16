@@ -190,6 +190,60 @@ func (client *HTTPClient) GetDetailEvmTxByEvmTxHash(evmTxHash string) (*Transact
 	return &txResp.Result, nil
 }
 
+func (client *HTTPClient) GetDetailEvmTxByCosmosTxHashAsync(evmTxHash string, transactionEvmRespChan chan TxResp) {
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(transactionEvmRespChan)
+	}()
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_DETAIL_EVM_TX_BY_COSMOS_TX_HASH, evmTxHash), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting transaction evm by cosmos tx hash from blockscout: %v", err)
+		transactionEvmRespChan <- TxResp{}
+		return
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var transactionEvmResp TxResp
+	if err := json.Unmarshal(respBody.Bytes(), &transactionEvmResp); err != nil {
+		client.logger.Errorf("error parsing transaction evm by cosmos tx hash from blockscout: %v", err)
+	}
+
+	transactionEvmRespChan <- transactionEvmResp
+}
+
+func (client *HTTPClient) GetDetailEvmTxByEvmTxHashAsync(evmTxHash string, transactionEvmRespChan chan TxResp) {
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(transactionEvmRespChan)
+	}()
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_DETAIL_EVM_TX_BY_EVM_TX_HASH, evmTxHash), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting transaction evm by evm tx hash from blockscout: %v", err)
+		transactionEvmRespChan <- TxResp{}
+		return
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var transactionEvmResp TxResp
+	if err := json.Unmarshal(respBody.Bytes(), &transactionEvmResp); err != nil {
+		client.logger.Errorf("error parsing transaction evm by evm tx hash from blockscout: %v", err)
+	}
+
+	transactionEvmRespChan <- transactionEvmResp
+}
+
 func (client *HTTPClient) GetCommonStatsAsync(commonStatsChan chan CommonStats) {
 	// Make sure we close these channels when we're done with them
 	defer func() {

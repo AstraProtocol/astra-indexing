@@ -690,7 +690,6 @@ type TransactionRow struct {
 	Code          int                     `json:"code"`
 	Log           string                  `json:"log"`
 	Fee           coin.Coins              `json:"fee"`
-	FeeValue      int64                   `json:"feeValue"`
 	FeePayer      string                  `json:"feePayer"`
 	FeeGranter    string                  `json:"feeGranter"`
 	GasWanted     int                     `json:"gasWanted"`
