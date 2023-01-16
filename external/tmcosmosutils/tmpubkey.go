@@ -309,6 +309,10 @@ func ParseSenderAddressFromMsgEvent(msgEvent event_usecase.MsgEvent) string {
 		rgx := regexp.MustCompile(`ValidatorAddr:"([a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
 		return strings.ToLower(rs[1])
+	} else if strings.Contains(msg, "ValidatorAddress:") {
+		rgx := regexp.MustCompile(`ValidatorAddress:"([a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return strings.ToLower(rs[1])
 	}
 	return "cannot parse sender address from msg event"
 }
