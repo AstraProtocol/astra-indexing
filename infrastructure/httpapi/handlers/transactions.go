@@ -76,8 +76,8 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 				httpapi.Success(ctx, transaction)
 				return
 			}
-			transactionEvmResp.Result.TransactionFee = transaction.Fee.AmountOf("aastra").BigInt()
-			httpapi.Success(ctx, transactionEvmResp)
+			transactionEvmResp.Result.TransactionFee = transaction.Fee.AmountOf("aastra").BigInt().String()
+			httpapi.Success(ctx, transactionEvmResp.Result)
 			return
 		} else {
 			go handler.blockscoutClient.GetDetailEvmTxByCosmosTxHashAsync(hashParam, transactionEvmRespChan)
@@ -96,8 +96,8 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 				httpapi.Success(ctx, transaction)
 				return
 			}
-			transactionEvmResp.Result.TransactionFee = transaction.Fee.AmountOf("aastra").BigInt()
-			httpapi.Success(ctx, transactionEvmResp)
+			transactionEvmResp.Result.TransactionFee = transaction.Fee.AmountOf("aastra").BigInt().String()
+			httpapi.Success(ctx, transactionEvmResp.Result)
 			return
 		}
 	} else {

@@ -1,8 +1,6 @@
 package blockscout
 
 import (
-	"math/big"
-
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 )
 
@@ -52,7 +50,7 @@ type TransactionEvm struct {
 	GasLimit                     string          `json:"gasLimit"`
 	GasPrice                     string          `json:"gasPrice"`
 	GasUsed                      string          `json:"gasUsed"`
-	TransactionFee               *big.Int        `json:"transactionFee"`
+	TransactionFee               string          `json:"transactionFee"`
 	MaxFeePerGas                 string          `json:"maxFeePerGas"`
 	MaxPriorityFeePerGas         string          `json:"maxPriorityFeePerGas"`
 	Input                        string          `json:"input"`
