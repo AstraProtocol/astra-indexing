@@ -448,9 +448,9 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 		senderAddress := tmcosmosutils.ParseSenderAddressFromMsgEvent(msgEvent)
 
 		// Convert fees unit from aastra to microAstra
-		dividend := big.NewFloat(0).SetInt(big.NewInt(0).Exp(big.NewInt(10), big.NewInt(12), nil))
+		divisor := big.NewFloat(0).SetInt(big.NewInt(0).Exp(big.NewInt(10), big.NewInt(12), nil))
 		microAstraFees := big.NewFloat(0).SetInt(tx.Fee.AmountOf("aastra").BigInt())
-		microAstraFees = microAstraFees.Quo(microAstraFees, dividend)
+		microAstraFees = microAstraFees.Quo(microAstraFees, divisor)
 		fees, _ := microAstraFees.Float64()
 
 		// Calculate account gas used total
