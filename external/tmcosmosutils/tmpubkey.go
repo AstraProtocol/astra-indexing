@@ -277,32 +277,36 @@ func DecodeAddressToHex(text string) (string, []byte, error) {
 
 func ParseSenderAddressFromMsgEvent(msgEvent event_usecase.MsgEvent) string {
 	msg := msgEvent.String()
-	if strings.Contains(msg, "FromAddress") {
+	if strings.Contains(msg, "FromAddress:") {
 		rgx := regexp.MustCompile(`FromAddress:"([a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
 		return strings.ToLower(rs[1])
-	} else if strings.Contains(msg, "From") {
+	} else if strings.Contains(msg, "From:") {
 		rgx := regexp.MustCompile(`From:"(0x[a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
 		return strings.ToLower(rs[1])
-	} else if strings.Contains(msg, "Grantee") {
+	} else if strings.Contains(msg, "Grantee:") {
 		rgx := regexp.MustCompile(`Grantee:"([a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
 		return strings.ToLower(rs[1])
-	} else if strings.Contains(msg, "DelegatorAddress") {
+	} else if strings.Contains(msg, "DelegatorAddress:") {
 		rgx := regexp.MustCompile(`DelegatorAddress:"([a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
 		return strings.ToLower(rs[1])
-	} else if strings.Contains(msg, "ProposerAddress") {
+	} else if strings.Contains(msg, "ProposerAddress:") {
 		rgx := regexp.MustCompile(`ProposerAddress:"([a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
 		return strings.ToLower(rs[1])
-	} else if strings.Contains(msg, "Depositor") {
+	} else if strings.Contains(msg, "Depositor:") {
 		rgx := regexp.MustCompile(`Depositor:"([a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
 		return strings.ToLower(rs[1])
-	} else if strings.Contains(msg, "Voter") {
+	} else if strings.Contains(msg, "Voter:") {
 		rgx := regexp.MustCompile(`Voter:"([a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		return strings.ToLower(rs[1])
+	} else if strings.Contains(msg, "ValidatorAddr:") {
+		rgx := regexp.MustCompile(`ValidatorAddr:"([a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
 		return strings.ToLower(rs[1])
 	}
