@@ -471,7 +471,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 					return fmt.Errorf("error incrementing total gas used of account: %w", err)
 				}
 
-				if err := accountGasUsedTotalView.Increment(senderAddress, int64(math.Round(fees))); err != nil {
+				if err := accountFeesTotalView.Increment(senderAddress, int64(math.Round(fees))); err != nil {
 					return fmt.Errorf("error incrementing total fees of account: %w", err)
 				}
 			} else {

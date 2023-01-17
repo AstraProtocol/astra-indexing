@@ -56,7 +56,7 @@ func NewTransaction(
 	}
 }
 
-func (_ *Transaction) GetEventsToListen() []string {
+func (*Transaction) GetEventsToListen() []string {
 	return append([]string{
 		event_usecase.BLOCK_CREATED,
 		event_usecase.TRANSACTION_CREATED,
