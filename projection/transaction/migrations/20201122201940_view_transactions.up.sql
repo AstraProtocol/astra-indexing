@@ -20,4 +20,4 @@ CREATE TABLE view_transactions (
     messages JSONB NOT NULL,
     PRIMARY KEY(id)
 );
-ALTER TABLE view_transactions ADD CONSTRAINT hash_unique UNIQUE (hash);
+ALTER TABLE view_transactions ADD CONSTRAINT transactions_hash_unique UNIQUE (hash);
