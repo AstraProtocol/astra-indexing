@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -27,6 +28,7 @@ type AccountTransactions struct {
 	accountTransactionsView      *account_transaction_view.AccountTransactions
 	accountTransactionsTotalView *account_transaction_view.AccountTransactionsTotal
 	accountGasUsedTotalView      *account_transaction_view.AccountGasUsedTotal
+	accountFeesTotalView         *account_transaction_view.AccountFeesTotal
 }
 
 func NewAccountTransactions(
@@ -45,6 +47,7 @@ func NewAccountTransactions(
 		account_transaction_view.NewAccountTransactions(rdbHandle),
 		account_transaction_view.NewAccountTransactionsTotal(rdbHandle),
 		account_transaction_view.NewAccountGasUsedTotal(rdbHandle),
+		account_transaction_view.NewAccountFeesTotal(rdbHandle),
 	}
 }
 
@@ -84,6 +87,13 @@ func (handler *AccountTransactions) GetCounters(ctx *fasthttp.RequestCtx) {
 	totalGasUsed, err := handler.accountGasUsedTotalView.Total.FindBy(strings.ToLower(blockscoutSearchParam))
 	if err == nil && addressCounter.Type != "contractaddress" {
 		addressCounter.GasUsageCount = totalGasUsed
+	}
+
+	totalFees, err := handler.accountFeesTotalView.Total.FindBy(strings.ToLower(blockscoutSearchParam))
+	if err == nil {
+		// Convert fees unit from microAstra to Astra
+		fees := float64(totalFees) / math.Pow(10, 6)
+		addressCounter.FeesCount = fees
 	}
 
 	if addressCounter.Type == "" {

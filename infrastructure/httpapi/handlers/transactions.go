@@ -62,6 +62,12 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 		if evm_utils.IsHexTx(hashParam) {
 			go handler.blockscoutClient.GetDetailEvmTxByEvmTxHashAsync(hashParam, transactionEvmRespChan)
 			transaction, err := handler.transactionsView.FindByEvmHash(hashParam)
+			transactionEvmResp := <-transactionEvmRespChan
+			if transactionEvmResp.Status == "0" || transactionEvmResp.Status == "" {
+				httpapi.Success(ctx, transaction)
+				return
+			}
+
 			if err != nil {
 				if errors.Is(err, rdb.ErrNoRows) {
 					httpapi.NotFound(ctx)
@@ -71,17 +77,19 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 				httpapi.InternalServerError(ctx)
 				return
 			}
-			transactionEvmResp := <-transactionEvmRespChan
-			if transactionEvmResp.Status == "0" || transactionEvmResp.Status == "" {
-				httpapi.Success(ctx, transaction)
-				return
-			}
+
 			transactionEvmResp.Result.TransactionFee = transaction.Fee.AmountOf("aastra").BigInt().String()
 			httpapi.Success(ctx, transactionEvmResp.Result)
 			return
 		} else {
 			go handler.blockscoutClient.GetDetailEvmTxByCosmosTxHashAsync(hashParam, transactionEvmRespChan)
 			transaction, err := handler.transactionsView.FindByHash(hashParam)
+			transactionEvmResp := <-transactionEvmRespChan
+			if transactionEvmResp.Status == "0" || transactionEvmResp.Status == "" {
+				httpapi.Success(ctx, transaction)
+				return
+			}
+
 			if err != nil {
 				if errors.Is(err, rdb.ErrNoRows) {
 					httpapi.NotFound(ctx)
@@ -91,11 +99,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 				httpapi.InternalServerError(ctx)
 				return
 			}
-			transactionEvmResp := <-transactionEvmRespChan
-			if transactionEvmResp.Status == "0" || transactionEvmResp.Status == "" {
-				httpapi.Success(ctx, transaction)
-				return
-			}
+
 			transactionEvmResp.Result.TransactionFee = transaction.Fee.AmountOf("aastra").BigInt().String()
 			httpapi.Success(ctx, transactionEvmResp.Result)
 			return
