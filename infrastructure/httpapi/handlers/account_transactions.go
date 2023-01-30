@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/hex"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 
@@ -92,7 +91,7 @@ func (handler *AccountTransactions) GetCounters(ctx *fasthttp.RequestCtx) {
 	totalFees, err := handler.accountFeesTotalView.Total.FindBy(strings.ToLower(blockscoutSearchParam))
 	if err == nil {
 		// Convert fees unit from microAstra to Astra
-		fees := float64(totalFees) / math.Pow(10, 6)
+		fees := float64(totalFees) / 1000000
 		addressCounter.FeesCount = fees
 	}
 

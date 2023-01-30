@@ -453,7 +453,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 		microAstraFees = microAstraFees.Quo(microAstraFees, divisor)
 		fees, _ := microAstraFees.Float64()
 
-		// Calculate account gas used total
+		// Calculate account gas used and account fees total
 		if tmcosmosutils.IsValidCosmosAddress(senderAddress) {
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(senderAddress)
 			address := "0x" + hex.EncodeToString(converted)
