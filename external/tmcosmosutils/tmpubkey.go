@@ -322,7 +322,5 @@ func ParseSenderAddressFromMsgEvent(msgEvent event_usecase.MsgEvent) string {
 		rs := rgx.FindStringSubmatch(msg)
 		return strings.ToLower(rs[1])
 	}
-	println("CHECK")
-	println(msg)
 	return "cannot parse sender address from msg event"
 }
