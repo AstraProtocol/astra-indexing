@@ -192,7 +192,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 			}
 		})
 
-		s.AddFunc("@every 0h0m1s", func() {
+		s.AddFunc("59 59 0-23 * * *", func() {
 			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
