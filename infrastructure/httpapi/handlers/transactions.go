@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
@@ -58,50 +60,35 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	if string(ctx.QueryArgs().Peek("type")) == "evm" {
-		transactionEvmRespChan := make(chan blockscout_infrastructure.TxResp)
 		if evm_utils.IsHexTx(hashParam) {
-			go handler.blockscoutClient.GetDetailEvmTxByEvmTxHashAsync(hashParam, transactionEvmRespChan)
-			transaction, err := handler.transactionsView.FindByEvmHash(hashParam)
-			transactionEvmResp := <-transactionEvmRespChan
-			if transactionEvmResp.Status == "0" || transactionEvmResp.Status == "" {
-				httpapi.Success(ctx, transaction)
-				return
-			}
-
+			transaction, err := handler.blockscoutClient.GetDetailEvmTxByEvmTxHash(hashParam)
 			if err != nil {
-				if errors.Is(err, rdb.ErrNoRows) {
-					httpapi.NotFound(ctx)
+				if strings.Contains(fmt.Sprint(err), blockscout_infrastructure.TX_NOT_FOUND) {
+					ctx.QueryArgs().Del("type")
+					handler.FindByHash(ctx)
+					return
+				} else {
+					handler.logger.Errorf("error parsing tx response from blockscout: %v", err)
+					httpapi.InternalServerError(ctx)
 					return
 				}
-				handler.logger.Errorf("error finding transactions by hash: %v", err)
-				httpapi.InternalServerError(ctx)
-				return
 			}
-
-			transactionEvmResp.Result.TransactionFee = transaction.Fee.AmountOf("aastra").BigInt().String()
-			httpapi.Success(ctx, transactionEvmResp.Result)
+			httpapi.Success(ctx, transaction)
 			return
 		} else {
-			go handler.blockscoutClient.GetDetailEvmTxByCosmosTxHashAsync(hashParam, transactionEvmRespChan)
-			transaction, err := handler.transactionsView.FindByHash(hashParam)
-			transactionEvmResp := <-transactionEvmRespChan
-			if transactionEvmResp.Status == "0" || transactionEvmResp.Status == "" {
-				httpapi.Success(ctx, transaction)
-				return
-			}
-
+			transaction, err := handler.blockscoutClient.GetDetailEvmTxByCosmosTxHash(hashParam)
 			if err != nil {
-				if errors.Is(err, rdb.ErrNoRows) {
-					httpapi.NotFound(ctx)
+				if strings.Contains(fmt.Sprint(err), blockscout_infrastructure.TX_NOT_FOUND) {
+					ctx.QueryArgs().Del("type")
+					handler.FindByHash(ctx)
+					return
+				} else {
+					handler.logger.Errorf("error parsing tx response from blockscout: %v", err)
+					httpapi.InternalServerError(ctx)
 					return
 				}
-				handler.logger.Errorf("error finding transactions by hash: %v", err)
-				httpapi.InternalServerError(ctx)
-				return
 			}
-
-			transactionEvmResp.Result.TransactionFee = transaction.Fee.AmountOf("aastra").BigInt().String()
-			httpapi.Success(ctx, transactionEvmResp.Result)
+			httpapi.Success(ctx, transaction)
 			return
 		}
 	} else {
