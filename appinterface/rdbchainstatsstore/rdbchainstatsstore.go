@@ -3,9 +3,12 @@ package rdbchainstatsstore
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	"github.com/AstraProtocol/astra-indexing/bootstrap/config"
+	cosmosapp_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/cosmosapp"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 )
 
@@ -171,7 +174,7 @@ func (impl *RDbChainStatsStore) UpdateTotalGasUsedWithRDbHandle(currentDate int6
 	return nil
 }
 
-func (impl *RDbChainStatsStore) UpdateTotalFeeWithRDbHandle(currentDate int64) error {
+func (impl *RDbChainStatsStore) UpdateTotalFeeWithRDbHandle(currentDate int64, config *config.Config) error {
 	startTime := time.Now()
 	recordMethod := "UpdateTotalFeeWithRDbHandle"
 
@@ -179,16 +182,26 @@ func (impl *RDbChainStatsStore) UpdateTotalFeeWithRDbHandle(currentDate int64) e
 		return fmt.Errorf("error initializing chain stats store: %v", err)
 	}
 
-	feeCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(
-		"SUM(fee_value)",
-	).From(
-		"view_transactions",
-	).Where("block_time >= ?", currentDate)
+	cosmosAppClient := cosmosapp_infrastructure.NewHTTPClient(
+		config.CosmosApp.HTTPRPCUrl,
+		config.Blockchain.BondingDenom,
+	)
+
+	totalFeeBurnResp, err := cosmosAppClient.TotalFeeBurn()
+	if err != nil {
+		return fmt.Errorf("error getting total fee burn from api: %v", err)
+	}
+
+	totalFeeBurn, _ := new(big.Float).SetString(totalFeeBurnResp.TotalFeeBurn.Amount)
+	totalFeeUsed := new(big.Float).Mul(totalFeeBurn, new(big.Float).SetInt64(2))
+
+	result := new(big.Int)
+	totalFeeUsed.Int(result)
 
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
 		impl.table,
 	).Set(
-		"total_fee", impl.selectRDbHandle.StmtBuilder.SubQuery(feeCountSubQuery),
+		"total_fee", result.String(),
 	).Where(
 		"date_time = ?", currentDate,
 	).ToSql()

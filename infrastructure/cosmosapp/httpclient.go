@@ -772,6 +772,34 @@ func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	return tx, nil
 }
 
+func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurnResp, error) {
+	method := fmt.Sprintf(
+		"%s/%s/%s/%s",
+		"astra", "feeburn", "v1", "total_fee_burn",
+	)
+	rawRespBody, statusCode, err := client.rawRequest(
+		method,
+	)
+	if err != nil {
+		return cosmosapp_interface.TotalFeeBurnResp{}, err
+	}
+	if statusCode == 404 {
+		return cosmosapp_interface.TotalFeeBurnResp{}, cosmosapp_interface.ErrTotalFeeBurnNotFound
+	}
+	if statusCode != 200 {
+		rawRespBody.Close()
+		return cosmosapp_interface.TotalFeeBurnResp{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
+	}
+	defer rawRespBody.Close()
+
+	var totalFeeBurnResp cosmosapp_interface.TotalFeeBurnResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&totalFeeBurnResp); err != nil {
+		return cosmosapp_interface.TotalFeeBurnResp{}, err
+	}
+
+	return totalFeeBurnResp, nil
+}
+
 func ParseTxsResp(rawRespReader io.Reader) (*model.Tx, error) {
 	var txsResp TxsResp
 	if err := jsoniter.NewDecoder(rawRespReader).Decode(&txsResp); err != nil {

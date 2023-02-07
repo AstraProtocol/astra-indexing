@@ -192,13 +192,13 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 			}
 		})
 
-		s.AddFunc("59 59 0-23 * * *", func() {
+		s.AddFunc("@every 0h0m1s", func() {
 			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
 			time.Sleep(8 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalFeeWithRDbHandle(currentDate)
+				err = rdbTransactionStatsStore.UpdateTotalFeeWithRDbHandle(currentDate, a.config)
 				if err == nil {
 					break
 				}
