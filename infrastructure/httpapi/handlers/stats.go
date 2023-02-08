@@ -559,7 +559,9 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 
 		checkYear := totalFeesHistoryList[0].Year
 		checkMonth := totalFeesHistoryList[0].Month
-		totalTransactionFees := totalFeesHistoryList[0].TotalTransactionFees
+		checkTotalTransactionFees := totalFeesHistoryList[0].TotalTransactionFees
+
+		var totalTransactionFeesMonthly *big.Int
 
 		for index, totalFeesHistory := range totalFeesHistoryList {
 			// change checkYear
@@ -568,21 +570,31 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 			}
 
 			// add to result
-			if (index < length-1 && totalFeesHistory.Month != totalFeesHistoryList[index+1].Month) || index == length-1 {
+			if index < length-1 && totalFeesHistory.Month != totalFeesHistoryList[index+1].Month {
 				var totalFeesHistoryMonthly chainstats_view.TotalFeeHistory
 				totalFeesHistoryMonthly.Year = checkYear
 				totalFeesHistoryMonthly.Month = checkMonth
 
-				totalTransactionFees = big.NewInt(0).Sub(totalTransactionFees, totalFeesHistoryList[index+1].TotalTransactionFees)
-				totalFeesHistoryMonthly.TotalTransactionFees = totalTransactionFees
+				totalTransactionFeesMonthly = big.NewInt(0).Sub(
+					checkTotalTransactionFees, totalFeesHistoryList[index+1].TotalTransactionFees,
+				)
+
+				totalFeesHistoryMonthly.TotalTransactionFees = totalTransactionFeesMonthly
 
 				result = append(result, totalFeesHistoryMonthly)
 
-				if index == length-1 {
-					break
-				}
-
 				checkMonth = totalFeesHistoryList[index+1].Month
+				checkTotalTransactionFees = totalFeesHistoryList[index+1].TotalTransactionFees
+			}
+
+			if index == length-1 {
+				var totalFeesHistoryMonthly chainstats_view.TotalFeeHistory
+				totalFeesHistoryMonthly.Year = checkYear
+				totalFeesHistoryMonthly.Month = checkMonth
+
+				totalFeesHistoryMonthly.TotalTransactionFees = checkTotalTransactionFees
+
+				result = append(result, totalFeesHistoryMonthly)
 			}
 		}
 
