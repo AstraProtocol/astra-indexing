@@ -444,8 +444,12 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			txs[i].Messages = append(txs[i].Messages, tmpMessage)
 		}
 
-		msgEvent := txMsgs[tx.Hash][0]
-		senderAddress := tmcosmosutils.ParseSenderAddressFromMsgEvent(msgEvent)
+		var msgEvent event_usecase.MsgEvent
+		senderAddress := ""
+		if len(txMsgs[tx.Hash]) > 0 {
+			msgEvent = txMsgs[tx.Hash][0]
+			senderAddress = tmcosmosutils.ParseSenderAddressFromMsgEvent(msgEvent)
+		}
 
 		// Convert fees unit from aastra to microAstra
 		divisor := big.NewFloat(0).SetInt(big.NewInt(0).Exp(big.NewInt(10), big.NewInt(12), nil))
@@ -475,7 +479,9 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 					return fmt.Errorf("error incrementing total fees of account: %w", err)
 				}
 			} else {
-				projection.logger.Errorf("error message event: %v", msgEvent.String())
+				if msgEvent != nil {
+					projection.logger.Errorf("error message event: %v", msgEvent.String())
+				}
 				projection.logger.Errorf("error preparing total gas used and total fees of account: %v", senderAddress)
 			}
 		}

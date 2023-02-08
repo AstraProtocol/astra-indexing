@@ -224,7 +224,10 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 			txs[i].EvmHash = txEvmHash[tx.Hash]
 		}
 
-		fromAddress := tmcosmosutils.ParseSenderAddressFromMsgEvent(txMsgs[tx.Hash][0])
+		fromAddress := ""
+		if len(txMsgs[tx.Hash]) > 0 {
+			fromAddress = tmcosmosutils.ParseSenderAddressFromMsgEvent(txMsgs[tx.Hash][0])
+		}
 		if tmcosmosutils.IsValidCosmosAddress(fromAddress) {
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(fromAddress)
 			fromAddress = "0x" + hex.EncodeToString(converted)
