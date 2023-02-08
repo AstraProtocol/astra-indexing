@@ -601,14 +601,16 @@ func (view *ChainStats) GetTotalTransactionFees() (*big.Int, error) {
 	startTime := time.Now()
 	recordMethod := "GetTotalTransactionFees"
 
-	sql, _, err := view.rdbHandle.StmtBuilder.Select("CAST(SUM(total_fee) AS VARCHAR)").From(
+	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select("CAST(total_fee AS VARCHAR)").From(
 		"chain_stats",
+	).Where(
+		"date_time = ?", time.Now().Truncate(24*time.Hour).UnixNano(),
 	).ToSql()
 	if err != nil {
 		return big.NewInt(0), fmt.Errorf("error building total transactions fee selection sql: %v", err)
 	}
 
-	result := view.rdbHandle.QueryRow(sql)
+	result := view.rdbHandle.QueryRow(sql, sqlArgs[0])
 	var total string
 	if err := result.Scan(&total); err != nil {
 		return big.NewInt(0), fmt.Errorf("error scanning total transactions fee selection query: %v", err)
