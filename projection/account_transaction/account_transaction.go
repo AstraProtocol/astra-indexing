@@ -479,7 +479,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 					return fmt.Errorf("error incrementing total fees of account: %w", err)
 				}
 			} else {
-				if msgEvent != nil {
+				if msgEvent == nil {
 					projection.logger.Errorf("message event is empty")
 				} else {
 					projection.logger.Errorf("error message event: %v", msgEvent.String())
