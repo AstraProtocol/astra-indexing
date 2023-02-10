@@ -154,4 +154,7 @@ func RegisterEvents(registry *event.Registry) {
 
 	registry.Register(MSG_CREATE_CRAW_BACK_VESTING_ACCOUNT_CREATED, 1, DecodeMsgCreateClawbackVestingAccount)
 	registry.Register(MSG_CREATE_CRAW_BACK_VESTING_ACCOUNT_FAILED, 1, DecodeMsgCreateClawbackVestingAccount)
+
+	registry.Register(MSG_CLAW_BACK_CREATED, 1, DecodeMsgClawback)
+	registry.Register(MSG_CLAW_BACK_FAILED, 1, DecodeMsgClawback)
 }
