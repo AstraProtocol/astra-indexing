@@ -1,8 +1,9 @@
 package model
 
 import (
-	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 	"time"
+
+	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 )
 
 type MsgCreateClawbackVestingAccountParams struct {
