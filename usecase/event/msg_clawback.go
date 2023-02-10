@@ -23,7 +23,7 @@ func NewMsgClawback(msgCommonParams MsgCommonParams,
 	params model.MsgClawbackParams) *MsgClawback {
 	return &MsgClawback{
 		NewMsgBase(MsgBaseParams{
-			MsgName:         MSG_CREATE_CRAW_BACK_VESTING_ACCOUNT,
+			MsgName:         MSG_CLAW_BACK,
 			Version:         1,
 			MsgCommonParams: msgCommonParams,
 		}),
