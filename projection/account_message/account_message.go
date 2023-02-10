@@ -57,7 +57,7 @@ func NewAccountMessage(
 	}
 }
 
-func (_ *AccountMessage) GetEventsToListen() []string {
+func (*AccountMessage) GetEventsToListen() []string {
 	return append([]string{
 		event_usecase.BLOCK_CREATED,
 	}, event_usecase.MSG_EVENTS...)
@@ -860,6 +860,22 @@ func (projection *AccountMessage) HandleEvents(height int64, events []event_enti
 				Accounts: []string{
 					typedEvent.Params.FromAddress,
 					typedEvent.Params.ToAddress,
+				},
+			})
+		} else if typedEvent, ok := event.(*event_usecase.MsgClawback); ok {
+			accountMessages = append(accountMessages, view.AccountMessageRecord{
+				Row: view.AccountMessageRow{
+					BlockHeight:     height,
+					BlockHash:       "",
+					BlockTime:       utctime.UTCTime{},
+					TransactionHash: typedEvent.TxHash(),
+					Success:         typedEvent.TxSuccess(),
+					MessageIndex:    typedEvent.MsgIndex,
+					MessageType:     typedEvent.MsgType(),
+					Data:            typedEvent,
+				},
+				Accounts: []string{
+					typedEvent.Params.FunderAddress,
 				},
 			})
 		}

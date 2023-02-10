@@ -120,6 +120,7 @@ func ParseBlockTxsMsgToCommands(
 				"/cosmos.vesting.v1beta1.MsgCreateVestingAccount",
 				// ethermint evm
 				"/ethermint.evm.v1.MsgEthereumTx",
+				"/evmos.vesting.v1.MsgClawback",
 				"/evmos.vesting.v1.MsgCreateClawbackVestingAccount":
 				parser := parserManager.GetParser(utils.CosmosParserKey(msgType.(string)), utils.ParserBlockHeight(blockHeight))
 				msgCommands, possibleSignerAddresses = parser(utils.CosmosParserParams{
