@@ -74,7 +74,7 @@ func InitParsers(manager *utils.CosmosParserManager) {
 	// ethermint evm
 	manager.RegisterParser("/ethermint.evm.v1.MsgEthereumTx", BEGIN_BLOCK_HEIGHT, ParseMsgEthereumTx)
 	manager.RegisterParser("/evmos.vesting.v1.MsgCreateClawbackVestingAccount", BEGIN_BLOCK_HEIGHT, ParseMsgClawbackVestingAccount)
-	manager.RegisterParser("/evmos.vesting.v1.MsgClawback", BEGIN_BLOCK_HEIGHT, ParseMsgClawbackVestingAccount)
+	manager.RegisterParser("/evmos.vesting.v1.MsgClawback", BEGIN_BLOCK_HEIGHT, ParseMsgClawback)
 }
 
 func RegisterBreakingVersionParsers(manager *utils.CosmosParserManager) {
