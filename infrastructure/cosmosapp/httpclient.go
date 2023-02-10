@@ -4,12 +4,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"github.com/AstraProtocol/astra-indexing/external/cache"
-	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
-	"github.com/AstraProtocol/astra-indexing/usecase/coin"
-	"github.com/AstraProtocol/astra-indexing/usecase/model"
-	"github.com/hashicorp/go-retryablehttp"
-	jsoniter "github.com/json-iterator/go"
 	"io"
 	"net/http"
 	"net/url"
@@ -17,6 +11,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/AstraProtocol/astra-indexing/external/cache"
+	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
+	"github.com/AstraProtocol/astra-indexing/usecase/coin"
+	"github.com/AstraProtocol/astra-indexing/usecase/model"
+	"github.com/hashicorp/go-retryablehttp"
+	jsoniter "github.com/json-iterator/go"
 
 	cosmosapp_interface "github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 )
@@ -89,8 +90,9 @@ func baseRetryPolicy(resp *http.Response, err error) (bool, error) {
 	if resp.StatusCode == http.StatusTooManyRequests {
 		return true, nil
 	}
+
 	if resp.StatusCode == http.StatusNotFound {
-		return true, nil
+		return false, nil
 	}
 
 	// Check the response code. We retry on 500-range responses to allow
@@ -768,6 +770,34 @@ func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	}
 	_ = client.httpCache.Set(hash, tx, time.Minute)
 	return tx, nil
+}
+
+func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurnResp, error) {
+	method := fmt.Sprintf(
+		"%s/%s/%s/%s",
+		"astra", "feeburn", "v1", "total_fee_burn",
+	)
+	rawRespBody, statusCode, err := client.rawRequest(
+		method,
+	)
+	if err != nil {
+		return cosmosapp_interface.TotalFeeBurnResp{}, err
+	}
+	if statusCode == 404 {
+		return cosmosapp_interface.TotalFeeBurnResp{}, cosmosapp_interface.ErrTotalFeeBurnNotFound
+	}
+	if statusCode != 200 {
+		rawRespBody.Close()
+		return cosmosapp_interface.TotalFeeBurnResp{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
+	}
+	defer rawRespBody.Close()
+
+	var totalFeeBurnResp cosmosapp_interface.TotalFeeBurnResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&totalFeeBurnResp); err != nil {
+		return cosmosapp_interface.TotalFeeBurnResp{}, err
+	}
+
+	return totalFeeBurnResp, nil
 }
 
 func ParseTxsResp(rawRespReader io.Reader) (*model.Tx, error) {

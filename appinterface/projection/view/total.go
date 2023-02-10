@@ -173,6 +173,46 @@ func (view *Total) FindBy(identity string) (int64, error) {
 	return total, nil
 }
 
+func (view *Total) FindByList(identities []string) (map[string]int64, error) {
+	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
+		"identity",
+		"total",
+	).From(
+		view.tableName,
+	).Where(
+		sq.Eq{"identity": identities},
+	).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("error preparing list total selection SQL: %v", err)
+	}
+
+	rowsResult, err := view.rdbHandle.Query(sql, sqlArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("error executing list total selection SQL: %v: %w", err, rdb.ErrQuery)
+	}
+	defer rowsResult.Close()
+
+	result := make(map[string]int64)
+	for rowsResult.Next() {
+		var identity string
+		var total int64
+
+		if err = rowsResult.Scan(
+			&identity,
+			&total,
+		); err != nil {
+			if errors.Is(err, rdb.ErrNoRows) {
+				return nil, rdb.ErrNoRows
+			}
+			return nil, fmt.Errorf("error scanning list total selection SQL: %v: %w", err, rdb.ErrQuery)
+		}
+
+		result[identity] = total
+	}
+
+	return result, nil
+}
+
 func (view *Total) SumBy(identities []string) (int64, error) {
 	sql, sqlArgs, err := view.rdbHandle.StmtBuilder.Select(
 		"SUM(total)",

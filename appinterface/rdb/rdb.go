@@ -40,6 +40,12 @@ func NewStatementBuilder(builder sq.StatementBuilderType, placeholderFormat sq.P
 	}
 }
 
+// Implementing subquery
+func (StatementBuilder) SubQuery(sb sq.SelectBuilder) sq.Sqlizer {
+	sql, _, _ := sb.ToSql()
+	return sq.Expr("(" + sql + ")")
+}
+
 // Implementing Conn and Tx interface automatically fulfills Runner
 type Runner interface {
 	Exec(sql string, args ...interface{}) (ExecResult, error)

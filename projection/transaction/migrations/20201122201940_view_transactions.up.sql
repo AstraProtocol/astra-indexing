@@ -10,6 +10,7 @@ CREATE TABLE view_transactions (
     code INT NOT NULL,
     log VARCHAR NOT NULL,
     fee JSONB NOT NULL,
+    fee_value NUMERIC DEFAULT 0 NOT NULL,
     fee_payer VARCHAR NOT NULL,
     fee_granter VARCHAR NOT NULL,
     gas_wanted BIGINT NOT NULL,
@@ -19,3 +20,4 @@ CREATE TABLE view_transactions (
     messages JSONB NOT NULL,
     PRIMARY KEY(id)
 );
+ALTER TABLE view_transactions ADD CONSTRAINT transactions_hash_unique UNIQUE (hash);

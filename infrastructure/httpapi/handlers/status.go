@@ -15,6 +15,7 @@ import (
 
 	status_polling "github.com/AstraProtocol/astra-indexing/appinterface/polling"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
 	block_view "github.com/AstraProtocol/astra-indexing/projection/block/view"
 	chainstats_view "github.com/AstraProtocol/astra-indexing/projection/chainstats/view"
@@ -30,6 +31,7 @@ type StatusHandler struct {
 	logger applogger.Logger
 
 	cosmosAppClient       cosmosapp.Client
+	blockscoutClient      blockscout_infrastructure.HTTPClient
 	blocksView            *block_view.Blocks
 	chainStatsView        *chainstats_view.ChainStats
 	transactionsTotalView transaction_view.TransactionsTotal
@@ -41,13 +43,19 @@ type StatusHandler struct {
 	totalDelegatedLastUpdatedAt time.Time
 }
 
-func NewStatusHandler(logger applogger.Logger, cosmosAppClient cosmosapp.Client, rdbHandle *rdb.Handle) *StatusHandler {
+func NewStatusHandler(
+	logger applogger.Logger,
+	cosmosAppClient cosmosapp.Client,
+	blockscoutClient blockscout_infrastructure.HTTPClient,
+	rdbHandle *rdb.Handle,
+) *StatusHandler {
 	return &StatusHandler{
 		logger.WithFields(applogger.LogFields{
 			"module": "StatusHandler",
 		}),
 
 		cosmosAppClient,
+		blockscoutClient,
 		block_view.NewBlocks(rdbHandle),
 		chainstats_view.NewChainStats(rdbHandle),
 		transaction_view.NewTransactionsTotalView(rdbHandle),

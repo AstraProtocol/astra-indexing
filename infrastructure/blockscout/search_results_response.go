@@ -27,10 +27,9 @@ type TransactionResult struct {
 }
 
 type AddressResult struct {
-	AddressHash string          `json:"addressHash"`
-	Address     string          `json:"address"`
-	Name        string          `json:"name"`
-	InsertedAt  utctime.UTCTime `json:"insertedAt"`
+	AddressHash string `json:"addressHash"`
+	Address     string `json:"address"`
+	Name        string `json:"name"`
 }
 
 type ValidatorResult struct {
@@ -57,19 +56,36 @@ type BlockResult struct {
 	InsertedAt  utctime.UTCTime `json:"insertedAt"`
 }
 
+type ContractResult struct {
+	AddressHash string          `json:"addressHash"`
+	Name        string          `json:"name"`
+	InsertedAt  utctime.UTCTime `json:"insertedAt"`
+}
+
 func SearchResultsToAddresses(data []SearchResult) []AddressResult {
 	var addresses []AddressResult
 	for _, address_data := range data {
 		var address AddressResult
 		converted, _ := hex.DecodeString(address_data.AddressHash[2:])
-		address_bech32, _ := tmcosmosutils.EncodeHexToAddress("astra", converted)
-		address.Address = address_bech32
+		astraAddress, _ := tmcosmosutils.EncodeHexToAddress("astra", converted)
+		address.Address = astraAddress
 		address.AddressHash = address_data.AddressHash
 		address.Name = address_data.Name
-		address.InsertedAt = address_data.InsertedAt
 		addresses = append(addresses, address)
 	}
 	return addresses
+}
+
+func SearchResultsToContracts(data []SearchResult) []ContractResult {
+	var contracts []ContractResult
+	for _, contract_data := range data {
+		var contract ContractResult
+		contract.AddressHash = contract_data.AddressHash
+		contract.Name = contract_data.Name
+		contract.InsertedAt = contract_data.InsertedAt
+		contracts = append(contracts, contract)
+	}
+	return contracts
 }
 
 func SearchResultsToTokens(data []SearchResult) []TokenResult {

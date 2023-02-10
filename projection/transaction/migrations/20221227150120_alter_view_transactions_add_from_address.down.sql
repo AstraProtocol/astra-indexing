@@ -1,2 +1,2 @@
 ALTER TABLE view_transactions
-    DROP signers;
+    DROP from_address;

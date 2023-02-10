@@ -33,3 +33,4 @@ type Client interface {
 var ErrAccountNotFound = errors.New("account not found")
 var ErrAccountNoDelegation = errors.New("account has no delegation")
 var ErrProposalNotFound = errors.New("proposal not found")
+var ErrTotalFeeBurnNotFound = errors.New("total fee burn not found")

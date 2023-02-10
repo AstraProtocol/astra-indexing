@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX chain_stats_date_unique_index ON chain_stats (date_time);

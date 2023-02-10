@@ -43,3 +43,12 @@ type Tally struct {
 	No         string `json:"no"`
 	NoWithVeto string `json:"no_with_veto"`
 }
+
+type TotalFeeBurnResp struct {
+	TotalFeeBurn TotalFeeBurnValue `json:"total_fee_burn"`
+}
+
+type TotalFeeBurnValue struct {
+	Denom  string `json:"denom"`
+	Amount string `json:"amount"`
+}

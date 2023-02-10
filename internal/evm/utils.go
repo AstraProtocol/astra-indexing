@@ -17,8 +17,7 @@ type EvmUtils struct {
 }
 
 func NewEvmUtils() (EvmUtils, error) {
-	pwd, err := os.Getwd()
-	fmt.Println("hoank", pwd)
+	pwd, _ := os.Getwd()
 	db, err := pogreb.Open(pwd+"/4bytes.db", &pogreb.Options{FileSystem: fs.OSMMap})
 	if err != nil {
 		fmt.Println(err)
@@ -30,10 +29,13 @@ func NewEvmUtils() (EvmUtils, error) {
 }
 
 func (utils *EvmUtils) GetSignature(signature string) (string, error) {
-	key := signature
-	if strings.HasPrefix(key, "0x") {
-		key = key[2:]
-	}
+	/*
+		key := signature
+		if strings.HasPrefix(key, "0x") {
+			key = key[2:]
+		}
+	*/
+	key := strings.TrimPrefix(signature, "0x")
 	value, err := utils.db.Get([]byte(key))
 	if err != nil {
 		return "", err
@@ -60,8 +62,16 @@ func (utils *EvmUtils) GetSignatureFromData(base64Data string) string {
 	}
 }
 
-func IsEvmTxHash(evm_tx_hash string) bool {
-	match, err := regexp.MatchString("^0x[a-fA-F0-9]{64}$", evm_tx_hash)
+func IsHexTx(hex_tx string) bool {
+	match, err := regexp.MatchString("^0x[a-fA-F0-9]{64}$", hex_tx)
+	if err != nil {
+		return false
+	}
+	return match
+}
+
+func IsHexAddress(hex_address string) bool {
+	match, err := regexp.MatchString("^0x[a-fA-F0-9]{40}$", hex_address)
 	if err != nil {
 		return false
 	}

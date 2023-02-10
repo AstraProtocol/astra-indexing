@@ -1,9 +1,7 @@
 package routes
 
 import (
-	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
-	"github.com/AstraProtocol/astra-indexing/appinterface/tendermint"
 	"github.com/AstraProtocol/astra-indexing/bootstrap"
 	"github.com/AstraProtocol/astra-indexing/bootstrap/config"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
@@ -18,14 +16,12 @@ func InitRouteRegistry(
 	rdbConn rdb.Conn,
 	config *config.Config,
 ) bootstrap.RouteRegistry {
-	var cosmosAppClient cosmosapp.Client
-	cosmosAppClient = cosmosapp_infrastructure.NewHTTPClient(
+	cosmosAppClient := cosmosapp_infrastructure.NewHTTPClient(
 		config.CosmosApp.HTTPRPCUrl,
 		config.Blockchain.BondingDenom,
 	)
 
-	var tendermintClient tendermint.Client
-	tendermintClient = tendermint_infrastructure.NewHTTPClient(
+	tendermintClient := tendermint_infrastructure.NewHTTPClient(
 		config.TendermintApp.HTTPRPCUrl,
 		config.TendermintApp.StrictGenesisParsing,
 	)
@@ -71,6 +67,7 @@ func InitRouteRegistry(
 		logger,
 		rdbConn.ToHandle(),
 		cosmosAppClient,
+		*blockscoutClient,
 		config.Blockchain.ValidatorAddressPrefix,
 	)
 	routes = append(routes,
@@ -84,18 +81,90 @@ func InitRouteRegistry(
 			path:    "api/v1/accounts/{account}",
 			handler: accountsHandlers.FindBy,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/detail/{account}",
+			handler: accountsHandlers.GetDetailAddress,
+		},
 	)
 
-	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(logger, rdbConn.ToHandle())
+	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(
+		logger, rdbConn.ToHandle(),
+		cosmosAppClient,
+		*blockscoutClient,
+	)
 	routes = append(routes,
 		Route{
 			Method:  GET,
 			path:    "api/v1/accounts/{account}/transactions",
 			handler: accountTransactionsHandler.ListByAccount,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/{account}/counters",
+			handler: accountTransactionsHandler.GetCounters,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/get-top-addresses-balance",
+			handler: accountTransactionsHandler.GetTopAddressesBalance,
+		},
 	)
 
-	statusHandlers := httpapi_handlers.NewStatusHandler(logger, cosmosAppClient, rdbConn.ToHandle())
+	statsHandlers := httpapi_handlers.NewStatsHandler(
+		logger,
+		*blockscoutClient,
+		rdbConn.ToHandle(),
+	)
+	routes = append(routes,
+		Route{
+			Method:  GET,
+			path:    "api/v1/estimate-counted-info",
+			handler: statsHandlers.EstimateCounted,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/common-stats",
+			handler: statsHandlers.GetCommonStats,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/transactions-history-chart",
+			handler: statsHandlers.GetTransactionsHistoryChart,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/transactions-history",
+			handler: statsHandlers.GetTransactionsHistory,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/active-addresses-history",
+			handler: statsHandlers.GetActiveAddressesHistory,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/total-addresses-growth",
+			handler: statsHandlers.GetTotalAddressesGrowth,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/gas-used-history",
+			handler: statsHandlers.GetGasUsedHistory,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/total-fee-history",
+			handler: statsHandlers.GetTotalFeeHistory,
+		},
+	)
+
+	statusHandlers := httpapi_handlers.NewStatusHandler(
+		logger,
+		cosmosAppClient,
+		*blockscoutClient,
+		rdbConn.ToHandle(),
+	)
 	routes = append(routes,
 		Route{
 			Method:  GET,

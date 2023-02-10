@@ -13,7 +13,7 @@ import (
 	event_entity "github.com/AstraProtocol/astra-indexing/entity/event"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg/migrationhelper"
-	account_view "github.com/AstraProtocol/astra-indexing/projection/account/view"
+	"github.com/AstraProtocol/astra-indexing/projection/account/view"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 	event_usecase "github.com/AstraProtocol/astra-indexing/usecase/event"
 )
@@ -50,7 +50,7 @@ func NewAccount(
 }
 
 var (
-	NewAccountsView              = account_view.NewAccountsView
+	NewAccountsView              = view.NewAccountsView
 	UpdateLastHandledEventHeight = (*Account).UpdateLastHandledEventHeight
 )
 
@@ -105,7 +105,7 @@ func (projection *Account) HandleEvents(height int64, events []event_entity.Even
 	return nil
 }
 
-func (projection *Account) handleAccountCreatedEvent(accountsView account_view.Accounts, event *event_usecase.AccountTransferred) error {
+func (projection *Account) handleAccountCreatedEvent(accountsView view.Accounts, event *event_usecase.AccountTransferred) error {
 
 	recipienterr := projection.writeAccountInfo(accountsView, event.Recipient)
 	if recipienterr != nil {
@@ -138,7 +138,7 @@ func (projection *Account) getAccountBalances(targetAddress string) (coin.Coins,
 	return balanceInfo, nil
 }
 
-func (projection *Account) writeAccountInfo(accountsView account_view.Accounts, address string) error {
+func (projection *Account) writeAccountInfo(accountsView view.Accounts, address string) error {
 	accountInfo, err := projection.getAccountInfo(address)
 	if err != nil {
 		return err
@@ -160,7 +160,7 @@ func (projection *Account) writeAccountInfo(accountsView account_view.Accounts, 
 	if err != nil {
 		return err
 	}
-	if err := accountsView.Upsert(&account_view.AccountRow{
+	if err := accountsView.Upsert(&view.AccountRow{
 		Type:           accountType,
 		Address:        address,
 		MaybeName:      name,

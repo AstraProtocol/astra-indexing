@@ -5,8 +5,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"github.com/AstraProtocol/astra-indexing/external/cache"
-	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,6 +13,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/AstraProtocol/astra-indexing/external/cache"
+	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/tendermint"
 
@@ -120,7 +121,7 @@ func baseRetryPolicy(resp *http.Response, err error) (bool, error) {
 func (client *HTTPClient) Genesis() (*genesis.Genesis, error) {
 	var err error
 
-	rawRespBody, err := client.request("genesisResp")
+	rawRespBody, err := client.request("genesis")
 	if err != nil {
 		return nil, err
 	}

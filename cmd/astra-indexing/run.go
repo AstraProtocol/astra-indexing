@@ -146,6 +146,8 @@ func run(args []string) error {
 			)
 			app.InitHTTPAPIServer(routes.InitRouteRegistry(logger, app.GetRDbConn(), &config))
 
+			app.RunCronJobsStats(app.GetRDbConn().ToHandle())
+
 			app.Run()
 
 			return nil

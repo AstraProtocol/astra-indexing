@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strconv"
 
@@ -11,6 +12,7 @@ import (
 	event_entity "github.com/AstraProtocol/astra-indexing/entity/event"
 	projection_entity "github.com/AstraProtocol/astra-indexing/entity/projection"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg/migrationhelper"
 	transaction_view "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
@@ -54,7 +56,7 @@ func NewTransaction(
 	}
 }
 
-func (_ *Transaction) GetEventsToListen() []string {
+func (*Transaction) GetEventsToListen() []string {
 	return append([]string{
 		event_usecase.BLOCK_CREATED,
 		event_usecase.TRANSACTION_CREATED,
@@ -221,6 +223,20 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 			txs[i].Messages = append(txs[i].Messages, tmpMessage)
 			txs[i].EvmHash = txEvmHash[tx.Hash]
 		}
+
+		fromAddress := ""
+		if len(txMsgs[tx.Hash]) > 0 {
+			fromAddress = tmcosmosutils.ParseSenderAddressFromMsgEvent(txMsgs[tx.Hash][0])
+		}
+		if tmcosmosutils.IsValidCosmosAddress(fromAddress) {
+			_, converted, _ := tmcosmosutils.DecodeAddressToHex(fromAddress)
+			fromAddress = "0x" + hex.EncodeToString(converted)
+		} else {
+			if !evmUtil.IsHexAddress(fromAddress) {
+				fromAddress = ""
+			}
+		}
+		txs[i].FromAddress = fromAddress
 	}
 	if insertErr := transactionsView.InsertAll(txs); insertErr != nil {
 		return fmt.Errorf("error inserting transaction into view: %v", insertErr)

@@ -98,3 +98,7 @@ const (
 	PAGINATION_OFFSET string = "offset"
 	// PAGINATION_CURSOR
 )
+
+const (
+	MAX_ELEMENTS int64 = 50000
+)

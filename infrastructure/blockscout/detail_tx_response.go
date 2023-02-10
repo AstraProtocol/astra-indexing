@@ -1,6 +1,8 @@
 package blockscout
 
-import "github.com/AstraProtocol/astra-indexing/external/utctime"
+import (
+	"github.com/AstraProtocol/astra-indexing/external/utctime"
+)
 
 type Log struct {
 	Address     string   `json:"address"`
@@ -37,14 +39,18 @@ type TransactionEvm struct {
 	Error                        string          `json:"error"`
 	RevertReason                 string          `json:"revertReason"`
 	CreatedContractAddressHash   string          `json:"createdContractAddressHash"`
+	CreatedContractAddressName   string          `json:"createdContractAddressName"`
 	CreatedContractCodeIndexedAt utctime.UTCTime `json:"createdContractCodeIndexedAt"`
 	From                         string          `json:"from"`
+	FromAddressName              string          `json:"fromAddressName"`
 	To                           string          `json:"to"`
+	ToAddressName                string          `json:"toAddressName"`
 	Value                        string          `json:"value"`
 	CumulativeGasUsed            string          `json:"cumulativeGasUsed"`
 	GasLimit                     string          `json:"gasLimit"`
 	GasPrice                     string          `json:"gasPrice"`
 	GasUsed                      string          `json:"gasUsed"`
+	TransactionFee               string          `json:"transactionFee"`
 	MaxFeePerGas                 string          `json:"maxFeePerGas"`
 	MaxPriorityFeePerGas         string          `json:"maxPriorityFeePerGas"`
 	Input                        string          `json:"input"`

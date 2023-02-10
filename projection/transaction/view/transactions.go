@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/jackc/pgtype"
 
 	pagination_interface "github.com/AstraProtocol/astra-indexing/appinterface/pagination"
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
@@ -62,10 +63,12 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 				"code",
 				"log",
 				"fee",
+				"fee_value",
 				"fee_payer",
 				"fee_granter",
 				"gas_wanted",
 				"gas_used",
+				"from_address",
 				"memo",
 				"timeout_height",
 				"messages",
@@ -86,6 +89,8 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 				"error JSON marshalling block transation fee for insertion: %v: %w", marshalErr, rdb.ErrBuildSQLStmt,
 			)
 		}
+		var feeValue pgtype.Numeric
+		feeValue.Set(transaction.Fee.AmountOf("aastra").String())
 
 		var signersJSON string
 		if signersJSON, marshalErr = json.MarshalToString(transaction.Signers); marshalErr != nil {
@@ -105,10 +110,12 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 			transaction.Code,
 			transaction.Log,
 			feeJSON,
+			feeValue,
 			transaction.FeePayer,
 			transaction.FeeGranter,
 			transaction.GasWanted,
 			transaction.GasUsed,
+			transaction.FromAddress,
 			transaction.Memo,
 			transaction.TimeoutHeight,
 			transactionMessagesJSON,
@@ -154,15 +161,17 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 		"code",
 		"log",
 		"fee",
+		"fee_value",
 		"fee_payer",
 		"fee_granter",
 		"gas_wanted",
 		"gas_used",
+		"from_address",
 		"memo",
 		"timeout_height",
 		"messages",
 		"signers",
-	).Values("?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?").ToSql()
+	).Values("?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?").ToSql()
 	if err != nil {
 		return fmt.Errorf("error building block transactions insertion sql: %v: %w", err, rdb.ErrBuildSQLStmt)
 	}
@@ -176,6 +185,9 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 	if feeJSON, err = json.MarshalToString(transaction.Fee); err != nil {
 		return fmt.Errorf("error JSON marshalling block transation fee for insertion: %v: %w", err, rdb.ErrBuildSQLStmt)
 	}
+
+	var feeValue pgtype.Numeric
+	feeValue.Set(transaction.Fee.AmountOf("aastra").String())
 
 	var signersJSON string
 	if signersJSON, err = json.MarshalToString(transaction.Signers); err != nil {
@@ -193,10 +205,12 @@ func (transactionsView *BlockTransactionsView) Insert(transaction *TransactionRo
 		transaction.Code,
 		transaction.Log,
 		feeJSON,
+		feeValue,
 		transaction.FeePayer,
 		transaction.FeeGranter,
 		transaction.GasWanted,
 		transaction.GasUsed,
+		transaction.FromAddress,
 		transaction.Memo,
 		transaction.TimeoutHeight,
 		transactionMessagesJSON,
@@ -526,7 +540,7 @@ func (transactionsView *BlockTransactionsView) Search(keyword string) ([]Transac
 	var sql string
 	var sqlArgs []interface{}
 	var err error
-	if evm_utils.IsEvmTxHash(keyword) {
+	if evm_utils.IsHexTx(keyword) {
 		keyword = strings.ToLower(keyword)
 		sql, sqlArgs, err = transactionsView.rdb.StmtBuilder.Select(
 			"block_height",
@@ -680,6 +694,7 @@ type TransactionRow struct {
 	FeeGranter    string                  `json:"feeGranter"`
 	GasWanted     int                     `json:"gasWanted"`
 	GasUsed       int                     `json:"gasUsed"`
+	FromAddress   string                  `json:"fromAddress"`
 	Memo          string                  `json:"memo"`
 	TimeoutHeight int64                   `json:"timeoutHeight"`
 	Messages      []TransactionRowMessage `json:"messages"`

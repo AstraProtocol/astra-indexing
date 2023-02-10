@@ -1,12 +1,16 @@
 package handlers
 
 import (
+	"encoding/hex"
 	"errors"
+	"strconv"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
+	status_polling "github.com/AstraProtocol/astra-indexing/appinterface/polling"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/primptr"
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
+	evm_utils "github.com/AstraProtocol/astra-indexing/internal/evm"
 	validator_view "github.com/AstraProtocol/astra-indexing/projection/validator/view"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 
@@ -14,6 +18,7 @@ import (
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
 	account_view "github.com/AstraProtocol/astra-indexing/projection/account/view"
 )
@@ -21,9 +26,11 @@ import (
 type Accounts struct {
 	logger applogger.Logger
 
-	accountsView   account_view.Accounts
-	validatorsView *validator_view.Validators
-	cosmosClient   cosmosapp.Client
+	accountsView     account_view.Accounts
+	validatorsView   *validator_view.Validators
+	cosmosClient     cosmosapp.Client
+	blockscoutClient blockscout_infrastructure.HTTPClient
+	statusView       *status_polling.Status
 
 	validatorAddressPrefix string
 }
@@ -32,6 +39,7 @@ func NewAccounts(
 	logger applogger.Logger,
 	rdbHandle *rdb.Handle,
 	cosmosClient cosmosapp.Client,
+	blockscoutClient blockscout_infrastructure.HTTPClient,
 	validatorAddressPrefix string,
 ) *Accounts {
 	return &Accounts{
@@ -42,9 +50,80 @@ func NewAccounts(
 		account_view.NewAccountsView(rdbHandle),
 		validator_view.NewValidators(rdbHandle),
 		cosmosClient,
+		blockscoutClient,
+		status_polling.NewStatus(rdbHandle),
 
 		validatorAddressPrefix,
 	}
+}
+
+func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
+	accountParam, accountParamOk := URLValueGuard(ctx, handler.logger, "account")
+	if !accountParamOk {
+		return
+	}
+
+	addressRespChan := make(chan blockscout_infrastructure.AddressResp)
+
+	// Using simultaneously blockscout get address detail api
+	var addressHash string
+	if evm_utils.IsHexAddress(accountParam) {
+		addressHash = accountParam
+		converted, _ := hex.DecodeString(accountParam[2:])
+		accountParam, _ = tmcosmosutils.EncodeHexToAddress("astra", converted)
+	} else {
+		if tmcosmosutils.IsValidCosmosAddress(accountParam) {
+			_, converted, _ := tmcosmosutils.DecodeAddressToHex(accountParam)
+			addressHash = "0x" + hex.EncodeToString(converted)
+		}
+	}
+	go handler.blockscoutClient.GetDetailAddressByAddressHashAsync(addressHash, addressRespChan)
+
+	info := AccountInfo{
+		Balance: coin.NewEmptyCoins(),
+	}
+
+	if balance, queryErr := handler.cosmosClient.Balances(accountParam); queryErr != nil {
+		handler.logger.Errorf("error fetching account balance: %v", queryErr)
+		httpapi.InternalServerError(ctx)
+		return
+	} else {
+		info.Balance = balance
+	}
+
+	var addressDetail blockscout_infrastructure.Address
+
+	blockscoutAddressResp := <-addressRespChan
+	if blockscoutAddressResp.Status == "1" {
+		addressDetail = blockscoutAddressResp.Result
+		addressDetail.Balance = info.Balance.AmountOf("aastra").String()
+	} else {
+		rawLatestHeight, err := handler.statusView.FindBy("LatestHeight")
+		if err != nil {
+			handler.logger.Errorf("error fetching latest height: %v", err)
+			httpapi.InternalServerError(ctx)
+			return
+		}
+
+		var latestHeight int64 = 0
+		if rawLatestHeight != "" {
+			// TODO: Use big.Int
+			if n, err := strconv.ParseInt(rawLatestHeight, 10, 64); err != nil {
+				handler.logger.Errorf("error converting latest height from string to int64: %v", err)
+				httpapi.InternalServerError(ctx)
+				return
+			} else {
+				latestHeight = n
+			}
+		}
+
+		addressDetail.Balance = info.Balance.AmountOf("aastra").String()
+		addressDetail.LastBalanceUpdate = latestHeight
+		addressDetail.Type = "address"
+		addressDetail.Verified = false
+	}
+
+	httpapi.Success(ctx, addressDetail)
 }
 
 func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {

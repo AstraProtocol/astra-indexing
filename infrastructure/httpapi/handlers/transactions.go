@@ -60,7 +60,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	if string(ctx.QueryArgs().Peek("type")) == "evm" {
-		if evm_utils.IsEvmTxHash(hashParam) {
+		if evm_utils.IsHexTx(hashParam) {
 			transaction, err := handler.blockscoutClient.GetDetailEvmTxByEvmTxHash(hashParam)
 			if err != nil {
 				if strings.Contains(fmt.Sprint(err), blockscout_infrastructure.TX_NOT_FOUND) {
@@ -92,7 +92,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 			return
 		}
 	} else {
-		if evm_utils.IsEvmTxHash(hashParam) {
+		if evm_utils.IsHexTx(hashParam) {
 			transaction, err := handler.transactionsView.FindByEvmHash(hashParam)
 			if err != nil {
 				if errors.Is(err, rdb.ErrNoRows) {
@@ -154,7 +154,14 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 		httpapi.InternalServerError(ctx)
 		return
 	}
+
+	if paginationResult.Por.TotalRecord > pagination.MAX_ELEMENTS {
+		paginationResult.Por.TotalRecord = pagination.MAX_ELEMENTS
+		paginationResult.Por.TotalPage()
+	}
+
 	_ = handler.astraCache.Set(transactionPaginationKey,
 		NewTransactionsPaginationResult(blocks, *paginationResult), 2400*time.Millisecond)
+
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }

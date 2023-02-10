@@ -3,8 +3,11 @@ package account_transaction
 import (
 	"encoding/hex"
 	"fmt"
-	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
+	"math"
+	"math/big"
 	"strings"
+
+	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/rdbprojectionbase"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -61,7 +64,7 @@ func NewAccountTransaction(
 	}
 }
 
-func (_ *AccountTransaction) GetEventsToListen() []string {
+func (*AccountTransaction) GetEventsToListen() []string {
 	return append([]string{
 		event_usecase.BLOCK_CREATED,
 		event_usecase.TRANSACTION_CREATED,
@@ -107,6 +110,8 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 	accountTransactionsView := view.NewAccountTransactions(rdbTxHandle)
 	accountTransactionDataView := view.NewAccountTransactionData(rdbTxHandle)
 	accountTransactionsTotalView := view.NewAccountTransactionsTotal(rdbTxHandle)
+	accountGasUsedTotalView := view.NewAccountGasUsedTotal(rdbTxHandle)
+	accountFeesTotalView := view.NewAccountFeesTotal(rdbTxHandle)
 
 	var blockTime utctime.UTCTime
 	var blockHash string
@@ -438,6 +443,50 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			}
 			txs[i].Messages = append(txs[i].Messages, tmpMessage)
 		}
+
+		var msgEvent event_usecase.MsgEvent
+		senderAddress := ""
+		if len(txMsgs[tx.Hash]) > 0 {
+			msgEvent = txMsgs[tx.Hash][0]
+			senderAddress = tmcosmosutils.ParseSenderAddressFromMsgEvent(msgEvent)
+		}
+
+		// Convert fees unit from aastra to microAstra
+		divisor := big.NewFloat(0).SetInt(big.NewInt(0).Exp(big.NewInt(10), big.NewInt(12), nil))
+		microAstraFees := big.NewFloat(0).SetInt(tx.Fee.AmountOf("aastra").BigInt())
+		microAstraFees = microAstraFees.Quo(microAstraFees, divisor)
+		fees, _ := microAstraFees.Float64()
+
+		// Calculate account gas used and account fees total
+		if tmcosmosutils.IsValidCosmosAddress(senderAddress) {
+			_, converted, _ := tmcosmosutils.DecodeAddressToHex(senderAddress)
+			address := "0x" + hex.EncodeToString(converted)
+
+			if err := accountGasUsedTotalView.Increment(address, int64(tx.GasUsed)); err != nil {
+				return fmt.Errorf("error incrementing total gas used of account: %w", err)
+			}
+
+			if err := accountFeesTotalView.Increment(address, int64(math.Round(fees))); err != nil {
+				return fmt.Errorf("error incrementing total fees of account: %w", err)
+			}
+		} else {
+			if evmUtil.IsHexAddress(senderAddress) {
+				if err := accountGasUsedTotalView.Increment(senderAddress, int64(tx.GasUsed)); err != nil {
+					return fmt.Errorf("error incrementing total gas used of account: %w", err)
+				}
+
+				if err := accountFeesTotalView.Increment(senderAddress, int64(math.Round(fees))); err != nil {
+					return fmt.Errorf("error incrementing total fees of account: %w", err)
+				}
+			} else {
+				if msgEvent == nil {
+					projection.logger.Errorf("message event is empty")
+				} else {
+					projection.logger.Errorf("error message event: %v", msgEvent.String())
+				}
+				projection.logger.Errorf("error preparing total gas used and total fees of account: %v", senderAddress)
+			}
+		}
 	}
 	if insertErr := accountTransactionDataView.InsertAll(txs); insertErr != nil {
 		return fmt.Errorf("error inserting account transaction data into view: %v", insertErr)
@@ -466,7 +515,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 				}
 			}
 
-			// Calulate account/memo transaction total
+			// Calculate account/memo transaction total
 			if tx.Memo != "" {
 				accountWithMemo := row.Account + "/" + tx.Memo
 
