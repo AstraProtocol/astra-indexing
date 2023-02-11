@@ -2,6 +2,7 @@ package event
 
 import (
 	"bytes"
+
 	"github.com/AstraProtocol/astra-indexing/usecase/model"
 
 	entity_event "github.com/AstraProtocol/astra-indexing/entity/event"

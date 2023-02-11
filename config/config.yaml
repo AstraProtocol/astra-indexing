@@ -8,7 +8,7 @@ blockchain:
   con_node_pubkey_prefix: "astravalconspub"
 
 index_service:
-  enable: true
+  enable: false
   # Mode of index service, possible values: EVENT_STORE, TENDERMINT_DIRECT
   # EVENT_STORE mode: synced blocks are parsed to events and persist to event store. Projections will replay events from
   # event store.
@@ -38,7 +38,7 @@ index_service:
     v0_45_7: 0
   github_api:
     # For `username` and `token`, please generate your own `Personal access tokens` in Github.
-    username: "hoanguyenkh"
+    username: ""
     token: ""
     migration_repo_ref: ""
 
@@ -73,13 +73,6 @@ debug:
   pprof_listening_address: "0.0.0.0:3000"
 
 postgres:
-  host: "astra-safe-do-user-1468358-0.b.db.ondigitalocean.com"
-  port: 25060
-  username: "indexing"
-  # password can only be provided through CLI or Environment variable `DB_PASSWORD`
-  name: "indexing"
-  schema: "public"
-  ssl: true
   pool_max_conns: 100
   pool_min_conns: 0
   pool_max_conn_life_time: "1h"

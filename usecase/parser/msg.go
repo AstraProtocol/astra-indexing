@@ -120,6 +120,7 @@ func ParseBlockTxsMsgToCommands(
 				"/cosmos.vesting.v1beta1.MsgCreateVestingAccount",
 				// ethermint evm
 				"/ethermint.evm.v1.MsgEthereumTx",
+				"/evmos.vesting.v1.MsgClawback",
 				"/evmos.vesting.v1.MsgCreateClawbackVestingAccount":
 				parser := parserManager.GetParser(utils.CosmosParserKey(msgType.(string)), utils.ParserBlockHeight(blockHeight))
 				msgCommands, possibleSignerAddresses = parser(utils.CosmosParserParams{
@@ -2160,5 +2161,57 @@ func ParseMsgClawbackVestingAccount(
 		parserParams.MsgCommonParams,
 
 		msgCreateVestingAccountParams,
+	)}, possibleSignerAddresses
+}
+
+func ParseMsgClawback(
+	parserParams utils.CosmosParserParams,
+) ([]command.Command, []string) {
+	var rawMsg model.RawMsgClawback
+	if funderAddress, ok := parserParams.Msg["funder_address"]; ok {
+		rawMsg.FunderAddress = funderAddress.(string)
+	}
+	if accountAddress, ok := parserParams.Msg["account_address"]; ok {
+		rawMsg.AccountAddress = accountAddress.(string)
+	}
+	if destAddress, ok := parserParams.Msg["dest_address"]; ok {
+		rawMsg.AccountAddress = destAddress.(string)
+	}
+	if typeStr, ok := parserParams.Msg["@type"]; ok {
+		rawMsg.Type = typeStr.(string)
+	}
+
+	if !parserParams.MsgCommonParams.TxSuccess {
+		msgClawbackParams := model.MsgClawbackParams{
+			RawMsgClawback: rawMsg,
+		}
+
+		// Getting possible signer address from Msg
+		var possibleSignerAddresses []string
+		if msgClawbackParams.RawMsgClawback.FunderAddress != "" {
+			possibleSignerAddresses = append(possibleSignerAddresses, msgClawbackParams.RawMsgClawback.FunderAddress)
+		}
+
+		return []command.Command{command_usecase.NewCreateClawback(
+			parserParams.MsgCommonParams,
+
+			msgClawbackParams,
+		)}, possibleSignerAddresses
+	}
+
+	msgClawbackParams := model.MsgClawbackParams{
+		RawMsgClawback: rawMsg,
+	}
+
+	// Getting possible signer address from Msg
+	var possibleSignerAddresses []string
+	if msgClawbackParams.RawMsgClawback.FunderAddress != "" {
+		possibleSignerAddresses = append(possibleSignerAddresses, msgClawbackParams.RawMsgClawback.FunderAddress)
+	}
+
+	return []command.Command{command_usecase.NewCreateClawback(
+		parserParams.MsgCommonParams,
+
+		msgClawbackParams,
 	)}, possibleSignerAddresses
 }

@@ -289,6 +289,12 @@ func ParseSenderAddressFromMsgEvent(msgEvent event_usecase.MsgEvent) string {
 		if len(rs) > 1 {
 			return strings.ToLower(rs[1])
 		}
+	} else if strings.Contains(msg, "FunderAddress:") {
+		rgx := regexp.MustCompile(`FunderAddress:"([a-zA-Z0-9]+)"`)
+		rs := rgx.FindStringSubmatch(msg)
+		if len(rs) > 1 {
+			return strings.ToLower(rs[1])
+		}
 	} else if strings.Contains(msg, "FromAddress:") {
 		rgx := regexp.MustCompile(`FromAddress:"([a-zA-Z0-9]+)"`)
 		rs := rgx.FindStringSubmatch(msg)
