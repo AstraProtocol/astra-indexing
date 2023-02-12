@@ -91,6 +91,8 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 		info.Balance = balance
 	}
 
+	vestingBalances, _ := handler.cosmosClient.VestingBalances(accountParam)
+
 	var addressDetail blockscout_infrastructure.Address
 
 	blockscoutAddressResp := <-addressRespChan
@@ -122,6 +124,7 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 		addressDetail.Type = "address"
 		addressDetail.Verified = false
 	}
+	addressDetail.VestingBalances = vestingBalances
 
 	httpapi.Success(ctx, addressDetail)
 }
