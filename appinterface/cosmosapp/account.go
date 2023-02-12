@@ -67,3 +67,9 @@ type ClawbackVestingAccount struct {
 	LockupPeriod   []VestingPeriod `json:"lockup_period"`
 	VestingPeriods []VestingPeriod `json:"vesting_periods"`
 }
+
+type VestingBalances struct {
+	Locked   []VestingBalance `json:"locked"`
+	Unvested []VestingBalance `json:"unvested"`
+	Vested   []VestingBalance `json:"vested"`
+}

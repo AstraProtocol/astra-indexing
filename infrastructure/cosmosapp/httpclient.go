@@ -800,6 +800,40 @@ func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurnResp, 
 	return totalFeeBurnResp, nil
 }
 
+func (client *HTTPClient) VestingBalances(account string) (cosmosapp_interface.VestingBalances, error) {
+	method := fmt.Sprintf(
+		"%s/%s/%s/%s/%s",
+		"evmos", "vesting", "v1", "balances", account,
+	)
+	rawRespBody, statusCode, err := client.rawRequest(
+		method,
+	)
+
+	vestingBalancesEmpty := cosmosapp_interface.VestingBalances{}
+	vestingBalancesEmpty.Locked = []cosmosapp_interface.VestingBalance{}
+	vestingBalancesEmpty.Unvested = []cosmosapp_interface.VestingBalance{}
+	vestingBalancesEmpty.Vested = []cosmosapp_interface.VestingBalance{}
+
+	if err != nil {
+		return vestingBalancesEmpty, err
+	}
+	if statusCode == 404 {
+		return vestingBalancesEmpty, cosmosapp_interface.ErrTotalFeeBurnNotFound
+	}
+	if statusCode != 200 {
+		rawRespBody.Close()
+		return vestingBalancesEmpty, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
+	}
+	defer rawRespBody.Close()
+
+	var vestingBalances cosmosapp_interface.VestingBalances
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&vestingBalances); err != nil {
+		return cosmosapp_interface.VestingBalances{}, err
+	}
+
+	return vestingBalances, nil
+}
+
 func ParseTxsResp(rawRespReader io.Reader) (*model.Tx, error) {
 	var txsResp TxsResp
 	if err := jsoniter.NewDecoder(rawRespReader).Decode(&txsResp); err != nil {
