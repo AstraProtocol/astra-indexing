@@ -2175,7 +2175,7 @@ func ParseMsgClawback(
 		rawMsg.AccountAddress = accountAddress.(string)
 	}
 	if destAddress, ok := parserParams.Msg["dest_address"]; ok {
-		rawMsg.AccountAddress = destAddress.(string)
+		rawMsg.DestAddress = destAddress.(string)
 	}
 	if typeStr, ok := parserParams.Msg["@type"]; ok {
 		rawMsg.Type = typeStr.(string)
