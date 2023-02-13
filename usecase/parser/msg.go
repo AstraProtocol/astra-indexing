@@ -2188,8 +2188,8 @@ func ParseMsgClawback(
 
 		// Getting possible signer address from Msg
 		var possibleSignerAddresses []string
-		if msgClawbackParams.RawMsgClawback.FunderAddress != "" {
-			possibleSignerAddresses = append(possibleSignerAddresses, msgClawbackParams.RawMsgClawback.FunderAddress)
+		if msgClawbackParams.RawMsgClawback.AccountAddress != "" {
+			possibleSignerAddresses = append(possibleSignerAddresses, msgClawbackParams.RawMsgClawback.AccountAddress)
 		}
 
 		return []command.Command{command_usecase.NewCreateClawback(
@@ -2205,8 +2205,8 @@ func ParseMsgClawback(
 
 	// Getting possible signer address from Msg
 	var possibleSignerAddresses []string
-	if msgClawbackParams.RawMsgClawback.FunderAddress != "" {
-		possibleSignerAddresses = append(possibleSignerAddresses, msgClawbackParams.RawMsgClawback.FunderAddress)
+	if msgClawbackParams.RawMsgClawback.AccountAddress != "" {
+		possibleSignerAddresses = append(possibleSignerAddresses, msgClawbackParams.RawMsgClawback.AccountAddress)
 	}
 
 	return []command.Command{command_usecase.NewCreateClawback(
