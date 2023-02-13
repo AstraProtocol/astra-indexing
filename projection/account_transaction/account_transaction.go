@@ -409,7 +409,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.Grantee)
 
 		} else if typedEvent, ok := event.(*event_usecase.MsgClawback); ok {
-			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.FunderAddress)
+			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.AccountAddress)
 		} else if typedEvent, ok := event.(*event_usecase.MsgCreateVestingAccount); ok {
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.FromAddress)
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.ToAddress)
