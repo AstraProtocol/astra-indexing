@@ -3,8 +3,6 @@ package account_transaction
 import (
 	"encoding/hex"
 	"fmt"
-	"math"
-	"math/big"
 	"strings"
 
 	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
@@ -111,7 +109,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 	accountTransactionDataView := view.NewAccountTransactionData(rdbTxHandle)
 	accountTransactionsTotalView := view.NewAccountTransactionsTotal(rdbTxHandle)
 	accountGasUsedTotalView := view.NewAccountGasUsedTotal(rdbTxHandle)
-	accountFeesTotalView := view.NewAccountFeesTotal(rdbTxHandle)
+	// accountFeesTotalView := view.NewAccountFeesTotal(rdbTxHandle)
 
 	var blockTime utctime.UTCTime
 	var blockHash string
@@ -454,10 +452,12 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 		}
 
 		// Convert fees unit from aastra to microAstra
-		divisor := big.NewFloat(0).SetInt(big.NewInt(0).Exp(big.NewInt(10), big.NewInt(12), nil))
-		microAstraFees := big.NewFloat(0).SetInt(tx.Fee.AmountOf("aastra").BigInt())
-		microAstraFees = microAstraFees.Quo(microAstraFees, divisor)
-		fees, _ := microAstraFees.Float64()
+		/*
+			divisor := big.NewFloat(0).SetInt(big.NewInt(0).Exp(big.NewInt(10), big.NewInt(12), nil))
+			microAstraFees := big.NewFloat(0).SetInt(tx.Fee.AmountOf("aastra").BigInt())
+			microAstraFees = microAstraFees.Quo(microAstraFees, divisor)
+			fees, _ := microAstraFees.Float64()
+		*/
 
 		// Calculate account gas used and account fees total
 		if tmcosmosutils.IsValidCosmosAddress(senderAddress) {
@@ -468,18 +468,22 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 				return fmt.Errorf("error incrementing total gas used of account: %w", err)
 			}
 
-			if err := accountFeesTotalView.Increment(address, int64(math.Round(fees))); err != nil {
-				return fmt.Errorf("error incrementing total fees of account: %w", err)
-			}
+			/*
+				if err := accountFeesTotalView.Increment(address, int64(math.Round(fees))); err != nil {
+					return fmt.Errorf("error incrementing total fees of account: %w", err)
+				}
+			*/
 		} else {
 			if evmUtil.IsHexAddress(senderAddress) {
 				if err := accountGasUsedTotalView.Increment(senderAddress, int64(tx.GasUsed)); err != nil {
 					return fmt.Errorf("error incrementing total gas used of account: %w", err)
 				}
 
-				if err := accountFeesTotalView.Increment(senderAddress, int64(math.Round(fees))); err != nil {
-					return fmt.Errorf("error incrementing total fees of account: %w", err)
-				}
+				/*
+					if err := accountFeesTotalView.Increment(senderAddress, int64(math.Round(fees))); err != nil {
+						return fmt.Errorf("error incrementing total fees of account: %w", err)
+					}
+				*/
 			} else {
 				if msgEvent == nil {
 					projection.logger.Errorf("message event is empty")

@@ -88,12 +88,15 @@ func (handler *AccountTransactions) GetCounters(ctx *fasthttp.RequestCtx) {
 		addressCounter.GasUsageCount = totalGasUsed
 	}
 
-	totalFees, err := handler.accountFeesTotalView.Total.FindBy(strings.ToLower(blockscoutSearchParam))
-	if err == nil {
-		// Convert fees unit from microAstra to Astra
-		fees := float64(totalFees) / 1000000
-		addressCounter.FeesCount = fees
-	}
+	/*
+		totalFees, err := handler.accountFeesTotalView.Total.FindBy(strings.ToLower(blockscoutSearchParam))
+		if err == nil {
+			// Convert fees unit from microAstra to Astra
+			fees := float64(totalFees) / 1000000
+			addressCounter.FeesCount = fees
+		}
+	*/
+	addressCounter.FeesCount = 0
 
 	if addressCounter.Type == "" {
 		addressCounter.Type = "address"
