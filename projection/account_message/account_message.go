@@ -875,6 +875,7 @@ func (projection *AccountMessage) HandleEvents(height int64, events []event_enti
 					Data:            typedEvent,
 				},
 				Accounts: []string{
+					typedEvent.Params.FunderAddress,
 					typedEvent.Params.AccountAddress,
 				},
 			})
