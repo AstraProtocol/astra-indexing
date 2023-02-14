@@ -59,6 +59,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 	if !hashParamOk {
 		return
 	}
+	// handle if blockscout is disconnnected
 	if string(ctx.QueryArgs().Peek("type")) == "evm" {
 		if evm_utils.IsHexTx(hashParam) {
 			transaction, err := handler.blockscoutClient.GetDetailEvmTxByEvmTxHash(hashParam)
