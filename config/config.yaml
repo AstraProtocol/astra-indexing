@@ -65,7 +65,7 @@ cosmos_app:
   insecure: false
 
 blockscout_app:
-  http_rpc_url: "https://blockscout.astranaut.io"
+  http_rpc_url: "http://blockscout.tiki.services"
   insecure: false
 
 debug:
