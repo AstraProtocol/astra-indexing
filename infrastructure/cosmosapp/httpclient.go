@@ -746,6 +746,34 @@ func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, e
 	return tallyResp.Tally, nil
 }
 
+func (client *HTTPClient) DepositParams(id string) (cosmosapp_interface.Params, error) {
+	method := fmt.Sprintf(
+		"%s/%s/%s/%s/%s",
+		"cosmos", "gov", "v1beta1", "params", "deposit",
+	)
+	rawRespBody, statusCode, err := client.rawRequest(
+		method,
+	)
+	if err != nil {
+		return cosmosapp_interface.Params{}, err
+	}
+	if statusCode == 404 {
+		return cosmosapp_interface.Params{}, cosmosapp_interface.ErrProposalNotFound
+	}
+	if statusCode != 200 {
+		rawRespBody.Close()
+		return cosmosapp_interface.Params{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
+	}
+	defer rawRespBody.Close()
+
+	var tallyResp TallyResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&tallyResp); err != nil {
+		return cosmosapp_interface.Params{}, err
+	}
+
+	return tallyResp.Tally, nil
+}
+
 func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	txResult := model.Tx{}
 	err := client.httpCache.Get(hash, &txResult)

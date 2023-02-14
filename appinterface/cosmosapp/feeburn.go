@@ -1,6 +1,6 @@
 package cosmosapp
 
-type TotalFeeBurnResp struct {
+type TotalFeeBurn struct {
 	TotalFeeBurn BurnAmount `json:"total_fee_burn"`
 }
 
