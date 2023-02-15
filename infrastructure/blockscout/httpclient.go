@@ -26,8 +26,10 @@ const GET_DETAIL_EVM_TX_BY_EVM_TX_HASH = "/api/v1?module=transaction&action=gett
 const GET_DETAIL_ADDRESS_BY_ADDRESS_HASH = "/api/v1?module=account&action=getaddress&address="
 const GET_ADDRESS_COUNTERS = "/api/v1?module=account&action=getaddresscounters&address="
 const GET_TOP_ADDRESSES_BALANCE = "/api/v1?module=account&action=getTopAddressesBalance"
+const GET_LIST_TOKENS = "/api/v1?module=token&action=getListTokens"
 const GET_COMMON_STATS = "/api/v1/common-stats"
 const GET_SEARCH_RESULTS = "/token-autocomplete?q="
+const ETH_BLOCK_NUMBER = "/api/v1?module=block&action=eth_block_number"
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -378,4 +380,46 @@ func (client *HTTPClient) GetTopAddressesBalance(queryParams []string, mappingPa
 	}
 
 	return &topAddressesBalanceResp, nil
+}
+
+func (client *HTTPClient) EthBlockNumber() (*EthBlockNumber, error) {
+	rawRespBody, err := client.request(
+		client.getUrl(ETH_BLOCK_NUMBER, ""), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting eth block number from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var ethBlockNumber EthBlockNumber
+	if err := json.Unmarshal(respBody.Bytes(), &ethBlockNumber); err != nil {
+		client.logger.Errorf("error parsing eth block number from blockscout: %v", err)
+	}
+
+	return &ethBlockNumber, nil
+}
+
+func (client *HTTPClient) GetListTokens(queryParams []string, mappingParams map[string]string) (*ListTokenResp, error) {
+	rawRespBody, err := client.request(
+		client.getUrl(GET_LIST_TOKENS, ""), queryParams, mappingParams,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting list tokens from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var listTokenResp ListTokenResp
+	if err := json.Unmarshal(respBody.Bytes(), &listTokenResp); err != nil {
+		client.logger.Errorf("error parsing list token from blockscout: %v", err)
+	}
+
+	return &listTokenResp, nil
 }

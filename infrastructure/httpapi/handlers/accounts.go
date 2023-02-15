@@ -288,6 +288,63 @@ func (handler *Accounts) List(ctx *fasthttp.RequestCtx) {
 	httpapi.SuccessWithPagination(ctx, accounts, paginationResult)
 }
 
+func (handler *Accounts) GetListTokens(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GetListTokens"
+	// handle api's params
+	var err error
+	var page int64
+	var offset int64
+	page = blockscout_infrastructure.DEFAULT_PAGE
+	offset = blockscout_infrastructure.DEFAULT_OFFSET
+
+	queryParams := make([]string, 0)
+	mappingParams := make(map[string]string)
+
+	if string(ctx.QueryArgs().Peek("blockscout")) != "true" {
+		handler.logger.Error("invalid params")
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	if string(ctx.QueryArgs().Peek("page")) != "" {
+		page, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("page")), 10, 0)
+		if err != nil || page <= 0 {
+			handler.logger.Error("page param is invalid")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+			httpapi.InternalServerError(ctx)
+			return
+		}
+	}
+	queryParams = append(queryParams, "page")
+	mappingParams["page"] = strconv.FormatInt(page, 10)
+
+	if string(ctx.QueryArgs().Peek("offset")) != "" {
+		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("offset")), 10, 0)
+		if err != nil || offset <= 0 {
+			handler.logger.Error("offset param is invalid")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+			httpapi.InternalServerError(ctx)
+			return
+		}
+	}
+	queryParams = append(queryParams, "offset")
+	mappingParams["offset"] = strconv.FormatInt(offset, 10)
+	//
+
+	listTokensResp, err := handler.blockscoutClient.GetListTokens(queryParams, mappingParams)
+	if err != nil {
+		handler.logger.Errorf("error getting list tokens from blockscout: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.Success(ctx, listTokensResp)
+}
+
 type AccountInfo struct {
 	Type                string        `json:"type"`
 	Name                string        `json:"name"`

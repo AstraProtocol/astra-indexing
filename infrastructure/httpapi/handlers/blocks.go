@@ -11,6 +11,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/external/cache"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	block_view "github.com/AstraProtocol/astra-indexing/projection/block/view"
@@ -41,9 +42,10 @@ type Blocks struct {
 	blockEventsView               *blockevent_view.BlockEvents
 	validatorBlockCommitmentsView *validator_view.ValidatorBlockCommitments
 	astraCache                    *cache.AstraCache
+	blockscoutClient              blockscout_infrastructure.HTTPClient
 }
 
-func NewBlocks(logger applogger.Logger, rdbHandle *rdb.Handle) *Blocks {
+func NewBlocks(logger applogger.Logger, rdbHandle *rdb.Handle, blockscoutClient blockscout_infrastructure.HTTPClient) *Blocks {
 	return &Blocks{
 		logger.WithFields(applogger.LogFields{
 			"module": "BlocksHandler",
@@ -54,6 +56,7 @@ func NewBlocks(logger applogger.Logger, rdbHandle *rdb.Handle) *Blocks {
 		blockevent_view.NewBlockEvents(rdbHandle),
 		validator_view.NewValidatorBlockCommitments(rdbHandle),
 		cache.NewCache("blocks"),
+		blockscoutClient,
 	}
 }
 
@@ -139,6 +142,21 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
+}
+
+func (handler *Blocks) EthBlockNumber(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "EthBlockNumber"
+
+	ethBlockNumber, err := handler.blockscoutClient.EthBlockNumber()
+	if err != nil {
+		handler.logger.Errorf("error fetching eth block number: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.Success(ctx, ethBlockNumber)
 }
 
 func (handler *Blocks) ListTransactionsByHeight(ctx *fasthttp.RequestCtx) {

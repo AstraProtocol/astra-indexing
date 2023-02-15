@@ -44,12 +44,17 @@ func InitRouteRegistry(
 		},
 	)
 
-	blocksHandler := httpapi_handlers.NewBlocks(logger, rdbConn.ToHandle())
+	blocksHandler := httpapi_handlers.NewBlocks(logger, rdbConn.ToHandle(), *blockscoutClient)
 	routes = append(routes,
 		Route{
 			Method:  GET,
 			path:    "api/v1/blocks",
 			handler: blocksHandler.List,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/eth-block-number",
+			handler: blocksHandler.EthBlockNumber,
 		},
 		Route{
 			Method:  GET,
@@ -80,6 +85,11 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/accounts/{account}",
 			handler: accountsHandlers.FindBy,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/get-list-tokens",
+			handler: accountsHandlers.GetListTokens,
 		},
 		Route{
 			Method:  GET,
