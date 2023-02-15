@@ -106,7 +106,7 @@ func (handler *AccountTransactions) GetCounters(ctx *fasthttp.RequestCtx) {
 		addressCounter.Type = "address"
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, addressCounter)
 }
 
@@ -125,7 +125,7 @@ func (handler *AccountTransactions) GetTopAddressesBalance(ctx *fasthttp.Request
 
 	if string(ctx.QueryArgs().Peek("blockscout")) != "true" {
 		handler.logger.Error("invalid params")
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -134,7 +134,7 @@ func (handler *AccountTransactions) GetTopAddressesBalance(ctx *fasthttp.Request
 		page, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("page")), 10, 0)
 		if err != nil || page <= 0 {
 			handler.logger.Error("page param is invalid")
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -146,7 +146,7 @@ func (handler *AccountTransactions) GetTopAddressesBalance(ctx *fasthttp.Request
 		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("offset")), 10, 0)
 		if err != nil || offset <= 0 {
 			handler.logger.Error("offset param is invalid")
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -168,7 +168,7 @@ func (handler *AccountTransactions) GetTopAddressesBalance(ctx *fasthttp.Request
 	topAddressesBalanceResp, err := handler.blockscoutClient.GetTopAddressesBalance(queryParams, mappingParams)
 	if err != nil {
 		handler.logger.Errorf("error getting top addresses balance from blockscout: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -185,7 +185,7 @@ func (handler *AccountTransactions) GetTopAddressesBalance(ctx *fasthttp.Request
 	mappingAddressTotal, err := handler.accountTransactionsTotalView.Total.FindByList(identities)
 	if err != nil {
 		handler.logger.Errorf("error getting list total: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -198,7 +198,7 @@ func (handler *AccountTransactions) GetTopAddressesBalance(ctx *fasthttp.Request
 		}
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, topAddressesBalanceResp)
 }
 
@@ -208,14 +208,14 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 
 	pagination, err := httpapi.ParsePagination(ctx)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
 
 	account, accountOk := URLValueGuard(ctx, handler.logger, "account")
 	if !accountOk {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		return
 	}
 
@@ -247,11 +247,11 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 	)
 	if err != nil {
 		handler.logger.Errorf("error listing account transactions: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }

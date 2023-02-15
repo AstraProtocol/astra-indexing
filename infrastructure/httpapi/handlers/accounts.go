@@ -64,7 +64,7 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 	recordMethod := "GetDetailAddress"
 	accountParam, accountParamOk := URLValueGuard(ctx, handler.logger, "account")
 	if !accountParamOk {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		return
 	}
 
@@ -90,7 +90,7 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 
 	if balance, queryErr := handler.cosmosClient.Balances(accountParam); queryErr != nil {
 		handler.logger.Errorf("error fetching account balance: %v", queryErr)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	} else {
@@ -109,7 +109,7 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 		rawLatestHeight, err := handler.statusView.FindBy("LatestHeight")
 		if err != nil {
 			handler.logger.Errorf("error fetching latest height: %v", err)
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -119,7 +119,7 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 			// TODO: Use big.Int
 			if n, err := strconv.ParseInt(rawLatestHeight, 10, 64); err != nil {
 				handler.logger.Errorf("error converting latest height from string to int64: %v", err)
-				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 				httpapi.InternalServerError(ctx)
 				return
 			} else {
@@ -134,7 +134,7 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 	}
 	addressDetail.VestingBalances = vestingBalances
 
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, addressDetail)
 }
 
@@ -157,7 +157,7 @@ func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
 	}
 	account, err := handler.cosmosClient.Account(accountParam)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.NotFound(ctx)
 		return
 	}
@@ -170,7 +170,7 @@ func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
 
 	if balance, queryErr := handler.cosmosClient.Balances(accountParam); queryErr != nil {
 		handler.logger.Errorf("error fetching account balance: %v", queryErr)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	} else {
@@ -180,7 +180,7 @@ func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
 	if bondedBalance, queryErr := handler.cosmosClient.BondedBalance(accountParam); queryErr != nil {
 		if !errors.Is(queryErr, cosmosapp.ErrAccountNotFound) && !errors.Is(queryErr, cosmosapp.ErrAccountNoDelegation) {
 			handler.logger.Errorf("error fetching account bonded balance: %v", queryErr)
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -190,7 +190,7 @@ func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
 
 	if redelegatingBalance, queryErr := handler.cosmosClient.RedelegatingBalance(accountParam); queryErr != nil {
 		handler.logger.Errorf("error fetching account redelegating balance: %v", queryErr)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	} else {
@@ -199,7 +199,7 @@ func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
 
 	if unbondingBalance, queryErr := handler.cosmosClient.UnbondingBalance(accountParam); queryErr != nil {
 		handler.logger.Errorf("error fetching account unbonding balance: %v", queryErr)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	} else {
@@ -208,7 +208,7 @@ func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
 
 	if totalRewards, queryErr := handler.cosmosClient.TotalRewards(accountParam); queryErr != nil {
 		handler.logger.Errorf("error fetching account total rewards: %v", queryErr)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	} else {
@@ -223,7 +223,7 @@ func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
 	if err != nil {
 		if !errors.Is(err, rdb.ErrNoRows) {
 			handler.logger.Errorf("error fetching account's validator: %v", err)
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -234,7 +234,7 @@ func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
 		commissions, commissionErr := handler.cosmosClient.Commission(validator.OperatorAddress)
 		if commissionErr != nil {
 			handler.logger.Errorf("error fetching account commissions: %v", commissionErr)
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -250,7 +250,7 @@ func (handler *Accounts) FindBy(ctx *fasthttp.RequestCtx) {
 	totalBalance = totalBalance.Add(info.Commissions...)
 	info.TotalBalance = totalBalance
 
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, info)
 }
 
@@ -261,7 +261,7 @@ func (handler *Accounts) List(ctx *fasthttp.RequestCtx) {
 
 	pagination, err := httpapi.ParsePagination(ctx)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
@@ -279,12 +279,12 @@ func (handler *Accounts) List(ctx *fasthttp.RequestCtx) {
 	}, pagination)
 	if err != nil {
 		handler.logger.Errorf("error listing addresses: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, accounts, paginationResult)
 }
 

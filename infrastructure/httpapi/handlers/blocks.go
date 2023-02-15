@@ -62,7 +62,7 @@ func (handler *Blocks) FindBy(ctx *fasthttp.RequestCtx) {
 	recordMethod := "FindByBlock"
 	heightOrHashParam, heightOrHashParamOk := URLValueGuard(ctx, handler.logger, "height-or-hash")
 	if !heightOrHashParamOk {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		return
 	}
 
@@ -76,17 +76,17 @@ func (handler *Blocks) FindBy(ctx *fasthttp.RequestCtx) {
 	block, err := handler.blocksView.FindBy(&identity)
 	if err != nil {
 		if errors.Is(err, rdb.ErrNoRows) {
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 			httpapi.NotFound(ctx)
 			return
 		}
 		handler.logger.Errorf("error finding block by height or hash: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, block)
 }
 
@@ -115,7 +115,7 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 	tmpBlockPage := BlocksPaginationResult{}
 	err = handler.astraCache.Get(blockPaginationKey, &tmpBlockPage)
 	if err == nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 		httpapi.SuccessWithPagination(ctx, tmpBlockPage.Blocks, &tmpBlockPage.PaginationResult)
 		return
 	}
@@ -124,7 +124,7 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 	}, paginationInput)
 	if err != nil {
 		handler.logger.Errorf("error listing blocks: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -137,7 +137,7 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 	_ = handler.astraCache.Set(blockPaginationKey,
 		NewBlocksPaginationResult(blocks, *paginationResult), 2400*time.Millisecond)
 
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
 
@@ -152,12 +152,12 @@ func (handler *Blocks) ListTransactionsByHeight(ctx *fasthttp.RequestCtx) {
 
 	blockHeightParam, blockHeightParamOk := URLValueGuard(ctx, handler.logger, "height")
 	if !blockHeightParamOk {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		return
 	}
 	blockHeight, err := strconv.ParseInt(blockHeightParam, 10, 64)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid block height"))
 		return
 	}
@@ -177,12 +177,12 @@ func (handler *Blocks) ListTransactionsByHeight(ctx *fasthttp.RequestCtx) {
 	}, paginationInput)
 	if err != nil {
 		handler.logger.Errorf("error listing transactions: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
 
@@ -191,7 +191,7 @@ func (handler *Blocks) ListEventsByHeight(ctx *fasthttp.RequestCtx) {
 	recordMethod := "ListEventsByHeight"
 	paginationInput, err := httpapi.ParsePagination(ctx)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return
 	}
@@ -206,12 +206,12 @@ func (handler *Blocks) ListEventsByHeight(ctx *fasthttp.RequestCtx) {
 
 	blockHeightParam, blockHeightParamOk := URLValueGuard(ctx, handler.logger, "height")
 	if !blockHeightParamOk {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		return
 	}
 	blockHeight, err := strconv.ParseInt(blockHeightParam, 10, 64)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid block height"))
 		return
 	}
@@ -223,12 +223,12 @@ func (handler *Blocks) ListEventsByHeight(ctx *fasthttp.RequestCtx) {
 	}, paginationInput)
 	if err != nil {
 		handler.logger.Errorf("error listing events: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
 
@@ -237,19 +237,19 @@ func (handler *Blocks) ListCommitmentsByHeight(ctx *fasthttp.RequestCtx) {
 	recordMethod := "ListCommitmentsByHeight"
 	paginationInput, err := httpapi.ParsePagination(ctx)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return
 	}
 
 	blockHeightParam, blockHeightParamOk := URLValueGuard(ctx, handler.logger, "height")
 	if !blockHeightParamOk {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		return
 	}
 	blockHeight, err := strconv.ParseInt(blockHeightParam, 10, 64)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid block height"))
 		return
 	}
@@ -260,12 +260,12 @@ func (handler *Blocks) ListCommitmentsByHeight(ctx *fasthttp.RequestCtx) {
 		}, paginationInput)
 	if err != nil {
 		handler.logger.Errorf("error listing block commitments: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
 
@@ -274,14 +274,14 @@ func (handler *Blocks) ListCommitmentsByConsensusNodeAddress(ctx *fasthttp.Reque
 	recordMethod := "ListCommitmentsByConsensusNodeAddress"
 	paginationInput, err := httpapi.ParsePagination(ctx)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return
 	}
 
 	addressParam := ctx.UserValue("address")
 	if addressParam == nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("missing consensus node address"))
 		return
 	}
@@ -293,11 +293,11 @@ func (handler *Blocks) ListCommitmentsByConsensusNodeAddress(ctx *fasthttp.Reque
 		}, paginationInput)
 	if err != nil {
 		handler.logger.Errorf("error listing block commitments: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }

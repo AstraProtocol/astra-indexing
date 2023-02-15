@@ -12,6 +12,6 @@ ARG DB_PASSWORD
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o astra-indexing ./cmd/astra-indexing
 
-EXPOSE 8080
+EXPOSE 8080 9090
 
 CMD ["./astra-indexing"]

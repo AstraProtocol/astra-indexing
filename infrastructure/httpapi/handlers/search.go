@@ -73,14 +73,14 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 				validators = nil
 			} else {
 				search.logger.Errorf("error searching validator: %v", err)
-				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 				httpapi.InternalServerError(ctx)
 				return
 			}
 		}
 		if len(validators) > 0 {
 			results.Validators = search.parseValidators(validators)
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 			httpapi.Success(ctx, results)
 			return
 		}
@@ -116,7 +116,7 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 				accounts = nil
 			} else {
 				search.logger.Errorf("error searching account: %v", err)
-				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 				httpapi.InternalServerError(ctx)
 				return
 			}
@@ -131,7 +131,7 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 		} else {
 			results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutAddressResults)
 		}
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 		httpapi.Success(ctx, results)
 		return
 	}
@@ -147,7 +147,7 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 			transactions = nil
 		} else {
 			search.logger.Errorf("error searching transaction: %v", err)
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -159,7 +159,7 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 	if len(transactions) > 0 {
 		// merge with evm tx from blockscout's search result (if exist)
 		results.Transactions = search.parseTransactions(transactions, blockscoutSearchResults)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 		httpapi.Success(ctx, results)
 		return
 	}
@@ -184,7 +184,7 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 			}
 		}
 	}
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, results)
 }
 
