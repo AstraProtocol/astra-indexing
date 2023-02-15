@@ -195,6 +195,11 @@ func InitRouteRegistry(
 			path:    "api/v1/transactions/{hash}",
 			handler: transactionHandler.FindByHash,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/transactions/internal-transactions/{hash}",
+			handler: transactionHandler.ListInternalTransactionsByHash,
+		},
 	)
 
 	proposalsHandler := httpapi_handlers.NewProposals(

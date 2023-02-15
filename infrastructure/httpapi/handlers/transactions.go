@@ -123,6 +123,34 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 	}
 }
 
+func (handler *Transactions) ListInternalTransactionsByHash(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "ListInternalTransactionsByHash"
+
+	hashParam, hashParamOk := URLValueGuard(ctx, handler.logger, "hash")
+	if !hashParamOk {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		return
+	}
+
+	if evm_utils.IsHexTx(hashParam) {
+		internalTransactions, err := handler.blockscoutClient.GetListInternalTxs(hashParam)
+		if err != nil {
+			handler.logger.Errorf("error finding list internal transactions by hash: %v", err)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+			return
+		}
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+		httpapi.Success(ctx, internalTransactions)
+		return
+	} else {
+		handler.logger.Errorf("param: %s is not evm tx hash", hashParam)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+}
+
 func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 	startTime := time.Now()
 	recordMethod := "ListTransactions"

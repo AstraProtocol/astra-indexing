@@ -63,8 +63,56 @@ type TransactionEvm struct {
 	TokenTransfers               []TokenTransfer `json:"tokenTransfers"`
 }
 
+/*
+{
+      "blockNumber": "8111",
+      "callType": "",
+      "contractAddress": "0xb2c95e1938ddfafa0d5f2f39845e1f37f487adfb",
+      "errCode": "",
+      "from": "0xbf865c01ebd663cf542c3f5d7bd00143bc9d2142",
+      "fromAddressName": "",
+      "gas": "586549",
+      "gasUsed": "586549",
+      "index": "0",
+      "input": "",
+      "isError": "0",
+      "timeStamp": "1673259636",
+      "to": "",
+      "toAddressName": "",
+      "transactionHash": "0x71c0a30a4a56fd11df9126e100b34631cceaedcd0a1e776d3cf05de6f6b8f868",
+      "type": "create",
+      "value": "0"
+    }
+*/
+
+type InternalTransaction struct {
+	BlockNumber     string `json:"blockNumber"`
+	CallType        string `json:"callType"`
+	ContractAddress string `json:"contractAddress"`
+	ErrCode         string `json:"errCode"`
+	From            string `json:"from"`
+	FromAddressName string `json:"fromAddressName"`
+	Gas             string `json:"gas"`
+	GasUsed         string `json:"gasUsed"`
+	Index           string `json:"index"`
+	Input           string `json:"input"`
+	IsError         string `json:"isError"`
+	TimeStamp       string `json:"timeStamp"`
+	To              string `json:"to"`
+	ToAddressName   string `json:"toAddressName"`
+	TransactionHash string `json:"transactionHash"`
+	Type            string `json:"type"`
+	Value           string `json:"value"`
+}
+
 type TxResp struct {
 	Message string         `json:"message"`
 	Result  TransactionEvm `json:"result"`
 	Status  string         `json:"status"`
+}
+
+type InternalTxsResp struct {
+	Message string                `json:"message"`
+	Result  []InternalTransaction `json:"result"`
+	Status  string                `json:"status"`
 }
