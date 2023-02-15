@@ -3,13 +3,16 @@ package handlers
 import (
 	"encoding/hex"
 	"errors"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
+	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	evm_utils "github.com/AstraProtocol/astra-indexing/internal/evm"
 	account_view "github.com/AstraProtocol/astra-indexing/projection/account/view"
 	account_transaction_view "github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
@@ -54,6 +57,9 @@ func NewSearch(logger applogger.Logger, blockscoutClient blockscout_infrastructu
 }
 
 func (search *Search) Search(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "Search"
+
 	resultsChan := make(chan []blockscout_infrastructure.SearchResult)
 	keyword := string(ctx.QueryArgs().Peek("keyword"))
 	var results SearchResults
@@ -67,12 +73,14 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 				validators = nil
 			} else {
 				search.logger.Errorf("error searching validator: %v", err)
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 				httpapi.InternalServerError(ctx)
 				return
 			}
 		}
 		if len(validators) > 0 {
 			results.Validators = search.parseValidators(validators)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 			httpapi.Success(ctx, results)
 			return
 		}
@@ -108,6 +116,7 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 				accounts = nil
 			} else {
 				search.logger.Errorf("error searching account: %v", err)
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 				httpapi.InternalServerError(ctx)
 				return
 			}
@@ -122,6 +131,7 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 		} else {
 			results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutAddressResults)
 		}
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 		httpapi.Success(ctx, results)
 		return
 	}
@@ -137,6 +147,7 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 			transactions = nil
 		} else {
 			search.logger.Errorf("error searching transaction: %v", err)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -148,6 +159,7 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 	if len(transactions) > 0 {
 		// merge with evm tx from blockscout's search result (if exist)
 		results.Transactions = search.parseTransactions(transactions, blockscoutSearchResults)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 		httpapi.Success(ctx, results)
 		return
 	}
@@ -172,7 +184,7 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 			}
 		}
 	}
-
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, results)
 }
 

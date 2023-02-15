@@ -12,6 +12,7 @@ import (
 
 	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
+	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	account_view "github.com/AstraProtocol/astra-indexing/projection/account/view"
 	block_view "github.com/AstraProtocol/astra-indexing/projection/block/view"
 	chainstats_view "github.com/AstraProtocol/astra-indexing/projection/chainstats/view"
@@ -47,20 +48,26 @@ func NewStatsHandler(
 }
 
 func (handler *StatsHandler) GetTransactionsHistoryChart(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GetTransactionsHistoryChart"
 	// Fetch transactions history of last 30 days
 	date_range := 30
 	transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistoryForChart(date_range)
 
 	if err != nil {
 		handler.logger.Errorf("error fetching transactions history: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
 
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, transactionsHistoryList)
 }
 
 func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GetTransactionsHistory"
 	// handle api's params
 	var fromDate time.Time
 	var endDate time.Time
@@ -69,11 +76,13 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 		year, err := strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
 		if err != nil {
 			handler.logger.Error("year param is invalid")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
 		if int(year) > time.Now().Year() {
 			handler.logger.Error("year is too far")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -93,6 +102,7 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 	transactionsCount, err := handler.transactionsTotalView.FindBy("-")
 	if err != nil {
 		handler.logger.Errorf("error fetching transaction count: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -100,6 +110,7 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 	minDate, err := handler.chainStatsView.GetMinDate()
 	if err != nil {
 		handler.logger.Errorf("error fetching min date of chain_stats: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -110,6 +121,7 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 	transactionsHistoryList, err := handler.chainStatsView.GetTransactionsHistory(fromDate, endDate)
 	if err != nil {
 		handler.logger.Errorf("error fetching transactions history: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -124,10 +136,13 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 			transactionsHistoryDaily.DailyAverage = float32(transactionsCount / diffDay)
 		}
 
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 		httpapi.Success(ctx, transactionsHistoryDaily)
+		return
 	} else {
 		if length == 0 {
 			httpapi.Success(ctx, transactionsHistoryList)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 			return
 		}
 
@@ -175,11 +190,14 @@ func (handler *StatsHandler) GetTransactionsHistory(ctx *fasthttp.RequestCtx) {
 			transactionsHistoryMonthly.MonthlyAverage = float32(transactionsCount / diffMonth)
 		}
 
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 		httpapi.Success(ctx, transactionsHistoryMonthly)
 	}
 }
 
 func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GetActiveAddressesHistory"
 	// handle api's params
 	var fromDate time.Time
 	var endDate time.Time
@@ -188,11 +206,13 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 		year, err := strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
 		if err != nil {
 			handler.logger.Error("year param is invalid")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
 		if int(year) > time.Now().Year() {
 			handler.logger.Error("year is too far")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -212,6 +232,7 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 	totalActiveAddresses, err := handler.chainStatsView.GetTotalActiveAddresses()
 	if err != nil {
 		handler.logger.Errorf("error fetching total active addresses: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -219,6 +240,7 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 	minDate, err := handler.chainStatsView.GetMinDate()
 	if err != nil {
 		handler.logger.Errorf("error fetching min date of chain_stats: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -229,6 +251,7 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 	activeAddressesHistoryList, err := handler.chainStatsView.GetActiveAddressesHistory(fromDate, endDate)
 	if err != nil {
 		handler.logger.Errorf("error fetching active addresses history: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -243,9 +266,12 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 			activeAddressesHistoryDaily.DailyAverage = float32(totalActiveAddresses / diff_day)
 		}
 
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 		httpapi.Success(ctx, activeAddressesHistoryDaily)
+		return
 	} else {
 		if length == 0 {
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 			httpapi.Success(ctx, activeAddressesHistoryList)
 			return
 		}
@@ -294,11 +320,14 @@ func (handler *StatsHandler) GetActiveAddressesHistory(ctx *fasthttp.RequestCtx)
 			activeAddressesHistoryMonthly.MonthlyAverage = float32(totalActiveAddresses / diffMonth)
 		}
 
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 		httpapi.Success(ctx, activeAddressesHistoryMonthly)
 	}
 }
 
 func (handler *StatsHandler) GetTotalAddressesGrowth(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GetTotalAddressesGrowth"
 	// handle api's params
 	var fromDate time.Time
 	var endDate time.Time
@@ -307,11 +336,13 @@ func (handler *StatsHandler) GetTotalAddressesGrowth(ctx *fasthttp.RequestCtx) {
 		year, err := strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
 		if err != nil {
 			handler.logger.Error("year param is invalid")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
 		if int(year) > time.Now().Year() {
 			handler.logger.Error("year is too far")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -324,6 +355,7 @@ func (handler *StatsHandler) GetTotalAddressesGrowth(ctx *fasthttp.RequestCtx) {
 
 	if string(ctx.QueryArgs().Peek("daily")) != "true" {
 		handler.logger.Error("only implemented for show daily")
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -332,6 +364,7 @@ func (handler *StatsHandler) GetTotalAddressesGrowth(ctx *fasthttp.RequestCtx) {
 	addressesCount, err := handler.accountsView.TotalAccount()
 	if err != nil {
 		handler.logger.Errorf("error fetching address count: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -340,6 +373,7 @@ func (handler *StatsHandler) GetTotalAddressesGrowth(ctx *fasthttp.RequestCtx) {
 
 	if err != nil {
 		handler.logger.Errorf("error fetching total addresses history daily: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -353,10 +387,13 @@ func (handler *StatsHandler) GetTotalAddressesGrowth(ctx *fasthttp.RequestCtx) {
 	totalAddressesHistoryDaily.TotalAddressesGrowth = totalAddressesHistoryList
 	totalAddressesHistoryDaily.TotalAddresses = addressesCount
 
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, totalAddressesHistoryDaily)
 }
 
 func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GetGasUsedHistory"
 	// handle api's params
 	var fromDate time.Time
 	var endDate time.Time
@@ -365,11 +402,13 @@ func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
 		year, err := strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
 		if err != nil {
 			handler.logger.Error("year param is invalid")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
 		if int(year) > time.Now().Year() {
 			handler.logger.Error("year is too far")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -389,6 +428,7 @@ func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
 	totalGasUsed, err := handler.chainStatsView.GetTotalGasUsed()
 	if err != nil {
 		handler.logger.Errorf("error fetching total gas used: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -396,6 +436,7 @@ func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
 	minDate, err := handler.chainStatsView.GetMinDate()
 	if err != nil {
 		handler.logger.Errorf("error fetching min date of chain_stats: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -406,6 +447,7 @@ func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
 	totalGasUsedList, err := handler.chainStatsView.GetGasUsedHistory(fromDate, endDate)
 	if err != nil {
 		handler.logger.Errorf("error fetching total gas used history: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -420,9 +462,12 @@ func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
 			totalGasUsedHistoryDaily.DailyAverage = float32(totalGasUsed / diffDay)
 		}
 
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 		httpapi.Success(ctx, totalGasUsedHistoryDaily)
+		return
 	} else {
 		if length == 0 {
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 			httpapi.Success(ctx, totalGasUsedList)
 			return
 		}
@@ -471,11 +516,14 @@ func (handler *StatsHandler) GetGasUsedHistory(ctx *fasthttp.RequestCtx) {
 			totalGasUsedHistoryMonthly.MonthlyAverage = float32(totalGasUsed / diffMonth)
 		}
 
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 		httpapi.Success(ctx, totalGasUsedHistoryMonthly)
 	}
 }
 
 func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GetTotalFeeHistory"
 	// handle api's params
 	var fromDate time.Time
 	var endDate time.Time
@@ -484,11 +532,13 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 		year, err := strconv.ParseInt(string(ctx.QueryArgs().Peek("year")), 10, 0)
 		if err != nil {
 			handler.logger.Error("year param is invalid")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
 		if int(year) > time.Now().Year() {
 			handler.logger.Error("year is too far")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -508,6 +558,7 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 	totalTransactionFees, err := handler.chainStatsView.GetTotalTransactionFees()
 	if err != nil {
 		handler.logger.Errorf("error fetching total transaction fees: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -515,6 +566,7 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 	minDate, err := handler.chainStatsView.GetMinDate()
 	if err != nil {
 		handler.logger.Errorf("error fetching min date of chain_stats: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -525,6 +577,7 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 	totalFeesHistoryList, err := handler.chainStatsView.GetTotalFeeHistory(fromDate, endDate)
 	if err != nil {
 		handler.logger.Errorf("error fetching total fee history: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -548,9 +601,12 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 			totalFeesHistoryDaily.DailyAverage = big.NewInt(0).Div(totalTransactionFees, big.NewInt(diffDay))
 		}
 
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 		httpapi.Success(ctx, totalFeesHistoryDaily)
+		return
 	} else {
 		if length == 0 {
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 			httpapi.Success(ctx, totalFeesHistoryList)
 			return
 		}
@@ -606,11 +662,15 @@ func (handler *StatsHandler) GetTotalFeeHistory(ctx *fasthttp.RequestCtx) {
 			totalFeesHistoryMonthly.MonthlyAverage = big.NewInt(0).Div(totalTransactionFees, big.NewInt(diffMonth))
 		}
 
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 		httpapi.Success(ctx, totalFeesHistoryMonthly)
 	}
 }
 
 func (handler *StatsHandler) GetCommonStats(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GetCommonStats"
+
 	commonStatsChan := make(chan blockscout_infrastructure.CommonStats)
 	go handler.blockscoutClient.GetCommonStatsAsync(commonStatsChan)
 
@@ -625,13 +685,18 @@ func (handler *StatsHandler) GetCommonStats(ctx *fasthttp.RequestCtx) {
 		commonStats.TransactionStats.NumberOfTransactions = transactionsCountPerDay
 	}
 
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, commonStats)
 }
 
 func (handler *StatsHandler) EstimateCounted(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "EstimateCounted"
+
 	blocksCount, err := handler.blocksView.Count()
 	if err != nil {
 		handler.logger.Errorf("error fetching block count: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -639,6 +704,7 @@ func (handler *StatsHandler) EstimateCounted(ctx *fasthttp.RequestCtx) {
 	transactionsCount, err := handler.transactionsTotalView.FindBy("-")
 	if err != nil {
 		handler.logger.Errorf("error fetching transaction count: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -646,6 +712,7 @@ func (handler *StatsHandler) EstimateCounted(ctx *fasthttp.RequestCtx) {
 	addressesCount, err := handler.accountsView.TotalAccount()
 	if err != nil {
 		handler.logger.Errorf("error fetching address count: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -655,6 +722,7 @@ func (handler *StatsHandler) EstimateCounted(ctx *fasthttp.RequestCtx) {
 	estimateCounted.TotalBlocks = blocksCount
 	estimateCounted.TotalAddresses = addressesCount
 
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, estimateCounted)
 }
 

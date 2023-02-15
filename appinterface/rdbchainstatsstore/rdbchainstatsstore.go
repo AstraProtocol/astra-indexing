@@ -13,6 +13,8 @@ import (
 )
 
 const DEFAULT_TABLE = "chain_stats"
+const SUCCESS = "success"
+const FAIL = "fail"
 
 type RDbChainStatsStore struct {
 	selectRDbHandle *rdb.Handle
@@ -103,6 +105,7 @@ func (impl *RDbChainStatsStore) UpdateCountedTransactionsWithRDbHandle(currentDa
 	recordMethod := "UpdateCountedTransactionsWithRDbHandle"
 
 	if err := impl.init(); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error initializing chain stats store: %v", err)
 	}
 
@@ -125,14 +128,15 @@ func (impl *RDbChainStatsStore) UpdateCountedTransactionsWithRDbHandle(currentDa
 
 	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
 	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error executing transaction stats update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return errors.New("error executing transaction stats update SQL: no rows affected")
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())
-
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
 	return nil
 }
 
@@ -141,6 +145,7 @@ func (impl *RDbChainStatsStore) UpdateTotalGasUsedWithRDbHandle(currentDate int6
 	recordMethod := "UpdateTotalGasUsedWithRDbHandle"
 
 	if err := impl.init(); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error initializing chain stats store: %v", err)
 	}
 
@@ -158,19 +163,21 @@ func (impl *RDbChainStatsStore) UpdateTotalGasUsedWithRDbHandle(currentDate int6
 		"date_time = ?", currentDate,
 	).ToSql()
 	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error building gas used stats update SQL: %v", err)
 	}
 
 	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
 	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error executing gas used stats update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return errors.New("error executing gas used stats update SQL: no rows affected")
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())
-
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
 	return nil
 }
 
@@ -179,6 +186,7 @@ func (impl *RDbChainStatsStore) UpdateTotalFeeWithRDbHandle(currentDate int64, c
 	recordMethod := "UpdateTotalFeeWithRDbHandle"
 
 	if err := impl.init(); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error initializing chain stats store: %v", err)
 	}
 
@@ -189,6 +197,7 @@ func (impl *RDbChainStatsStore) UpdateTotalFeeWithRDbHandle(currentDate int64, c
 
 	totalFeeBurnResp, err := cosmosAppClient.TotalFeeBurn()
 	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error getting total fee burn from api: %v", err)
 	}
 
@@ -206,19 +215,21 @@ func (impl *RDbChainStatsStore) UpdateTotalFeeWithRDbHandle(currentDate int64, c
 		"date_time = ?", currentDate,
 	).ToSql()
 	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error building fee stats update SQL: %v", err)
 	}
 
 	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
 	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error executing fee stats update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return errors.New("error executing fee stats update SQL: no rows affected")
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())
-
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
 	return nil
 }
 
@@ -227,6 +238,7 @@ func (impl *RDbChainStatsStore) UpdateTotalAddressesWithRDbHandle(currentDate in
 	recordMethod := "UpdateTotalAddressesWithRDbHandle"
 
 	if err := impl.init(); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error initializing chain stats store: %v", err)
 	}
 
@@ -242,19 +254,21 @@ func (impl *RDbChainStatsStore) UpdateTotalAddressesWithRDbHandle(currentDate in
 		"date_time = ?", currentDate,
 	).ToSql()
 	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error building total addresses stats update SQL: %v", err)
 	}
 
 	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
 	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error executing total addresses stats update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return errors.New("error executing total addresses stats update SQL: no rows affected")
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())
-
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
 	return nil
 }
 
@@ -263,6 +277,7 @@ func (impl *RDbChainStatsStore) UpdateActiveAddressesWithRDbHandle(currentDate i
 	recordMethod := "UpdateActiveAddressesWithRDbHandle"
 
 	if err := impl.init(); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error initializing chain stats store: %v", err)
 	}
 
@@ -270,13 +285,14 @@ func (impl *RDbChainStatsStore) UpdateActiveAddressesWithRDbHandle(currentDate i
 
 	execResult, err := impl.selectRDbHandle.Exec(sql, currentDate)
 	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error executing active addresses stats update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return errors.New("error executing active addresses stats update SQL: no rows affected")
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, "cronjob", "update", time.Since(startTime).Milliseconds())
-
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
 	return nil
 }

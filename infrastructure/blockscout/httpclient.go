@@ -89,6 +89,7 @@ func (client *HTTPClient) getUrl(action string, param string) string {
 }
 
 func (client *HTTPClient) request(endpoint string, queryParams []string, mappingParams map[string]string) (io.ReadCloser, error) {
+	startTime := time.Now()
 	var err error
 	queryUrl := endpoint
 
@@ -101,12 +102,16 @@ func (client *HTTPClient) request(endpoint string, queryParams []string, mapping
 
 	req, err := retryablehttp.NewRequestWithContext(context.Background(), http.MethodGet, queryUrl, nil)
 	if err != nil {
+		prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(-1), "http", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf("error creating HTTP request with context: %v", err)
 	}
 	rawResp, err := client.httpClient.Do(req)
 	if err != nil {
+		prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(-1), "http", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf("error requesting blockscout %s endpoint: %v", queryUrl, err)
 	}
+
+	prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(rawResp.StatusCode), "http", time.Since(startTime).Milliseconds())
 
 	if rawResp.StatusCode != 200 {
 		rawResp.Body.Close()
@@ -133,59 +138,43 @@ func NewHTTPClient(logger applogger.Logger, url string) *HTTPClient {
 }
 
 func (client *HTTPClient) GetDetailEvmTxByCosmosTxHash(txHash string) (*TransactionEvm, error) {
-	startTime := time.Now()
-	recordMethod := "GetDetailEvmTxByCosmosTxHash"
-
 	rawRespBody, err := client.request(
 		client.getUrl(GET_DETAIL_EVM_TX_BY_COSMOS_TX_HASH, txHash), nil, nil,
 	)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "blockscout", time.Since(startTime).Milliseconds())
 		return nil, err
 	}
 	defer rawRespBody.Close()
 
 	var txResp TxResp
 	if err := jsoniter.NewDecoder(rawRespBody).Decode(&txResp); err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "blockscout", time.Since(startTime).Milliseconds())
 		return nil, err
 	}
 
 	if txResp.Status == "0" {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(0), "blockscout", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
-
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(1), "blockscout", time.Since(startTime).Milliseconds())
 
 	return &txResp.Result, nil
 }
 
 func (client *HTTPClient) GetDetailEvmTxByEvmTxHash(evmTxHash string) (*TransactionEvm, error) {
-	startTime := time.Now()
-	recordMethod := "GetDetailEvmTxByEvmTxHash"
-
 	rawRespBody, err := client.request(
 		client.getUrl(GET_DETAIL_EVM_TX_BY_EVM_TX_HASH, evmTxHash), nil, nil,
 	)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "blockscout", time.Since(startTime).Milliseconds())
 		return nil, err
 	}
 	defer rawRespBody.Close()
 
 	var txResp TxResp
 	if err := jsoniter.NewDecoder(rawRespBody).Decode(&txResp); err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "blockscout", time.Since(startTime).Milliseconds())
 		return nil, err
 	}
 
 	if txResp.Status == "0" {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(0), "blockscout", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
-
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(1), "blockscout", time.Since(startTime).Milliseconds())
 
 	return &txResp.Result, nil
 }
@@ -323,14 +312,10 @@ func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string,
 }
 
 func (client *HTTPClient) GetSearchResults(keyword string) []SearchResult {
-	startTime := time.Now()
-	recordMethod := "GetSearchResults"
-
 	rawRespBody, err := client.request(
 		client.getUrl(GET_SEARCH_RESULTS, keyword), nil, nil,
 	)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "blockscout", time.Since(startTime).Milliseconds())
 		client.logger.Errorf("error getting search results from blockscout: %v", err)
 		return []SearchResult{}
 	}
@@ -341,12 +326,9 @@ func (client *HTTPClient) GetSearchResults(keyword string) []SearchResult {
 
 	var seachResults []SearchResult
 	if err := json.Unmarshal(respBody.Bytes(), &seachResults); err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "blockscout", time.Since(startTime).Milliseconds())
 		client.logger.Errorf("error parsing search results from blockscout: %v", err)
 		return []SearchResult{}
 	}
-
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(1), "blockscout", time.Since(startTime).Milliseconds())
 
 	return seachResults
 }
@@ -378,14 +360,10 @@ func (client *HTTPClient) GetSearchResultsAsync(keyword string, results chan []S
 }
 
 func (client *HTTPClient) GetTopAddressesBalance(queryParams []string, mappingParams map[string]string) (*TopAddressesBalanceResp, error) {
-	startTime := time.Now()
-	recordMethod := "GetTopAddressesBalance"
-
 	rawRespBody, err := client.request(
 		client.getUrl(GET_TOP_ADDRESSES_BALANCE, ""), queryParams, mappingParams,
 	)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "blockscout", time.Since(startTime).Milliseconds())
 		client.logger.Errorf("error getting top addresses balance from blockscout: %v", err)
 		return nil, err
 	}
@@ -396,10 +374,8 @@ func (client *HTTPClient) GetTopAddressesBalance(queryParams []string, mappingPa
 
 	var topAddressesBalanceResp TopAddressesBalanceResp
 	if err := json.Unmarshal(respBody.Bytes(), &topAddressesBalanceResp); err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "blockscout", time.Since(startTime).Milliseconds())
 		client.logger.Errorf("error parsing top addresses balance from blockscout: %v", err)
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(1), "blockscout", time.Since(startTime).Milliseconds())
 	return &topAddressesBalanceResp, nil
 }

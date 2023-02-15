@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
@@ -10,6 +11,7 @@ import (
 
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
+	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	"github.com/valyala/fasthttp"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
@@ -53,8 +55,12 @@ func NewTransactions(
 }
 
 func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "FindTransactionByHash"
+
 	hashParam, hashParamOk := URLValueGuard(ctx, handler.logger, "hash")
 	if !hashParamOk {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		return
 	}
 	// handle if blockscout is disconnnected
@@ -66,6 +72,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 				handler.FindByHash(ctx)
 				return
 			}
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 			httpapi.Success(ctx, transaction)
 			return
 		} else {
@@ -75,6 +82,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 				handler.FindByHash(ctx)
 				return
 			}
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 			httpapi.Success(ctx, transaction)
 			return
 		}
@@ -83,26 +91,32 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 			transaction, err := handler.transactionsView.FindByEvmHash(hashParam)
 			if err != nil {
 				if errors.Is(err, rdb.ErrNoRows) {
+					prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 					httpapi.NotFound(ctx)
 					return
 				}
 				handler.logger.Errorf("error finding transactions by hash: %v", err)
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 				httpapi.InternalServerError(ctx)
 				return
 			}
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 			httpapi.Success(ctx, transaction)
 			return
 		} else {
 			transaction, err := handler.transactionsView.FindByHash(hashParam)
 			if err != nil {
 				if errors.Is(err, rdb.ErrNoRows) {
+					prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 					httpapi.NotFound(ctx)
 					return
 				}
 				handler.logger.Errorf("error finding transactions by hash: %v", err)
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 				httpapi.InternalServerError(ctx)
 				return
 			}
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 			httpapi.Success(ctx, transaction)
 			return
 		}
@@ -110,8 +124,12 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 }
 
 func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "ListTransactions"
+
 	paginationInput, err := httpapi.ParsePagination(ctx)
 	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
@@ -128,6 +146,7 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 	tmpTransactions := TransactionsPaginationResult{}
 	err = handler.astraCache.Get(transactionPaginationKey, &tmpTransactions)
 	if err == nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 		httpapi.SuccessWithPagination(ctx, tmpTransactions.TransactionRows, &tmpTransactions.PaginationResult)
 		return
 	}
@@ -138,6 +157,7 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 	}, paginationInput)
 	if err != nil {
 		handler.logger.Errorf("error listing transactions: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "get", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -150,5 +170,6 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 	_ = handler.astraCache.Set(transactionPaginationKey,
 		NewTransactionsPaginationResult(blocks, *paginationResult), 2400*time.Millisecond)
 
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "get", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
