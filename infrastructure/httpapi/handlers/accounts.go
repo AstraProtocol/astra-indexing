@@ -345,6 +345,37 @@ func (handler *Accounts) GetListTokens(ctx *fasthttp.RequestCtx) {
 	httpapi.Success(ctx, listTokensResp)
 }
 
+func (handler *Accounts) GetAbiByAddressHash(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GetAbiByAddressHash"
+	accountParam, accountParamOk := URLValueGuard(ctx, handler.logger, "account")
+	if !accountParamOk {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		return
+	}
+
+	var addressHash string
+	if evm_utils.IsHexAddress(accountParam) {
+		addressHash = accountParam
+	} else {
+		if tmcosmosutils.IsValidCosmosAddress(accountParam) {
+			_, converted, _ := tmcosmosutils.DecodeAddressToHex(accountParam)
+			addressHash = "0x" + hex.EncodeToString(converted)
+		}
+	}
+
+	abi, err := handler.blockscoutClient.GetAbiByAddressHash(addressHash)
+	if err != nil {
+		handler.logger.Errorf("error getting abi by address hash from blockscout: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.Success(ctx, abi)
+}
+
 type AccountInfo struct {
 	Type                string        `json:"type"`
 	Name                string        `json:"name"`

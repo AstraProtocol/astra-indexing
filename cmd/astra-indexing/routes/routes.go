@@ -96,6 +96,11 @@ func InitRouteRegistry(
 			path:    "api/v1/accounts/detail/{account}",
 			handler: accountsHandlers.GetDetailAddress,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/getabi/{account}",
+			handler: accountsHandlers.GetAbiByAddressHash,
+		},
 	)
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(

@@ -24,6 +24,7 @@ import (
 const GET_DETAIL_EVM_TX_BY_COSMOS_TX_HASH = "/api/v1?module=transaction&action=getTxCosmosInfo&txhash="
 const GET_DETAIL_EVM_TX_BY_EVM_TX_HASH = "/api/v1?module=transaction&action=gettxinfo&txhash="
 const GET_LIST_INTERNAL_TXS_BY_EVM_TX_HASH = "/api/v1?module=account&action=txlistinternal&txhash="
+const GET_ABI_BY_ADDRESS_HASH = "/api/v1?module=contract&action=getabi&address="
 const GET_DETAIL_ADDRESS_BY_ADDRESS_HASH = "/api/v1?module=account&action=getaddress&address="
 const GET_ADDRESS_COUNTERS = "/api/v1?module=account&action=getaddresscounters&address="
 const GET_TOP_ADDRESSES_BALANCE = "/api/v1?module=account&action=getTopAddressesBalance"
@@ -444,4 +445,25 @@ func (client *HTTPClient) GetListInternalTxs(evmTxHash string) ([]InternalTransa
 	}
 
 	return internalTxsResp.Result, nil
+}
+
+func (client *HTTPClient) GetAbiByAddressHash(addressHash string) (string, error) {
+	rawRespBody, err := client.request(
+		client.getUrl(GET_ABI_BY_ADDRESS_HASH, addressHash), nil, nil,
+	)
+	if err != nil {
+		return "", err
+	}
+	defer rawRespBody.Close()
+
+	var abiResp AbiResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&abiResp); err != nil {
+		return "", err
+	}
+
+	if abiResp.Status == "0" {
+		return "", fmt.Errorf(ADDRESS_NOT_FOUND)
+	}
+
+	return abiResp.Result, nil
 }
