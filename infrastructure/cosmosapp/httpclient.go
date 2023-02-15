@@ -746,7 +746,7 @@ func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, e
 	return tallyResp.Tally, nil
 }
 
-func (client *HTTPClient) DepositParams(id string) (cosmosapp_interface.Params, error) {
+func (client *HTTPClient) DepositParams() (cosmosapp_interface.Params, error) {
 	method := fmt.Sprintf(
 		"%s/%s/%s/%s/%s",
 		"cosmos", "gov", "v1beta1", "params", "deposit",
@@ -766,12 +766,12 @@ func (client *HTTPClient) DepositParams(id string) (cosmosapp_interface.Params, 
 	}
 	defer rawRespBody.Close()
 
-	var tallyResp TallyResp
-	if err := jsoniter.NewDecoder(rawRespBody).Decode(&tallyResp); err != nil {
+	var params cosmosapp_interface.Params
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&params); err != nil {
 		return cosmosapp_interface.Params{}, err
 	}
 
-	return tallyResp.Tally, nil
+	return params, nil
 }
 
 func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
@@ -800,7 +800,7 @@ func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	return tx, nil
 }
 
-func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurnResp, error) {
+func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurn, error) {
 	method := fmt.Sprintf(
 		"%s/%s/%s/%s",
 		"astra", "feeburn", "v1", "total_fee_burn",
@@ -809,23 +809,23 @@ func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurnResp, 
 		method,
 	)
 	if err != nil {
-		return cosmosapp_interface.TotalFeeBurnResp{}, err
+		return cosmosapp_interface.TotalFeeBurn{}, err
 	}
 	if statusCode == 404 {
-		return cosmosapp_interface.TotalFeeBurnResp{}, cosmosapp_interface.ErrTotalFeeBurnNotFound
+		return cosmosapp_interface.TotalFeeBurn{}, cosmosapp_interface.ErrTotalFeeBurnNotFound
 	}
 	if statusCode != 200 {
 		rawRespBody.Close()
-		return cosmosapp_interface.TotalFeeBurnResp{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
+		return cosmosapp_interface.TotalFeeBurn{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
 	}
 	defer rawRespBody.Close()
 
-	var totalFeeBurnResp cosmosapp_interface.TotalFeeBurnResp
-	if err := jsoniter.NewDecoder(rawRespBody).Decode(&totalFeeBurnResp); err != nil {
-		return cosmosapp_interface.TotalFeeBurnResp{}, err
+	var totalFeeBurn cosmosapp_interface.TotalFeeBurn
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&totalFeeBurn); err != nil {
+		return cosmosapp_interface.TotalFeeBurn{}, err
 	}
 
-	return totalFeeBurnResp, nil
+	return totalFeeBurn, nil
 }
 
 func (client *HTTPClient) VestingBalances(account string) (cosmosapp_interface.VestingBalances, error) {
