@@ -145,6 +145,14 @@ func NewHTTPClient(logger applogger.Logger, url string) *HTTPClient {
 }
 
 func (client *HTTPClient) GetDetailEvmTxByCosmosTxHash(txHash string) (*TransactionEvm, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetDetailEvmTxByCosmosTxHash_%s", txHash)
+	var transactionEvmTmp TransactionEvm
+
+	err := client.httpCache.Get(cacheKey, &transactionEvmTmp)
+	if err == nil {
+		return &transactionEvmTmp, nil
+	}
+
 	rawRespBody, err := client.request(
 		client.getUrl(GET_DETAIL_EVM_TX_BY_COSMOS_TX_HASH, txHash), nil, nil,
 	)
@@ -162,10 +170,20 @@ func (client *HTTPClient) GetDetailEvmTxByCosmosTxHash(txHash string) (*Transact
 		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
 
+	client.httpCache.Set(cacheKey, &txResp.Result, 10*60*1000*time.Millisecond)
+
 	return &txResp.Result, nil
 }
 
 func (client *HTTPClient) GetDetailEvmTxByEvmTxHash(evmTxHash string) (*TransactionEvm, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetDetailEvmTxByEvmTxHash_%s", evmTxHash)
+	var transactionEvmTmp TransactionEvm
+
+	err := client.httpCache.Get(cacheKey, &transactionEvmTmp)
+	if err == nil {
+		return &transactionEvmTmp, nil
+	}
+
 	rawRespBody, err := client.request(
 		client.getUrl(GET_DETAIL_EVM_TX_BY_EVM_TX_HASH, evmTxHash), nil, nil,
 	)
@@ -183,17 +201,28 @@ func (client *HTTPClient) GetDetailEvmTxByEvmTxHash(evmTxHash string) (*Transact
 		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
 
+	client.httpCache.Set(cacheKey, &txResp.Result, 10*60*1000*time.Millisecond)
+
 	return &txResp.Result, nil
 }
 
-func (client *HTTPClient) GetDetailEvmTxByCosmosTxHashAsync(evmTxHash string, transactionEvmRespChan chan TxResp) {
+func (client *HTTPClient) GetDetailEvmTxByCosmosTxHashAsync(txHash string, transactionEvmRespChan chan TxResp) {
+	cacheKey := fmt.Sprintf("BlockscoutGetDetailEvmTxByCosmosTxHashAsync_%s", txHash)
+	var txRespTmp TxResp
+
+	err := client.httpCache.Get(cacheKey, &txRespTmp)
+	if err == nil {
+		transactionEvmRespChan <- txRespTmp
+		return
+	}
+
 	// Make sure we close these channels when we're done with them
 	defer func() {
 		close(transactionEvmRespChan)
 	}()
 
 	rawRespBody, err := client.request(
-		client.getUrl(GET_DETAIL_EVM_TX_BY_COSMOS_TX_HASH, evmTxHash), nil, nil,
+		client.getUrl(GET_DETAIL_EVM_TX_BY_COSMOS_TX_HASH, txHash), nil, nil,
 	)
 	if err != nil {
 		client.logger.Errorf("error getting transaction evm by cosmos tx hash from blockscout: %v", err)
@@ -210,10 +239,21 @@ func (client *HTTPClient) GetDetailEvmTxByCosmosTxHashAsync(evmTxHash string, tr
 		client.logger.Errorf("error parsing transaction evm by cosmos tx hash from blockscout: %v", err)
 	}
 
+	client.httpCache.Set(cacheKey, transactionEvmResp, 10*60*1000*time.Millisecond)
+
 	transactionEvmRespChan <- transactionEvmResp
 }
 
 func (client *HTTPClient) GetDetailEvmTxByEvmTxHashAsync(evmTxHash string, transactionEvmRespChan chan TxResp) {
+	cacheKey := fmt.Sprintf("BlockscoutGetDetailEvmTxByEvmTxHashAsync_%s", evmTxHash)
+	var txRespTmp TxResp
+
+	err := client.httpCache.Get(cacheKey, &txRespTmp)
+	if err == nil {
+		transactionEvmRespChan <- txRespTmp
+		return
+	}
+
 	// Make sure we close these channels when we're done with them
 	defer func() {
 		close(transactionEvmRespChan)
@@ -237,10 +277,21 @@ func (client *HTTPClient) GetDetailEvmTxByEvmTxHashAsync(evmTxHash string, trans
 		client.logger.Errorf("error parsing transaction evm by evm tx hash from blockscout: %v", err)
 	}
 
+	client.httpCache.Set(cacheKey, transactionEvmResp, 10*60*1000*time.Millisecond)
+
 	transactionEvmRespChan <- transactionEvmResp
 }
 
 func (client *HTTPClient) GetCommonStatsAsync(commonStatsChan chan CommonStats) {
+	cacheKey := "BlockscoutGetCommonStatsAsync"
+	var commonStatsTmp CommonStats
+
+	err := client.httpCache.Get(cacheKey, &commonStatsTmp)
+	if err == nil {
+		commonStatsChan <- commonStatsTmp
+		return
+	}
+
 	// Make sure we close these channels when we're done with them
 	defer func() {
 		close(commonStatsChan)
@@ -263,10 +314,22 @@ func (client *HTTPClient) GetCommonStatsAsync(commonStatsChan chan CommonStats) 
 	if err := json.Unmarshal(respBody.Bytes(), &commonStats); err != nil {
 		client.logger.Errorf("error parsing common stats from blockscout: %v", err)
 	}
+
+	client.httpCache.Set(cacheKey, commonStats, 10*60*1000*time.Millisecond)
+
 	commonStatsChan <- commonStats
 }
 
 func (client *HTTPClient) GetAddressCountersAsync(addressHash string, addressCountersChan chan AddressCounterResp) {
+	cacheKey := fmt.Sprintf("BlockscoutGetAddressCountersAsync_%s", addressHash)
+	var addressCounterRespTmp AddressCounterResp
+
+	err := client.httpCache.Get(cacheKey, &addressCounterRespTmp)
+	if err == nil {
+		addressCountersChan <- addressCounterRespTmp
+		return
+	}
+
 	// Make sure we close these channels when we're done with them
 	defer func() {
 		close(addressCountersChan)
@@ -289,10 +352,22 @@ func (client *HTTPClient) GetAddressCountersAsync(addressHash string, addressCou
 	if err := json.Unmarshal(respBody.Bytes(), &addressCounterResp); err != nil {
 		client.logger.Errorf("error parsing address counters from blockscout: %v", err)
 	}
+
+	client.httpCache.Set(cacheKey, addressCounterResp, 30*1000*time.Millisecond)
+
 	addressCountersChan <- addressCounterResp
 }
 
 func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string, addressChan chan AddressResp) {
+	cacheKey := fmt.Sprintf("BlockscoutGetDetailAddressByAddressHashAsync_%s", addressHash)
+	var addressRespTmp AddressResp
+
+	err := client.httpCache.Get(cacheKey, &addressRespTmp)
+	if err == nil {
+		addressChan <- addressRespTmp
+		return
+	}
+
 	// Make sure we close these channels when we're done with them
 	defer func() {
 		close(addressChan)
@@ -315,10 +390,21 @@ func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string,
 	if err := json.Unmarshal(respBody.Bytes(), &addressResp); err != nil {
 		client.logger.Errorf("error parsing address detail from blockscout: %v", err)
 	}
+
+	client.httpCache.Set(cacheKey, addressResp, 10*60*1000*time.Millisecond)
+
 	addressChan <- addressResp
 }
 
 func (client *HTTPClient) GetSearchResults(keyword string) []SearchResult {
+	cacheKey := fmt.Sprintf("BlockscoutGetSearchResults_%s", keyword)
+	var searchResultsTmp []SearchResult
+
+	err := client.httpCache.Get(cacheKey, &searchResultsTmp)
+	if err == nil {
+		return searchResultsTmp
+	}
+
 	rawRespBody, err := client.request(
 		client.getUrl(GET_SEARCH_RESULTS, keyword), nil, nil,
 	)
@@ -337,10 +423,21 @@ func (client *HTTPClient) GetSearchResults(keyword string) []SearchResult {
 		return []SearchResult{}
 	}
 
+	client.httpCache.Set(cacheKey, seachResults, 10*60*1000*time.Millisecond)
+
 	return seachResults
 }
 
 func (client *HTTPClient) GetSearchResultsAsync(keyword string, results chan []SearchResult) {
+	cacheKey := fmt.Sprintf("BlockscoutGetSearchResultsAsync_%s", keyword)
+	var searchResultsTmp []SearchResult
+
+	err := client.httpCache.Get(cacheKey, &searchResultsTmp)
+	if err == nil {
+		results <- searchResultsTmp
+		return
+	}
+
 	// Make sure we close these channels when we're done with them
 	defer func() {
 		close(results)
@@ -363,10 +460,21 @@ func (client *HTTPClient) GetSearchResultsAsync(keyword string, results chan []S
 	if err := json.Unmarshal(respBody.Bytes(), &seachResults); err != nil {
 		client.logger.Errorf("error parsing search results from blockscout: %v", err)
 	}
+
+	client.httpCache.Set(cacheKey, seachResults, 10*60*1000*time.Millisecond)
+
 	results <- seachResults
 }
 
 func (client *HTTPClient) GetTopAddressesBalance(queryParams []string, mappingParams map[string]string) (*TopAddressesBalanceResp, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetTopAddressesBalance_%s_%s", mappingParams["page"], mappingParams["offset"])
+	var topAddressesBalanceRespTmp TopAddressesBalanceResp
+
+	err := client.httpCache.Get(cacheKey, &topAddressesBalanceRespTmp)
+	if err == nil {
+		return &topAddressesBalanceRespTmp, nil
+	}
+
 	rawRespBody, err := client.request(
 		client.getUrl(GET_TOP_ADDRESSES_BALANCE, ""), queryParams, mappingParams,
 	)
@@ -383,6 +491,8 @@ func (client *HTTPClient) GetTopAddressesBalance(queryParams []string, mappingPa
 	if err := json.Unmarshal(respBody.Bytes(), &topAddressesBalanceResp); err != nil {
 		client.logger.Errorf("error parsing top addresses balance from blockscout: %v", err)
 	}
+
+	client.httpCache.Set(cacheKey, &topAddressesBalanceResp, 10*60*1000*time.Millisecond)
 
 	return &topAddressesBalanceResp, nil
 }
@@ -409,6 +519,14 @@ func (client *HTTPClient) EthBlockNumber() (*EthBlockNumber, error) {
 }
 
 func (client *HTTPClient) GetListTokens(queryParams []string, mappingParams map[string]string) (*ListTokenResp, error) {
+	cacheKey := fmt.Sprintf("BlockscouGetListTokens_%s_%s", mappingParams["page"], mappingParams["offset"])
+	var listTokenRespTmp ListTokenResp
+
+	err := client.httpCache.Get(cacheKey, &listTokenRespTmp)
+	if err == nil {
+		return &listTokenRespTmp, nil
+	}
+
 	rawRespBody, err := client.request(
 		client.getUrl(GET_LIST_TOKENS, ""), queryParams, mappingParams,
 	)
@@ -426,10 +544,20 @@ func (client *HTTPClient) GetListTokens(queryParams []string, mappingParams map[
 		client.logger.Errorf("error parsing list token from blockscout: %v", err)
 	}
 
+	client.httpCache.Set(cacheKey, &listTokenResp, 10*60*1000*time.Millisecond)
+
 	return &listTokenResp, nil
 }
 
 func (client *HTTPClient) GetListInternalTxs(evmTxHash string) ([]InternalTransaction, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetListInternalTxs_%s", evmTxHash)
+	var internalTxsTmp []InternalTransaction
+
+	err := client.httpCache.Get(cacheKey, &internalTxsTmp)
+	if err == nil {
+		return internalTxsTmp, nil
+	}
+
 	rawRespBody, err := client.request(
 		client.getUrl(GET_LIST_INTERNAL_TXS_BY_EVM_TX_HASH, evmTxHash), nil, nil,
 	)
@@ -447,10 +575,20 @@ func (client *HTTPClient) GetListInternalTxs(evmTxHash string) ([]InternalTransa
 		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
 
+	client.httpCache.Set(cacheKey, internalTxsResp.Result, 10*60*1000*time.Millisecond)
+
 	return internalTxsResp.Result, nil
 }
 
 func (client *HTTPClient) GetAbiByAddressHash(addressHash string) (string, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetAbiByAddressHash_%s", addressHash)
+	var abiTmp string
+
+	err := client.httpCache.Get(cacheKey, &abiTmp)
+	if err == nil {
+		return abiTmp, nil
+	}
+
 	rawRespBody, err := client.request(
 		client.getUrl(GET_ABI_BY_ADDRESS_HASH, addressHash), nil, nil,
 	)
@@ -468,10 +606,20 @@ func (client *HTTPClient) GetAbiByAddressHash(addressHash string) (string, error
 		return "", fmt.Errorf(ADDRESS_NOT_FOUND)
 	}
 
+	client.httpCache.Set(cacheKey, abiResp.Result, 10*60*1000*time.Millisecond)
+
 	return abiResp.Result, nil
 }
 
 func (client *HTTPClient) GetAbiByTransactionHash(txHash string) (*AbiResult, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetAbiByTransactionHash_%s", txHash)
+	var abiResultTmp AbiResult
+
+	err := client.httpCache.Get(cacheKey, &abiResultTmp)
+	if err == nil {
+		return &abiResultTmp, nil
+	}
+
 	rawRespBody, err := client.request(
 		client.getUrl(GET_ABI_BY_TX_HASH, txHash), nil, nil,
 	)
@@ -490,11 +638,13 @@ func (client *HTTPClient) GetAbiByTransactionHash(txHash string) (*AbiResult, er
 		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
 
+	client.httpCache.Set(cacheKey, &abiResp.Result, 10*60*1000*time.Millisecond)
+
 	return &abiResp.Result, nil
 }
 
 func (client *HTTPClient) MarketHistoryChart() (*MarketHistory, error) {
-	cacheKey := "BlockScoutMarketHistoryChart"
+	cacheKey := "BlockscoutMarketHistoryChart"
 	var marketHistoryTmp MarketHistory
 
 	err := client.httpCache.Get(cacheKey, &marketHistoryTmp)
@@ -525,7 +675,7 @@ func (client *HTTPClient) MarketHistoryChart() (*MarketHistory, error) {
 }
 
 func (client *HTTPClient) GasPriceOracle() (*GasPriceOracle, error) {
-	cacheKey := "BlockScoutGasPriceOracle"
+	cacheKey := "BlockscoutGasPriceOracle"
 	var gasPriceOracleTmp GasPriceOracle
 
 	err := client.httpCache.Get(cacheKey, &gasPriceOracleTmp)
