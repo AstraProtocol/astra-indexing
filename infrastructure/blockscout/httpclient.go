@@ -35,6 +35,7 @@ const GET_SEARCH_RESULTS = "/token-autocomplete?q="
 const ETH_BLOCK_NUMBER = "/api/v1?module=block&action=eth_block_number"
 const MARKET_HISTORY_CHART = "/api/v1/market-history-chart"
 const GAS_PRICE_ORACLE = "/api/v1/gas-price-oracle"
+const ADDRESS_COIN_BALANCE_HISTORY_CHART = "/address/{addresshash}/coin-balances/by-day?type=JSON"
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -703,4 +704,35 @@ func (client *HTTPClient) GasPriceOracle() (*GasPriceOracle, error) {
 	client.httpCache.Set(cacheKey, gasPriceOracle, 10*60*1000*time.Millisecond)
 
 	return &gasPriceOracle, nil
+}
+
+func (client *HTTPClient) AddressCoinBalanceHistoryChart(addressHash string) ([]CoinBalancesByDate, error) {
+	cacheKey := "AddressCoinBalanceHistoryChart"
+	var coinBalancesByDateTmp []CoinBalancesByDate
+
+	err := client.httpCache.Get(cacheKey, &coinBalancesByDateTmp)
+	if err == nil {
+		return coinBalancesByDateTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(strings.ReplaceAll(ADDRESS_COIN_BALANCE_HISTORY_CHART, "{addresshash}", addressHash), ""), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting address coin balance history from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var coinBalancesByDate []CoinBalancesByDate
+	if err := json.Unmarshal(respBody.Bytes(), &coinBalancesByDate); err != nil {
+		client.logger.Errorf("error parsing address coin balance history from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, coinBalancesByDate, 10*60*1000*time.Millisecond)
+
+	return coinBalancesByDate, nil
 }

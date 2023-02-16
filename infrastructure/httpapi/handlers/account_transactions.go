@@ -255,3 +255,23 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
+
+func (handler *AccountTransactions) AddressCoinBalancesByDate(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "AddressCoinBalancesByDate"
+	accountParam, accountParamOk := URLValueGuard(ctx, handler.logger, "account")
+	if !accountParamOk {
+		return
+	}
+
+	coinBalancesByDates, err := handler.blockscoutClient.AddressCoinBalanceHistoryChart(accountParam)
+	if err != nil {
+		handler.logger.Errorf("error getting address coin balances by date: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.Success(ctx, coinBalancesByDates)
+}

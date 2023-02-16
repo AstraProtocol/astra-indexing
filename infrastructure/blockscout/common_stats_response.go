@@ -30,3 +30,8 @@ type GasPriceOracle struct {
 	Fast    float64 `json:"fast"`
 	Slow    float64 `json:"slow"`
 }
+
+type CoinBalancesByDate struct {
+	Date  string  `json:"date"`
+	Value float64 `json:"value"`
+}
