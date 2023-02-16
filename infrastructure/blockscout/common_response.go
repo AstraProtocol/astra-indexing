@@ -5,3 +5,9 @@ type CommonResp struct {
 	Result  interface{} `json:"result"`
 	Status  string      `json:"status"`
 }
+
+type CommonPaginationResp struct {
+	HasNextPage  bool        `json:"hasNextPage"`
+	Result       interface{} `json:"result"`
+	NextPagePath string      `json:"nextPagePath"`
+}

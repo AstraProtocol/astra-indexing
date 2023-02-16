@@ -106,6 +106,11 @@ func InitRouteRegistry(
 			path:    "api/v1/accounts/tokenlist/{account}",
 			handler: accountsHandlers.GetTokensOfAnAddress,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/get-coin-balances-history/{account}",
+			handler: accountsHandlers.GetCoinBalancesHistory,
+		},
 	)
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(

@@ -38,6 +38,7 @@ const GAS_PRICE_ORACLE = "/api/v1/gas-price-oracle"
 const ADDRESS_COIN_BALANCE_HISTORY_CHART = "/address/{addresshash}/coin-balances/by-day?type=JSON"
 const GET_RAW_TRACE_BY_TX_HASH = "/api/v1?module=transaction&action=getrawtracebytxhash&txhash="
 const GET_LIST_TOKEN_OF_AN_ADDRESS = "/api/v1?module=account&action=tokenlist&address="
+const GET_ADDRESS_COIN_BALANCE_HISTORY = "/api/v1?module=account&action=getcoinbalancehistory&address="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -578,7 +579,7 @@ func (client *HTTPClient) GetListInternalTxs(evmTxHash string) ([]InternalTransa
 		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
 
-	client.httpCache.Set(cacheKey, internalTxsResp.Result, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, internalTxsResp.Result, 60*1000*time.Millisecond)
 
 	return internalTxsResp.Result, nil
 }
@@ -771,7 +772,7 @@ func (client *HTTPClient) GetRawTraceByTxHash(evmTxHash string) (interface{}, er
 }
 
 func (client *HTTPClient) GetListTokensOfAnAddress(addressHash string, queryParams []string, mappingParams map[string]string) (*TokensAddressResp, error) {
-	cacheKey := fmt.Sprintf("BlockscouGetListTokensOfAnAddress_%s_%s_%s", addressHash, mappingParams["page"], mappingParams["offset"])
+	cacheKey := fmt.Sprintf("BlockscoutGetListTokensOfAnAddress_%s_%s_%s", addressHash, mappingParams["page"], mappingParams["offset"])
 	var tokensAddressRespTmp TokensAddressResp
 
 	err := client.httpCache.Get(cacheKey, &tokensAddressRespTmp)
@@ -796,7 +797,38 @@ func (client *HTTPClient) GetListTokensOfAnAddress(addressHash string, queryPara
 		client.logger.Errorf("error parsing list token of an address from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, &tokensAddressResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &tokensAddressResp, 60*1000*time.Millisecond)
 
 	return &tokensAddressResp, nil
+}
+
+func (client *HTTPClient) GetAddressCoinBalanceHistory(addressHash string, queryParams []string, mappingParams map[string]string) (*CommonPaginationResp, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetAddressCoinBalanceHistory_%s_%s_%s", addressHash, mappingParams["page"], mappingParams["offset"])
+	var commonRespTmp CommonPaginationResp
+
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return &commonRespTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_ADDRESS_COIN_BALANCE_HISTORY, addressHash), queryParams, mappingParams,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting address coin balances history from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonResp CommonPaginationResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonResp); err != nil {
+		client.logger.Errorf("error parsing address coin balances history from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &commonResp, 60*1000*time.Millisecond)
+
+	return &commonResp, nil
 }
