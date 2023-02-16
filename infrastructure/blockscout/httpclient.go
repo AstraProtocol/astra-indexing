@@ -707,7 +707,7 @@ func (client *HTTPClient) GasPriceOracle() (*GasPriceOracle, error) {
 }
 
 func (client *HTTPClient) AddressCoinBalanceHistoryChart(addressHash string) ([]CoinBalancesByDate, error) {
-	cacheKey := "AddressCoinBalanceHistoryChart"
+	cacheKey := fmt.Sprintf("BlockscoutAddressCoinBalanceHistoryChart_%s", addressHash)
 	var coinBalancesByDateTmp []CoinBalancesByDate
 
 	err := client.httpCache.Get(cacheKey, &coinBalancesByDateTmp)
