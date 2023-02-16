@@ -36,6 +36,7 @@ const ETH_BLOCK_NUMBER = "/api/v1?module=block&action=eth_block_number"
 const MARKET_HISTORY_CHART = "/api/v1/market-history-chart"
 const GAS_PRICE_ORACLE = "/api/v1/gas-price-oracle"
 const ADDRESS_COIN_BALANCE_HISTORY_CHART = "/address/{addresshash}/coin-balances/by-day?type=JSON"
+const GET_RAW_TRACE_BY_TX_HASH = "/api/v1?module=transaction&action=getrawtracebytxhash&txhash="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -735,4 +736,35 @@ func (client *HTTPClient) AddressCoinBalanceHistoryChart(addressHash string) ([]
 	client.httpCache.Set(cacheKey, coinBalancesByDate, 10*60*1000*time.Millisecond)
 
 	return coinBalancesByDate, nil
+}
+
+func (client *HTTPClient) GetRawTraceByTxHash(evmTxHash string) (interface{}, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetRawTraceByTxHash_%s", evmTxHash)
+	var rawTraceTmp CommonResp
+
+	err := client.httpCache.Get(cacheKey, &rawTraceTmp)
+	if err == nil {
+		return &rawTraceTmp.Result, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_RAW_TRACE_BY_TX_HASH, evmTxHash), nil, nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var rawTrace CommonResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&rawTrace); err != nil {
+		return nil, err
+	}
+
+	if rawTrace.Status == "0" {
+		return nil, fmt.Errorf(TX_NOT_FOUND)
+	}
+
+	client.httpCache.Set(cacheKey, &rawTrace, 10*60*1000*time.Millisecond)
+
+	return &rawTrace.Result, nil
 }

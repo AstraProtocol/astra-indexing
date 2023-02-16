@@ -222,3 +222,24 @@ func (handler *Transactions) GetAbiByTransactionHash(ctx *fasthttp.RequestCtx) {
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, abi)
 }
+
+func (handler *Transactions) GetRawTraceByTransactionHash(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GetRawTraceByTransactionHash"
+	txParam, txParamOk := URLValueGuard(ctx, handler.logger, "hash")
+	if !txParamOk {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		return
+	}
+
+	rawTrace, err := handler.blockscoutClient.GetRawTraceByTxHash(txParam)
+	if err != nil {
+		handler.logger.Errorf("error getting raw trace by tx hash from blockscout: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.Success(ctx, rawTrace)
+}

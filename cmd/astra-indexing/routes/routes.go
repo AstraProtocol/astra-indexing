@@ -225,6 +225,11 @@ func InitRouteRegistry(
 			path:    "api/v1/transactions/getabi/{hash}",
 			handler: transactionHandler.GetAbiByTransactionHash,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/transactions/getrawtrace/{hash}",
+			handler: transactionHandler.GetRawTraceByTransactionHash,
+		},
 	)
 
 	proposalsHandler := httpapi_handlers.NewProposals(
