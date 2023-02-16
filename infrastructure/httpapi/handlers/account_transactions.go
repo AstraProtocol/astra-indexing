@@ -57,6 +57,7 @@ func (handler *AccountTransactions) GetCounters(ctx *fasthttp.RequestCtx) {
 	recordMethod := "GetCounters"
 	accountParam, accountParamOk := URLValueGuard(ctx, handler.logger, "account")
 	if !accountParamOk {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		return
 	}
 

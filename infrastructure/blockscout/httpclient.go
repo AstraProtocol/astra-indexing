@@ -37,6 +37,7 @@ const MARKET_HISTORY_CHART = "/api/v1/market-history-chart"
 const GAS_PRICE_ORACLE = "/api/v1/gas-price-oracle"
 const ADDRESS_COIN_BALANCE_HISTORY_CHART = "/address/{addresshash}/coin-balances/by-day?type=JSON"
 const GET_RAW_TRACE_BY_TX_HASH = "/api/v1?module=transaction&action=getrawtracebytxhash&txhash="
+const GET_LIST_TOKEN_OF_AN_ADDRESS = "/api/v1?module=account&action=tokenlist&address="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -767,4 +768,35 @@ func (client *HTTPClient) GetRawTraceByTxHash(evmTxHash string) (interface{}, er
 	client.httpCache.Set(cacheKey, &rawTrace, 10*60*1000*time.Millisecond)
 
 	return &rawTrace.Result, nil
+}
+
+func (client *HTTPClient) GetListTokensOfAnAddress(addressHash string, queryParams []string, mappingParams map[string]string) (*TokensAddressResp, error) {
+	cacheKey := fmt.Sprintf("BlockscouGetListTokensOfAnAddress_%s_%s_%s", addressHash, mappingParams["page"], mappingParams["offset"])
+	var tokensAddressRespTmp TokensAddressResp
+
+	err := client.httpCache.Get(cacheKey, &tokensAddressRespTmp)
+	if err == nil {
+		return &tokensAddressRespTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_LIST_TOKEN_OF_AN_ADDRESS, addressHash), queryParams, mappingParams,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting list tokens of an address from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var tokensAddressResp TokensAddressResp
+	if err := json.Unmarshal(respBody.Bytes(), &tokensAddressResp); err != nil {
+		client.logger.Errorf("error parsing list token of an address from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &tokensAddressResp, 10*60*1000*time.Millisecond)
+
+	return &tokensAddressResp, nil
 }

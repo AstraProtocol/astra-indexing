@@ -101,6 +101,11 @@ func InitRouteRegistry(
 			path:    "api/v1/accounts/getabi/{account}",
 			handler: accountsHandlers.GetAbiByAddressHash,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/tokenlist/{account}",
+			handler: accountsHandlers.GetTokensOfAnAddress,
+		},
 	)
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(
