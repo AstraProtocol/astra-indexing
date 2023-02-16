@@ -742,6 +742,22 @@ func (handler *StatsHandler) MarketHistoryChart(ctx *fasthttp.RequestCtx) {
 	httpapi.Success(ctx, marketHistoryChart)
 }
 
+func (handler *StatsHandler) GasPriceOracle(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GasPriceOracle"
+
+	gasPriceOracle, err := handler.blockscoutClient.GasPriceOracle()
+	if err != nil {
+		handler.logger.Errorf("error getting gas price oracle from blockscout: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.Success(ctx, gasPriceOracle)
+}
+
 type EstimateCountedInfo struct {
 	TotalBlocks       int64 `json:"total_blocks"`
 	TotalTransactions int64 `json:"total_transactions"`

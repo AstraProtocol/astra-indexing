@@ -34,6 +34,7 @@ const GET_COMMON_STATS = "/api/v1/common-stats"
 const GET_SEARCH_RESULTS = "/token-autocomplete?q="
 const ETH_BLOCK_NUMBER = "/api/v1?module=block&action=eth_block_number"
 const MARKET_HISTORY_CHART = "/api/v1/market-history-chart"
+const GAS_PRICE_ORACLE = "/api/v1/gas-price-oracle"
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -521,4 +522,35 @@ func (client *HTTPClient) MarketHistoryChart() (*MarketHistory, error) {
 	client.httpCache.Set(cacheKey, marketHistory, 60*60*1000*time.Millisecond)
 
 	return &marketHistory, nil
+}
+
+func (client *HTTPClient) GasPriceOracle() (*GasPriceOracle, error) {
+	cacheKey := "BlockScoutGasPriceOracle"
+	var gasPriceOracleTmp GasPriceOracle
+
+	err := client.httpCache.Get(cacheKey, &gasPriceOracleTmp)
+	if err == nil {
+		return &gasPriceOracleTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GAS_PRICE_ORACLE, ""), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting gas price oracle from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var gasPriceOracle GasPriceOracle
+	if err := json.Unmarshal(respBody.Bytes(), &gasPriceOracle); err != nil {
+		client.logger.Errorf("error parsing gas price oracle from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, gasPriceOracle, 10*60*1000*time.Millisecond)
+
+	return &gasPriceOracle, nil
 }

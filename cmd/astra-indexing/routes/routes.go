@@ -177,6 +177,11 @@ func InitRouteRegistry(
 			path:    "api/v1/market-history-chart",
 			handler: statsHandlers.MarketHistoryChart,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/gas-price-oracle",
+			handler: statsHandlers.GasPriceOracle,
+		},
 	)
 
 	statusHandlers := httpapi_handlers.NewStatusHandler(

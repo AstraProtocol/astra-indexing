@@ -24,3 +24,9 @@ type MarketHistory struct {
 	HistoryData string `json:"history_data"`
 	SupplyData  string `json:"supply_data"`
 }
+
+type GasPriceOracle struct {
+	Average float64 `json:"average"`
+	Fast    float64 `json:"fast"`
+	Slow    float64 `json:"slow"`
+}
