@@ -726,6 +726,22 @@ func (handler *StatsHandler) EstimateCounted(ctx *fasthttp.RequestCtx) {
 	httpapi.Success(ctx, estimateCounted)
 }
 
+func (handler *StatsHandler) MarketHistoryChart(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "MarketHistoryChart"
+
+	marketHistoryChart, err := handler.blockscoutClient.MarketHistoryChart()
+	if err != nil {
+		handler.logger.Errorf("error getting market history chart from blockscout: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.Success(ctx, marketHistoryChart)
+}
+
 type EstimateCountedInfo struct {
 	TotalBlocks       int64 `json:"total_blocks"`
 	TotalTransactions int64 `json:"total_transactions"`

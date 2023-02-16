@@ -172,6 +172,11 @@ func InitRouteRegistry(
 			path:    "api/v1/total-fee-history",
 			handler: statsHandlers.GetTotalFeeHistory,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/market-history-chart",
+			handler: statsHandlers.MarketHistoryChart,
+		},
 	)
 
 	statusHandlers := httpapi_handlers.NewStatusHandler(

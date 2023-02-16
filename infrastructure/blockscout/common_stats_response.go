@@ -19,3 +19,8 @@ type CommonStats struct {
 	TokenStats       TokenStats       `json:"token_stats"`
 	TransactionStats TransactionStats `json:"transaction_stats"`
 }
+
+type MarketHistory struct {
+	HistoryData string `json:"history_data"`
+	SupplyData  string `json:"supply_data"`
+}

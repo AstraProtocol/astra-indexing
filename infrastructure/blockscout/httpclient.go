@@ -33,6 +33,7 @@ const GET_LIST_TOKENS = "/api/v1?module=token&action=getListTokens"
 const GET_COMMON_STATS = "/api/v1/common-stats"
 const GET_SEARCH_RESULTS = "/token-autocomplete?q="
 const ETH_BLOCK_NUMBER = "/api/v1?module=block&action=eth_block_number"
+const MARKET_HISTORY_CHART = "/api/v1/market-history-chart"
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -469,24 +470,55 @@ func (client *HTTPClient) GetAbiByAddressHash(addressHash string) (string, error
 	return abiResp.Result, nil
 }
 
-func (client *HTTPClient) GetAbiByTransactionHash(txHash string) (AbiResult, error) {
+func (client *HTTPClient) GetAbiByTransactionHash(txHash string) (*AbiResult, error) {
 	rawRespBody, err := client.request(
 		client.getUrl(GET_ABI_BY_TX_HASH, txHash), nil, nil,
 	)
-	abi := AbiResult{}
+
 	if err != nil {
-		return abi, err
+		return nil, err
 	}
 	defer rawRespBody.Close()
 
 	var abiResp TxAbiResp
 	if err := jsoniter.NewDecoder(rawRespBody).Decode(&abiResp); err != nil {
-		return abi, err
+		return nil, err
 	}
 
 	if abiResp.Status == "0" {
-		return abi, fmt.Errorf(TX_NOT_FOUND)
+		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
 
-	return abiResp.Result, nil
+	return &abiResp.Result, nil
+}
+
+func (client *HTTPClient) MarketHistoryChart() (*MarketHistory, error) {
+	cacheKey := "BlockScoutMarketHistoryChart"
+	var marketHistoryTmp MarketHistory
+
+	err := client.httpCache.Get(cacheKey, &marketHistoryTmp)
+	if err == nil {
+		return &marketHistoryTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(MARKET_HISTORY_CHART, ""), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting market history chart from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var marketHistory MarketHistory
+	if err := json.Unmarshal(respBody.Bytes(), &marketHistory); err != nil {
+		client.logger.Errorf("error parsing market history chart from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, marketHistory, 60*60*1000*time.Millisecond)
+
+	return &marketHistory, nil
 }
