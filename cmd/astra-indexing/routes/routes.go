@@ -111,6 +111,16 @@ func InitRouteRegistry(
 			path:    "api/v1/accounts/get-coin-balances-history/{account}",
 			handler: accountsHandlers.GetCoinBalancesHistory,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/{account}/coin-balances/by-day",
+			handler: accountsHandlers.AddressCoinBalancesByDate,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/internal-transactions/{account}",
+			handler: accountsHandlers.GetInternalTxsByAddressHash,
+		},
 	)
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(
@@ -133,11 +143,6 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/accounts/get-top-addresses-balance",
 			handler: accountTransactionsHandler.GetTopAddressesBalance,
-		},
-		Route{
-			Method:  GET,
-			path:    "api/v1/accounts/{account}/coin-balances/by-day",
-			handler: accountTransactionsHandler.AddressCoinBalancesByDate,
 		},
 	)
 

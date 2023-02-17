@@ -39,6 +39,7 @@ const ADDRESS_COIN_BALANCE_HISTORY_CHART = "/address/{addresshash}/coin-balances
 const GET_RAW_TRACE_BY_TX_HASH = "/api/v1?module=transaction&action=getrawtracebytxhash&txhash="
 const GET_LIST_TOKEN_OF_AN_ADDRESS = "/api/v1?module=account&action=tokenlist&address="
 const GET_ADDRESS_COIN_BALANCE_HISTORY = "/api/v1?module=account&action=getcoinbalancehistory&address="
+const GET_LIST_INTERNAL_TXS_BY_ADDRESS_HASH = "/api/v1?module=account&action=txlistinternal&address="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -829,6 +830,37 @@ func (client *HTTPClient) GetAddressCoinBalanceHistory(addressHash string, query
 	}
 
 	client.httpCache.Set(cacheKey, &commonResp, 60*1000*time.Millisecond)
+
+	return &commonResp, nil
+}
+
+func (client *HTTPClient) GetListInternalTxsByAddressHash(addressHash string, queryParams []string, mappingParams map[string]string) (*CommonPaginationResp, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetListInternalTxsByAddressHash_%s_%s_%s", addressHash, mappingParams["page"], mappingParams["offset"])
+	var commonRespTmp CommonPaginationResp
+
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return &commonRespTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_LIST_INTERNAL_TXS_BY_ADDRESS_HASH, addressHash), queryParams, mappingParams,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting list internal txs by address hash from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonResp CommonPaginationResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonResp); err != nil {
+		client.logger.Errorf("error parsing list internal txs by address hash from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &commonResp, 10*60*1000*time.Millisecond)
 
 	return &commonResp, nil
 }
