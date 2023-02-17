@@ -116,21 +116,6 @@ func InitRouteRegistry(
 			path:    "api/v1/accounts/{account}/coin-balances/by-day",
 			handler: accountsHandlers.AddressCoinBalancesByDate,
 		},
-		Route{
-			Method:  GET,
-			path:    "api/v1/accounts/internal-transactions/{account}",
-			handler: accountsHandlers.GetInternalTxsByAddressHash,
-		},
-		Route{
-			Method:  GET,
-			path:    "api/v1/accounts/token-transfers/{account}",
-			handler: accountsHandlers.GetListTokenTransfersByAddressHash,
-		},
-		Route{
-			Method:  GET,
-			path:    "api/v1/accounts/contract/token-transfers/{account}",
-			handler: accountsHandlers.GetListTokenTransfersByContractAddressHash,
-		},
 	)
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(
@@ -153,6 +138,26 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/accounts/get-top-addresses-balance",
 			handler: accountTransactionsHandler.GetTopAddressesBalance,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/internal-transactions/{account}",
+			handler: accountTransactionsHandler.GetInternalTxsByAddressHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/token-transfers/{account}",
+			handler: accountTransactionsHandler.GetListTokenTransfersByAddressHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/contract/token-transfers/{account}",
+			handler: accountTransactionsHandler.GetListTokenTransfersByContractAddressHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/contract/txs/{account}",
+			handler: accountTransactionsHandler.GetListTxsByContractAddressHash,
 		},
 	)
 

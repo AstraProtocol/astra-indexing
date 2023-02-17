@@ -42,6 +42,7 @@ const GET_ADDRESS_COIN_BALANCE_HISTORY = "/api/v1?module=account&action=getcoinb
 const GET_LIST_INTERNAL_TXS_BY_ADDRESS_HASH = "/api/v1?module=account&action=txlistinternal&address="
 const GET_LIST_TOKEN_TRANSFERS_BY_ADDRESS_HASH = "/api/v1?module=account&action=getlisttokentransfers&address="
 const GET_LIST_TOKEN_TRANSFERS_BY_CONTRACT_ADDRESS_HASH = "/api/v1?module=token&action=getlisttokentransfers&contractaddress="
+const GET_LIST_TXS_BY_CONTRACT_ADDRESS_HASH = "/api/v1?module=account&action=txlist&address="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -925,6 +926,37 @@ func (client *HTTPClient) GetListTokenTransfersByContractAddressHash(contractAdd
 	}
 
 	client.httpCache.Set(cacheKey, &commonPaginationResp, 10*60*1000*time.Millisecond)
+
+	return &commonPaginationResp, nil
+}
+
+func (client *HTTPClient) GetListTxsByContractAddressHash(contractAddressHash string, queryParams []string, mappingParams map[string]string) (*CommonPaginationResp, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetListTxsByContractAddressHash_%s_%s_%s", contractAddressHash, mappingParams["page"], mappingParams["offset"])
+	var commonPaginationRespTmp CommonPaginationResp
+
+	err := client.httpCache.Get(cacheKey, &commonPaginationRespTmp)
+	if err == nil {
+		return &commonPaginationRespTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_LIST_TXS_BY_CONTRACT_ADDRESS_HASH, contractAddressHash), queryParams, mappingParams,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting list txs by contract address hash from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonPaginationResp CommonPaginationResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonPaginationResp); err != nil {
+		client.logger.Errorf("error parsing list txs by contract address hash from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &commonPaginationResp, 60*1000*time.Millisecond)
 
 	return &commonPaginationResp, nil
 }
