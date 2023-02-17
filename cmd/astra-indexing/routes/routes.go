@@ -121,6 +121,11 @@ func InitRouteRegistry(
 			path:    "api/v1/accounts/internal-transactions/{account}",
 			handler: accountsHandlers.GetInternalTxsByAddressHash,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/token-transfers/{account}",
+			handler: accountsHandlers.GetListTokenTransfersByAddressHash,
+		},
 	)
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(

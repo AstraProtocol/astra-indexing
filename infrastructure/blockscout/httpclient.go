@@ -40,6 +40,7 @@ const GET_RAW_TRACE_BY_TX_HASH = "/api/v1?module=transaction&action=getrawtraceb
 const GET_LIST_TOKEN_OF_AN_ADDRESS = "/api/v1?module=account&action=tokenlist&address="
 const GET_ADDRESS_COIN_BALANCE_HISTORY = "/api/v1?module=account&action=getcoinbalancehistory&address="
 const GET_LIST_INTERNAL_TXS_BY_ADDRESS_HASH = "/api/v1?module=account&action=txlistinternal&address="
+const GET_LIST_TOKEN_TRANSFERS_BY_ADDRESS_HASH = "/api/v1?module=account&action=getlisttokentransfers&address="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -863,4 +864,35 @@ func (client *HTTPClient) GetListInternalTxsByAddressHash(addressHash string, qu
 	client.httpCache.Set(cacheKey, &commonResp, 10*60*1000*time.Millisecond)
 
 	return &commonResp, nil
+}
+
+func (client *HTTPClient) GetListTokenTransfersByAddressHash(addressHash string, queryParams []string, mappingParams map[string]string) (*CommonPaginationResp, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetListTokenTransfersByAddressHash_%s_%s_%s", addressHash, mappingParams["page"], mappingParams["offset"])
+	var commonPaginationRespTmp CommonPaginationResp
+
+	err := client.httpCache.Get(cacheKey, &commonPaginationRespTmp)
+	if err == nil {
+		return &commonPaginationRespTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_LIST_TOKEN_TRANSFERS_BY_ADDRESS_HASH, addressHash), queryParams, mappingParams,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting list token transfers by address hash from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonPaginationResp CommonPaginationResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonPaginationResp); err != nil {
+		client.logger.Errorf("error parsing list token transfers by address hash from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &commonPaginationResp, 10*60*1000*time.Millisecond)
+
+	return &commonPaginationResp, nil
 }
