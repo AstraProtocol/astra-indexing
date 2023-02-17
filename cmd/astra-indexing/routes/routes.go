@@ -88,11 +88,6 @@ func InitRouteRegistry(
 		},
 		Route{
 			Method:  GET,
-			path:    "api/v1/accounts/get-list-tokens",
-			handler: accountsHandlers.GetListTokens,
-		},
-		Route{
-			Method:  GET,
 			path:    "api/v1/accounts/detail/{account}",
 			handler: accountsHandlers.GetDetailAddress,
 		},
@@ -115,6 +110,28 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/accounts/{account}/coin-balances/by-day",
 			handler: accountsHandlers.AddressCoinBalancesByDate,
+		},
+	)
+
+	contractsHandler := httpapi_handlers.NewContracts(
+		logger,
+		*blockscoutClient,
+	)
+	routes = append(routes,
+		Route{
+			Method:  GET,
+			path:    "api/v1/contract/get-list-tokens",
+			handler: contractsHandler.GetListTokens,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/contract/token-transfers/{contractaddress}",
+			handler: contractsHandler.GetListTokenTransfersByContractAddressHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/contract/txs/{contractaddress}",
+			handler: contractsHandler.GetListTxsByContractAddressHash,
 		},
 	)
 
@@ -148,16 +165,6 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/accounts/token-transfers/{account}",
 			handler: accountTransactionsHandler.GetListTokenTransfersByAddressHash,
-		},
-		Route{
-			Method:  GET,
-			path:    "api/v1/accounts/contract/token-transfers/{account}",
-			handler: accountTransactionsHandler.GetListTokenTransfersByContractAddressHash,
-		},
-		Route{
-			Method:  GET,
-			path:    "api/v1/accounts/contract/txs/{account}",
-			handler: accountTransactionsHandler.GetListTxsByContractAddressHash,
 		},
 	)
 
