@@ -138,6 +138,11 @@ func InitRouteRegistry(
 			path:    "api/v1/contract/token-holders/{contractaddress}",
 			handler: contractsHandler.GetListTokenHoldersOfAContractAddressHash,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/contract/token-inventory/{contractaddress}",
+			handler: contractsHandler.GetTokenInventoryOfAContractAddressHash,
+		},
 	)
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(

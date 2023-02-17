@@ -44,6 +44,7 @@ const GET_LIST_TOKEN_TRANSFERS_BY_ADDRESS_HASH = "/api/v1?module=account&action=
 const GET_LIST_TOKEN_TRANSFERS_BY_CONTRACT_ADDRESS_HASH = "/api/v1?module=token&action=getlisttokentransfers&contractaddress="
 const GET_LIST_TXS_BY_CONTRACT_ADDRESS_HASH = "/api/v1?module=account&action=txlist&address="
 const GET_TOKENS_HOLDER_OF_A_CONTRACT_ADDRESS = "/api/v1?module=token&action=getTokenHolders&contractaddress="
+const GET_TOKEN_INVENTORY = "/api/v1?module=token&action=getinventory&contractaddress="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -985,10 +986,41 @@ func (client *HTTPClient) GetTokenHoldersOfAContractAddress(contractAddressHash 
 
 	var commonPaginationResp CommonPaginationResp
 	if err := json.Unmarshal(respBody.Bytes(), &commonPaginationResp); err != nil {
-		client.logger.Errorf("error parsing list list token holders of a contract address hash from blockscout: %v", err)
+		client.logger.Errorf("error parsing list token holders of a contract address hash from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, &commonPaginationResp, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &commonPaginationResp, 10*60*1000*time.Millisecond)
+
+	return &commonPaginationResp, nil
+}
+
+func (client *HTTPClient) GetTokenInventoryOfAContractAddress(contractAddressHash string, queryParams []string, mappingParams map[string]string) (*CommonPaginationPathResp, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetTokenInventoryOfAContractAddress_%s_%s_%s", contractAddressHash, mappingParams["page"], mappingParams["offset"])
+	var commonPaginationRespTmp CommonPaginationPathResp
+
+	err := client.httpCache.Get(cacheKey, &commonPaginationRespTmp)
+	if err == nil {
+		return &commonPaginationRespTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_TOKEN_INVENTORY, contractAddressHash), queryParams, mappingParams,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting token inventory of a contract address hash from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonPaginationResp CommonPaginationPathResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonPaginationResp); err != nil {
+		client.logger.Errorf("error parsing token inventory of a contract address hash from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &commonPaginationResp, 10*60*1000*time.Millisecond)
 
 	return &commonPaginationResp, nil
 }

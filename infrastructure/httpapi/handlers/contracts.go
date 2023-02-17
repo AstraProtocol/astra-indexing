@@ -293,3 +293,71 @@ func (handler *Contracts) GetListTokenHoldersOfAContractAddressHash(ctx *fasthtt
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, tokensAddressResp)
 }
+
+func (handler *Contracts) GetTokenInventoryOfAContractAddressHash(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GetTokenInventoryOfAContractAddressHash"
+	// handle api's params
+	var err error
+	var page int64
+	var offset int64
+	page = blockscout_infrastructure.DEFAULT_PAGE
+	offset = blockscout_infrastructure.DEFAULT_OFFSET
+
+	queryParams := make([]string, 0)
+	mappingParams := make(map[string]string)
+
+	addressHash, contractParamOk := URLValueGuard(ctx, handler.logger, "contractaddress")
+	if !contractParamOk {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		return
+	}
+
+	if string(ctx.QueryArgs().Peek("blockscout")) != "true" {
+		handler.logger.Error("invalid params")
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	if string(ctx.QueryArgs().Peek("page")) != "" {
+		page, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("page")), 10, 0)
+		if err != nil || page <= 0 {
+			handler.logger.Error("page param is invalid")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+			httpapi.InternalServerError(ctx)
+			return
+		}
+	}
+	queryParams = append(queryParams, "page")
+	mappingParams["page"] = strconv.FormatInt(page, 10)
+
+	if string(ctx.QueryArgs().Peek("offset")) != "" {
+		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("offset")), 10, 0)
+		if err != nil || offset <= 0 {
+			handler.logger.Error("offset param is invalid")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+			httpapi.InternalServerError(ctx)
+			return
+		}
+	}
+	queryParams = append(queryParams, "offset")
+	mappingParams["offset"] = strconv.FormatInt(offset, 10)
+
+	if string(ctx.QueryArgs().Peek("token_id")) != "" {
+		queryParams = append(queryParams, "token_id")
+		mappingParams["token_id"] = string(ctx.QueryArgs().Peek("token_id"))
+	}
+	//
+
+	tokensAddressResp, err := handler.blockscoutClient.GetTokenInventoryOfAContractAddress(addressHash, queryParams, mappingParams)
+	if err != nil {
+		handler.logger.Errorf("error getting token inventory of a contract address hash from blockscout: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.Success(ctx, tokensAddressResp)
+}
