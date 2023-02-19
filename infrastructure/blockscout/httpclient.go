@@ -45,6 +45,7 @@ const GET_LIST_TOKEN_TRANSFERS_BY_CONTRACT_ADDRESS_HASH = "/api/v1?module=token&
 const GET_LIST_TXS_BY_CONTRACT_ADDRESS_HASH = "/api/v1?module=account&action=txlist&address="
 const GET_TOKENS_HOLDER_OF_A_CONTRACT_ADDRESS = "/api/v1?module=token&action=getTokenHolders&contractaddress="
 const GET_TOKEN_INVENTORY = "/api/v1?module=token&action=getinventory&contractaddress="
+const GET_TOKEN_TRANSFERS_BY_TOKEN_ID = "/api/v1?module=token&action=tokentransfersbytokenid&contractaddress={contractaddresshash}&tokenid={tokenid}"
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -1018,6 +1019,38 @@ func (client *HTTPClient) GetTokenInventoryOfAContractAddress(contractAddressHas
 	var commonPaginationResp CommonPaginationPathResp
 	if err := json.Unmarshal(respBody.Bytes(), &commonPaginationResp); err != nil {
 		client.logger.Errorf("error parsing token inventory of a contract address hash from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &commonPaginationResp, 10*60*1000*time.Millisecond)
+
+	return &commonPaginationResp, nil
+}
+
+func (client *HTTPClient) GetTokenTransfersByTokenId(contractAddressHash string, tokenId string, queryParams []string, mappingParams map[string]string) (*CommonPaginationPathResp, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetTokenTransfersByTokenId_%s_%s_%s_%s", contractAddressHash, tokenId, mappingParams["page"], mappingParams["offset"])
+	var commonPaginationRespTmp CommonPaginationPathResp
+
+	err := client.httpCache.Get(cacheKey, &commonPaginationRespTmp)
+	if err == nil {
+		return &commonPaginationRespTmp, nil
+	}
+
+	url := strings.ReplaceAll(GET_TOKEN_TRANSFERS_BY_TOKEN_ID, "{contractaddresshash}", contractAddressHash)
+	rawRespBody, err := client.request(
+		client.getUrl(strings.ReplaceAll(url, "{tokenid}", tokenId), ""), queryParams, mappingParams,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting token transfers by token id from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonPaginationResp CommonPaginationPathResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonPaginationResp); err != nil {
+		client.logger.Errorf("error parsing token transfers by token id from blockscout: %v", err)
 	}
 
 	client.httpCache.Set(cacheKey, &commonPaginationResp, 10*60*1000*time.Millisecond)
