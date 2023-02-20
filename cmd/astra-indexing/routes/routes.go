@@ -244,6 +244,11 @@ func InitRouteRegistry(
 			path:    "api/v1/gas-price-oracle",
 			handler: statsHandlers.GasPriceOracle,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/evm-versions",
+			handler: statsHandlers.EvmVersions,
+		},
 	)
 
 	statusHandlers := httpapi_handlers.NewStatusHandler(

@@ -758,6 +758,22 @@ func (handler *StatsHandler) GasPriceOracle(ctx *fasthttp.RequestCtx) {
 	httpapi.Success(ctx, gasPriceOracle)
 }
 
+func (handler *StatsHandler) EvmVersions(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "EvmVersions"
+
+	gasPriceOracle, err := handler.blockscoutClient.EvmVersions()
+	if err != nil {
+		handler.logger.Errorf("error getting evm versions from blockscout: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.Success(ctx, gasPriceOracle)
+}
+
 type EstimateCountedInfo struct {
 	TotalBlocks       int64 `json:"total_blocks"`
 	TotalTransactions int64 `json:"total_transactions"`
