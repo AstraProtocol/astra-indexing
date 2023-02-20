@@ -50,6 +50,7 @@ const GET_TOKEN_INVENTORY = "/api/v1?module=token&action=getinventory&contractad
 const GET_TOKEN_TRANSFERS_BY_TOKEN_ID = "/api/v1?module=token&action=tokentransfersbytokenid&contractaddress={contractaddresshash}&tokenid={tokenid}"
 const GET_SOURCE_CODE = "/api/v1?module=contract&action=getsourcecode&address="
 const GET_TOKEN_DETAIL = "/api/v1?module=token&action=gettoken&contractaddress="
+const GET_TOKEN_METADATA = "/api/v1?module=token&action=getmetadata&contractaddress={contractaddresshash}&tokenid={tokenid}"
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -1182,6 +1183,38 @@ func (client *HTTPClient) GetTokenDetail(contractAddressHash string) (interface{
 	}
 
 	client.httpCache.Set(cacheKey, &commonResp, 10*60*1000*time.Millisecond)
+
+	return commonResp.Result, nil
+}
+
+func (client *HTTPClient) GetTokenMetadata(contractAddressHash string, tokenId string) (interface{}, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetTokenMetadata_%s_%s", contractAddressHash, tokenId)
+	var commonRespTmp CommonResp
+
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return commonRespTmp.Result, nil
+	}
+
+	url := strings.ReplaceAll(GET_TOKEN_METADATA, "{contractaddresshash}", contractAddressHash)
+	rawRespBody, err := client.request(
+		client.getUrl(strings.ReplaceAll(url, "{tokenid}", tokenId), ""), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting token metadata from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonResp CommonResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonResp); err != nil {
+		client.logger.Errorf("error parsing token metadata from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, commonResp, 10*60*1000*time.Millisecond)
 
 	return commonResp.Result, nil
 }

@@ -490,3 +490,34 @@ func (handler *Contracts) GetTokenDetail(ctx *fasthttp.RequestCtx) {
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, sourceCode)
 }
+
+func (handler *Contracts) GetTokenMetadata(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GetTokenMetadata"
+	// handle api's params
+	var err error
+
+	addressHash, contractParamOk := URLValueGuard(ctx, handler.logger, "contractaddress")
+	if !contractParamOk {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		return
+	}
+
+	tokenId, tokenParamOk := URLValueGuard(ctx, handler.logger, "tokenid")
+	if !tokenParamOk {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		return
+	}
+	//
+
+	tokensAddressResp, err := handler.blockscoutClient.GetTokenMetadata(addressHash, tokenId)
+	if err != nil {
+		handler.logger.Errorf("error getting token metadata by token id from blockscout: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.Success(ctx, tokensAddressResp)
+}
