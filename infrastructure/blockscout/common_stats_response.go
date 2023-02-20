@@ -19,3 +19,19 @@ type CommonStats struct {
 	TokenStats       TokenStats       `json:"token_stats"`
 	TransactionStats TransactionStats `json:"transaction_stats"`
 }
+
+type MarketHistory struct {
+	HistoryData string `json:"history_data"`
+	SupplyData  string `json:"supply_data"`
+}
+
+type GasPriceOracle struct {
+	Average float64 `json:"average"`
+	Fast    float64 `json:"fast"`
+	Slow    float64 `json:"slow"`
+}
+
+type CoinBalancesByDate struct {
+	Date  string  `json:"date"`
+	Value float64 `json:"value"`
+}

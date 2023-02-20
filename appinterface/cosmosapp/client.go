@@ -26,10 +26,11 @@ type Client interface {
 	Proposals() ([]Proposal, error)
 	ProposalById(id string) (Proposal, error)
 	ProposalTally(id string) (Tally, error)
+	DepositParams() (Params, error)
 
 	Tx(txHash string) (*model.Tx, error)
 
-	TotalFeeBurn() (TotalFeeBurnResp, error)
+	TotalFeeBurn() (TotalFeeBurn, error)
 	VestingBalances(account string) (VestingBalances, error)
 }
 

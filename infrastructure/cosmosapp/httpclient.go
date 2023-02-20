@@ -121,6 +121,14 @@ func NewHTTPClient(rpcUrl string, bondingDenom string) *HTTPClient {
 }
 
 func (client *HTTPClient) Account(accountAddress string) (*cosmosapp_interface.Account, error) {
+	cacheKey := fmt.Sprintf("CosmosAccount_%s", accountAddress)
+	var accountTmp cosmosapp_interface.Account
+
+	err := client.httpCache.Get(cacheKey, &accountTmp)
+	if err == nil {
+		return &accountTmp, nil
+	}
+
 	rawRespBody, err := client.request(
 		fmt.Sprintf("%s/%s", client.getUrl("auth", "accounts"), accountAddress), "",
 	)
@@ -259,10 +267,20 @@ func (client *HTTPClient) Account(accountAddress string) (*cosmosapp_interface.A
 		return nil, fmt.Errorf("unrecognized account type: %s", rawAccount.Type)
 	}
 
+	client.httpCache.Set(cacheKey, &account, 60*1000*time.Millisecond)
+
 	return &account, nil
 }
 
 func (client *HTTPClient) Balances(accountAddress string) (coin.Coins, error) {
+	cacheKey := "CosmosBalances"
+	var coinsTmp coin.Coins
+
+	err := client.httpCache.Get(cacheKey, &coinsTmp)
+	if err == nil {
+		return coinsTmp, nil
+	}
+
 	resp := &BankBalancesResp{
 		Pagination: Pagination{
 			MaybeNextKey: nil,
@@ -300,6 +318,8 @@ func (client *HTTPClient) Balances(accountAddress string) (coin.Coins, error) {
 			break
 		}
 	}
+
+	client.httpCache.Set(cacheKey, balances, 60*1000*time.Millisecond)
 
 	return balances, nil
 }
@@ -746,6 +766,34 @@ func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, e
 	return tallyResp.Tally, nil
 }
 
+func (client *HTTPClient) DepositParams() (cosmosapp_interface.Params, error) {
+	method := fmt.Sprintf(
+		"%s/%s/%s/%s/%s",
+		"cosmos", "gov", "v1beta1", "params", "deposit",
+	)
+	rawRespBody, statusCode, err := client.rawRequest(
+		method,
+	)
+	if err != nil {
+		return cosmosapp_interface.Params{}, err
+	}
+	if statusCode == 404 {
+		return cosmosapp_interface.Params{}, cosmosapp_interface.ErrProposalNotFound
+	}
+	if statusCode != 200 {
+		rawRespBody.Close()
+		return cosmosapp_interface.Params{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
+	}
+	defer rawRespBody.Close()
+
+	var params cosmosapp_interface.Params
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&params); err != nil {
+		return cosmosapp_interface.Params{}, err
+	}
+
+	return params, nil
+}
+
 func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	txResult := model.Tx{}
 	err := client.httpCache.Get(hash, &txResult)
@@ -772,7 +820,15 @@ func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	return tx, nil
 }
 
-func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurnResp, error) {
+func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurn, error) {
+	cacheKey := "CosmosTotalFeeBurn"
+	var totalFeeBurnTmp cosmosapp_interface.TotalFeeBurn
+
+	err := client.httpCache.Get(cacheKey, &totalFeeBurnTmp)
+	if err == nil {
+		return totalFeeBurnTmp, nil
+	}
+
 	method := fmt.Sprintf(
 		"%s/%s/%s/%s",
 		"astra", "feeburn", "v1", "total_fee_burn",
@@ -781,26 +837,36 @@ func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurnResp, 
 		method,
 	)
 	if err != nil {
-		return cosmosapp_interface.TotalFeeBurnResp{}, err
+		return cosmosapp_interface.TotalFeeBurn{}, err
 	}
 	if statusCode == 404 {
-		return cosmosapp_interface.TotalFeeBurnResp{}, cosmosapp_interface.ErrTotalFeeBurnNotFound
+		return cosmosapp_interface.TotalFeeBurn{}, cosmosapp_interface.ErrTotalFeeBurnNotFound
 	}
 	if statusCode != 200 {
 		rawRespBody.Close()
-		return cosmosapp_interface.TotalFeeBurnResp{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
+		return cosmosapp_interface.TotalFeeBurn{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
 	}
 	defer rawRespBody.Close()
 
-	var totalFeeBurnResp cosmosapp_interface.TotalFeeBurnResp
-	if err := jsoniter.NewDecoder(rawRespBody).Decode(&totalFeeBurnResp); err != nil {
-		return cosmosapp_interface.TotalFeeBurnResp{}, err
+	var totalFeeBurn cosmosapp_interface.TotalFeeBurn
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&totalFeeBurn); err != nil {
+		return cosmosapp_interface.TotalFeeBurn{}, err
 	}
 
-	return totalFeeBurnResp, nil
+	client.httpCache.Set(cacheKey, totalFeeBurn, 60*1000*time.Millisecond)
+
+	return totalFeeBurn, nil
 }
 
 func (client *HTTPClient) VestingBalances(account string) (cosmosapp_interface.VestingBalances, error) {
+	cacheKey := fmt.Sprintf("CosmosVestingBalances_%s", account)
+	var vestingBalancesTmp cosmosapp_interface.VestingBalances
+
+	err := client.httpCache.Get(cacheKey, &vestingBalancesTmp)
+	if err == nil {
+		return vestingBalancesTmp, nil
+	}
+
 	method := fmt.Sprintf(
 		"%s/%s/%s/%s/%s",
 		"evmos", "vesting", "v1", "balances", account,
@@ -830,6 +896,8 @@ func (client *HTTPClient) VestingBalances(account string) (cosmosapp_interface.V
 	if err := jsoniter.NewDecoder(rawRespBody).Decode(&vestingBalances); err != nil {
 		return cosmosapp_interface.VestingBalances{}, err
 	}
+
+	client.httpCache.Set(cacheKey, vestingBalances, 60*1000*time.Millisecond)
 
 	return vestingBalances, nil
 }
@@ -903,26 +971,23 @@ func (client *HTTPClient) request(method string, queryString ...string) (io.Read
 	var err error
 	startTime := time.Now()
 	queryUrl := client.rpcUrl + "/" + method
-	recordMethod := ""
-	if strings.Contains(method, "txs") {
-		recordMethod = "tx"
-	}
+
 	if len(queryString) > 0 {
 		queryUrl += "?" + queryString[0]
 	}
 
 	req, err := retryablehttp.NewRequestWithContext(context.Background(), http.MethodGet, queryUrl, nil)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "http", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(-1), "http", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf("error creating HTTP request with context: %v", err)
 	}
 	rawResp, err := client.httpClient.Do(req)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "http", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(-1), "http", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf("error requesting Cosmos %s endpoint: %v", queryUrl, err)
 	}
 
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(rawResp.StatusCode), "http", time.Since(startTime).Milliseconds())
+	prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(rawResp.StatusCode), "http", time.Since(startTime).Milliseconds())
 
 	if rawResp.StatusCode != 200 {
 		rawResp.Body.Close()

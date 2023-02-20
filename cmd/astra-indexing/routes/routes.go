@@ -35,7 +35,7 @@ func InitRouteRegistry(
 	conNodeAddressPrefix := config.Blockchain.ConNodeAddressPrefix
 
 	routes := make([]Route, 0)
-	searchHandler := httpapi_handlers.NewSearch(logger, *blockscoutClient, rdbConn.ToHandle())
+	searchHandler := httpapi_handlers.NewSearch(logger, *blockscoutClient, cosmosAppClient, rdbConn.ToHandle())
 	routes = append(routes,
 		Route{
 			Method:  GET,
@@ -44,12 +44,17 @@ func InitRouteRegistry(
 		},
 	)
 
-	blocksHandler := httpapi_handlers.NewBlocks(logger, rdbConn.ToHandle())
+	blocksHandler := httpapi_handlers.NewBlocks(logger, rdbConn.ToHandle(), *blockscoutClient)
 	routes = append(routes,
 		Route{
 			Method:  GET,
 			path:    "api/v1/blocks",
 			handler: blocksHandler.List,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/eth-block-number",
+			handler: blocksHandler.EthBlockNumber,
 		},
 		Route{
 			Method:  GET,
@@ -86,6 +91,63 @@ func InitRouteRegistry(
 			path:    "api/v1/accounts/detail/{account}",
 			handler: accountsHandlers.GetDetailAddress,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/getabi/{account}",
+			handler: accountsHandlers.GetAbiByAddressHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/tokenlist/{account}",
+			handler: accountsHandlers.GetTokensOfAnAddress,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/get-coin-balances-history/{account}",
+			handler: accountsHandlers.GetCoinBalancesHistory,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/{account}/coin-balances/by-day",
+			handler: accountsHandlers.AddressCoinBalancesByDate,
+		},
+	)
+
+	contractsHandler := httpapi_handlers.NewContracts(
+		logger,
+		*blockscoutClient,
+	)
+	routes = append(routes,
+		Route{
+			Method:  GET,
+			path:    "api/v1/contract/get-list-tokens",
+			handler: contractsHandler.GetListTokens,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/contract/token-transfers/{contractaddress}",
+			handler: contractsHandler.GetListTokenTransfersByContractAddressHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/contract/txs/{contractaddress}",
+			handler: contractsHandler.GetListTxsByContractAddressHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/contract/token-holders/{contractaddress}",
+			handler: contractsHandler.GetListTokenHoldersOfAContractAddressHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/contract/token-inventory/{contractaddress}",
+			handler: contractsHandler.GetTokenInventoryOfAContractAddressHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/contract/token-transfers-by-tokenid/contractaddress={contractaddress}/tokenid={tokenid}",
+			handler: contractsHandler.GetTokenTransfersByTokenId,
+		},
 	)
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(
@@ -108,6 +170,16 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/accounts/get-top-addresses-balance",
 			handler: accountTransactionsHandler.GetTopAddressesBalance,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/internal-transactions/{account}",
+			handler: accountTransactionsHandler.GetInternalTxsByAddressHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/token-transfers/{account}",
+			handler: accountTransactionsHandler.GetListTokenTransfersByAddressHash,
 		},
 	)
 
@@ -157,6 +229,16 @@ func InitRouteRegistry(
 			path:    "api/v1/total-fee-history",
 			handler: statsHandlers.GetTotalFeeHistory,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/market-history-chart",
+			handler: statsHandlers.MarketHistoryChart,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/gas-price-oracle",
+			handler: statsHandlers.GasPriceOracle,
+		},
 	)
 
 	statusHandlers := httpapi_handlers.NewStatusHandler(
@@ -184,6 +266,21 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/transactions/{hash}",
 			handler: transactionHandler.FindByHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/transactions/internal-transactions/{hash}",
+			handler: transactionHandler.ListInternalTransactionsByHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/transactions/getabi/{hash}",
+			handler: transactionHandler.GetAbiByTransactionHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/transactions/getrawtrace/{hash}",
+			handler: transactionHandler.GetRawTraceByTransactionHash,
 		},
 	)
 
