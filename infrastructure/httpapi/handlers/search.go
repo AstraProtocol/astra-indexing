@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
@@ -25,6 +26,7 @@ import (
 type Search struct {
 	logger                       applogger.Logger
 	blockscoutClient             blockscout_infrastructure.HTTPClient
+	cosmosClient                 cosmosapp.Client
 	blocksView                   *block_view.Blocks
 	transactionsView             transaction_view.BlockTransactions
 	validatorsView               *validator_view.Validators
@@ -41,13 +43,13 @@ type SearchResults struct {
 	Contracts    []blockscout_infrastructure.ContractResult    `json:"contracts"`
 }
 
-func NewSearch(logger applogger.Logger, blockscoutClient blockscout_infrastructure.HTTPClient, rdbHandle *rdb.Handle) *Search {
+func NewSearch(logger applogger.Logger, blockscoutClient blockscout_infrastructure.HTTPClient, cosmosClient cosmosapp.Client, rdbHandle *rdb.Handle) *Search {
 	return &Search{
 		logger.WithFields(applogger.LogFields{
 			"module": "SearchHandler",
 		}),
 		blockscoutClient,
-
+		cosmosClient,
 		block_view.NewBlocks(rdbHandle),
 		transaction_view.NewTransactionsView(rdbHandle),
 		validator_view.NewValidators(rdbHandle),
@@ -131,6 +133,14 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 		} else {
 			results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutAddressResults)
 		}
+
+		if accounts == nil {
+			account, err := search.cosmosClient.Account(astraAddress)
+			if err == nil && account.Address != "" {
+				results.Addresses[0].AddressHash = blockscoutSearchParam
+			}
+		}
+
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 		httpapi.Success(ctx, results)
 		return

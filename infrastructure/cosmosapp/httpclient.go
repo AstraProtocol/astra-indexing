@@ -121,6 +121,14 @@ func NewHTTPClient(rpcUrl string, bondingDenom string) *HTTPClient {
 }
 
 func (client *HTTPClient) Account(accountAddress string) (*cosmosapp_interface.Account, error) {
+	cacheKey := fmt.Sprintf("CosmosAccount_%s", accountAddress)
+	var accountTmp cosmosapp_interface.Account
+
+	err := client.httpCache.Get(cacheKey, &accountTmp)
+	if err == nil {
+		return &accountTmp, nil
+	}
+
 	rawRespBody, err := client.request(
 		fmt.Sprintf("%s/%s", client.getUrl("auth", "accounts"), accountAddress), "",
 	)
@@ -259,10 +267,20 @@ func (client *HTTPClient) Account(accountAddress string) (*cosmosapp_interface.A
 		return nil, fmt.Errorf("unrecognized account type: %s", rawAccount.Type)
 	}
 
+	client.httpCache.Set(cacheKey, &account, 60*1000*time.Millisecond)
+
 	return &account, nil
 }
 
 func (client *HTTPClient) Balances(accountAddress string) (coin.Coins, error) {
+	cacheKey := "CosmosBalances"
+	var coinsTmp coin.Coins
+
+	err := client.httpCache.Get(cacheKey, &coinsTmp)
+	if err == nil {
+		return coinsTmp, nil
+	}
+
 	resp := &BankBalancesResp{
 		Pagination: Pagination{
 			MaybeNextKey: nil,
@@ -300,6 +318,8 @@ func (client *HTTPClient) Balances(accountAddress string) (coin.Coins, error) {
 			break
 		}
 	}
+
+	client.httpCache.Set(cacheKey, balances, 60*1000*time.Millisecond)
 
 	return balances, nil
 }
@@ -801,6 +821,14 @@ func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 }
 
 func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurn, error) {
+	cacheKey := "CosmosTotalFeeBurn"
+	var totalFeeBurnTmp cosmosapp_interface.TotalFeeBurn
+
+	err := client.httpCache.Get(cacheKey, &totalFeeBurnTmp)
+	if err == nil {
+		return totalFeeBurnTmp, nil
+	}
+
 	method := fmt.Sprintf(
 		"%s/%s/%s/%s",
 		"astra", "feeburn", "v1", "total_fee_burn",
@@ -825,10 +853,20 @@ func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurn, erro
 		return cosmosapp_interface.TotalFeeBurn{}, err
 	}
 
+	client.httpCache.Set(cacheKey, totalFeeBurn, 60*1000*time.Millisecond)
+
 	return totalFeeBurn, nil
 }
 
 func (client *HTTPClient) VestingBalances(account string) (cosmosapp_interface.VestingBalances, error) {
+	cacheKey := fmt.Sprintf("CosmosVestingBalances_%s", account)
+	var vestingBalancesTmp cosmosapp_interface.VestingBalances
+
+	err := client.httpCache.Get(cacheKey, &vestingBalancesTmp)
+	if err == nil {
+		return vestingBalancesTmp, nil
+	}
+
 	method := fmt.Sprintf(
 		"%s/%s/%s/%s/%s",
 		"evmos", "vesting", "v1", "balances", account,
@@ -858,6 +896,8 @@ func (client *HTTPClient) VestingBalances(account string) (cosmosapp_interface.V
 	if err := jsoniter.NewDecoder(rawRespBody).Decode(&vestingBalances); err != nil {
 		return cosmosapp_interface.VestingBalances{}, err
 	}
+
+	client.httpCache.Set(cacheKey, vestingBalances, 60*1000*time.Millisecond)
 
 	return vestingBalances, nil
 }

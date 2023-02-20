@@ -35,7 +35,7 @@ func InitRouteRegistry(
 	conNodeAddressPrefix := config.Blockchain.ConNodeAddressPrefix
 
 	routes := make([]Route, 0)
-	searchHandler := httpapi_handlers.NewSearch(logger, *blockscoutClient, rdbConn.ToHandle())
+	searchHandler := httpapi_handlers.NewSearch(logger, *blockscoutClient, cosmosAppClient, rdbConn.ToHandle())
 	routes = append(routes,
 		Route{
 			Method:  GET,
