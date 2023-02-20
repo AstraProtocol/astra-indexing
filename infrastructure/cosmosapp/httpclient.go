@@ -273,7 +273,7 @@ func (client *HTTPClient) Account(accountAddress string) (*cosmosapp_interface.A
 }
 
 func (client *HTTPClient) Balances(accountAddress string) (coin.Coins, error) {
-	cacheKey := "CosmosBalances"
+	cacheKey := fmt.Sprintf("CosmosBalances_%s", accountAddress)
 	var coinsTmp coin.Coins
 
 	err := client.httpCache.Get(cacheKey, &coinsTmp)
