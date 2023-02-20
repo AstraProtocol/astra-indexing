@@ -35,6 +35,8 @@ const GET_SEARCH_RESULTS = "/token-autocomplete?q="
 const ETH_BLOCK_NUMBER = "/api/v1?module=block&action=eth_block_number"
 const MARKET_HISTORY_CHART = "/api/v1/market-history-chart"
 const GAS_PRICE_ORACLE = "/api/v1/gas-price-oracle"
+const EVM_VERSIONS = "/api/v1/evm-versions"
+const COMPILER_VERSIONS = "/api/v1/compiler-versions?compiler="
 const ADDRESS_COIN_BALANCE_HISTORY_CHART = "/address/{addresshash}/coin-balances/by-day?type=JSON"
 const GET_RAW_TRACE_BY_TX_HASH = "/api/v1?module=transaction&action=getrawtracebytxhash&txhash="
 const GET_LIST_TOKEN_OF_AN_ADDRESS = "/api/v1?module=account&action=tokenlist&address="
@@ -46,6 +48,9 @@ const GET_LIST_TXS_BY_CONTRACT_ADDRESS_HASH = "/api/v1?module=account&action=txl
 const GET_TOKENS_HOLDER_OF_A_CONTRACT_ADDRESS = "/api/v1?module=token&action=getTokenHolders&contractaddress="
 const GET_TOKEN_INVENTORY = "/api/v1?module=token&action=getinventory&contractaddress="
 const GET_TOKEN_TRANSFERS_BY_TOKEN_ID = "/api/v1?module=token&action=tokentransfersbytokenid&contractaddress={contractaddresshash}&tokenid={tokenid}"
+const GET_SOURCE_CODE = "/api/v1?module=contract&action=getsourcecode&address="
+const GET_TOKEN_DETAIL = "/api/v1?module=token&action=gettoken&contractaddress="
+const GET_TOKEN_METADATA = "/api/v1?module=token&action=getmetadata&contractaddress={contractaddresshash}&tokenid={tokenid}"
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -1056,4 +1061,160 @@ func (client *HTTPClient) GetTokenTransfersByTokenId(contractAddressHash string,
 	client.httpCache.Set(cacheKey, &commonPaginationResp, 10*60*1000*time.Millisecond)
 
 	return &commonPaginationResp, nil
+}
+
+func (client *HTTPClient) GetSourceCodeByContractAddressHash(contractAddressHash string) (interface{}, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetSourceCodeByContractAddressHash_%s", contractAddressHash)
+	var commonRespTmp CommonResp
+
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return &commonRespTmp.Result, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_SOURCE_CODE, contractAddressHash), nil, nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var commonResp CommonResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&commonResp); err != nil {
+		return nil, err
+	}
+
+	if commonResp.Status == "0" {
+		return nil, fmt.Errorf(ADDRESS_NOT_FOUND)
+	}
+
+	client.httpCache.Set(cacheKey, &commonResp, 10*60*1000*time.Millisecond)
+
+	return &commonResp.Result, nil
+}
+
+func (client *HTTPClient) EvmVersions() (interface{}, error) {
+	cacheKey := "BlockscoutEvmVersions"
+	var commonRespTmp CommonResp
+
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return &commonRespTmp.Result, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(EVM_VERSIONS, ""), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting evm versions from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonResp CommonResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonResp); err != nil {
+		client.logger.Errorf("error parsing evm versions from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, commonResp, 10*60*1000*time.Millisecond)
+
+	return &commonResp.Result, nil
+}
+
+func (client *HTTPClient) CompilerVersions(compiler string) (interface{}, error) {
+	cacheKey := fmt.Sprintf("BlockscoutCompilerVersions_%s", compiler)
+	var commonRespTmp CommonResp
+
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return &commonRespTmp.Result, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(COMPILER_VERSIONS, compiler), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting compiler versions from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonResp CommonResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonResp); err != nil {
+		client.logger.Errorf("error parsing compiler versions from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, commonResp, 10*60*1000*time.Millisecond)
+
+	return &commonResp.Result, nil
+}
+
+func (client *HTTPClient) GetTokenDetail(contractAddressHash string) (interface{}, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetTokenbDetail_%s", contractAddressHash)
+	var commonRespTmp CommonResp
+
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return commonRespTmp.Result, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_TOKEN_DETAIL, contractAddressHash), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting token detail by contract address hash from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonResp CommonResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonResp); err != nil {
+		client.logger.Errorf("error parsing token detail by contract address hash from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &commonResp, 10*60*1000*time.Millisecond)
+
+	return commonResp.Result, nil
+}
+
+func (client *HTTPClient) GetTokenMetadata(contractAddressHash string, tokenId string) (interface{}, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetTokenMetadata_%s_%s", contractAddressHash, tokenId)
+	var commonRespTmp CommonResp
+
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return commonRespTmp.Result, nil
+	}
+
+	url := strings.ReplaceAll(GET_TOKEN_METADATA, "{contractaddresshash}", contractAddressHash)
+	rawRespBody, err := client.request(
+		client.getUrl(strings.ReplaceAll(url, "{tokenid}", tokenId), ""), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting token metadata from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonResp CommonResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonResp); err != nil {
+		client.logger.Errorf("error parsing token metadata from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, commonResp, 10*60*1000*time.Millisecond)
+
+	return commonResp.Result, nil
 }

@@ -148,6 +148,21 @@ func InitRouteRegistry(
 			path:    "api/v1/contract/token-transfers-by-tokenid/contractaddress={contractaddress}/tokenid={tokenid}",
 			handler: contractsHandler.GetTokenTransfersByTokenId,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/contract/source-code/{contractaddress}",
+			handler: contractsHandler.GetSourceCodeOfAContractAddressHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/contract/token-detail/{contractaddress}",
+			handler: contractsHandler.GetTokenDetail,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/contract/token-metadata/contractaddress={contractaddress}/tokenid={tokenid}",
+			handler: contractsHandler.GetTokenMetadata,
+		},
 	)
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(
@@ -238,6 +253,16 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/gas-price-oracle",
 			handler: statsHandlers.GasPriceOracle,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/evm-versions",
+			handler: statsHandlers.EvmVersions,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/compiler-versions/{compiler}",
+			handler: statsHandlers.CompilerVersions,
 		},
 	)
 
