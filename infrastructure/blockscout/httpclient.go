@@ -46,6 +46,7 @@ const GET_LIST_TXS_BY_CONTRACT_ADDRESS_HASH = "/api/v1?module=account&action=txl
 const GET_TOKENS_HOLDER_OF_A_CONTRACT_ADDRESS = "/api/v1?module=token&action=getTokenHolders&contractaddress="
 const GET_TOKEN_INVENTORY = "/api/v1?module=token&action=getinventory&contractaddress="
 const GET_TOKEN_TRANSFERS_BY_TOKEN_ID = "/api/v1?module=token&action=tokentransfersbytokenid&contractaddress={contractaddresshash}&tokenid={tokenid}"
+const GET_SOURCE_CODE = "/api/v1?module=contract&action=getsourcecode&address="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -1056,4 +1057,35 @@ func (client *HTTPClient) GetTokenTransfersByTokenId(contractAddressHash string,
 	client.httpCache.Set(cacheKey, &commonPaginationResp, 10*60*1000*time.Millisecond)
 
 	return &commonPaginationResp, nil
+}
+
+func (client *HTTPClient) GetSourceCodeByContractAddressHash(contractAddressHash string) (interface{}, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetSourceCodeByContractAddressHash_%s", contractAddressHash)
+	var commonRespTmp CommonResp
+
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return &commonRespTmp.Result, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_SOURCE_CODE, contractAddressHash), nil, nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var commonResp CommonResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&commonResp); err != nil {
+		return nil, err
+	}
+
+	if commonResp.Status == "0" {
+		return nil, fmt.Errorf(ADDRESS_NOT_FOUND)
+	}
+
+	client.httpCache.Set(cacheKey, &commonResp, 10*60*1000*time.Millisecond)
+
+	return &commonResp.Result, nil
 }
