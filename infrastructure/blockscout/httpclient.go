@@ -36,6 +36,7 @@ const ETH_BLOCK_NUMBER = "/api/v1?module=block&action=eth_block_number"
 const MARKET_HISTORY_CHART = "/api/v1/market-history-chart"
 const GAS_PRICE_ORACLE = "/api/v1/gas-price-oracle"
 const EVM_VERSIONS = "/api/v1/evm-versions"
+const COMPILER_VERSIONS = "/api/v1/compiler-versions?compiler="
 const ADDRESS_COIN_BALANCE_HISTORY_CHART = "/address/{addresshash}/coin-balances/by-day?type=JSON"
 const GET_RAW_TRACE_BY_TX_HASH = "/api/v1?module=transaction&action=getrawtracebytxhash&txhash="
 const GET_LIST_TOKEN_OF_AN_ADDRESS = "/api/v1?module=account&action=tokenlist&address="
@@ -1115,6 +1116,37 @@ func (client *HTTPClient) EvmVersions() (interface{}, error) {
 	var commonResp CommonResp
 	if err := json.Unmarshal(respBody.Bytes(), &commonResp); err != nil {
 		client.logger.Errorf("error parsing evm versions from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, commonResp, 10*60*1000*time.Millisecond)
+
+	return &commonResp.Result, nil
+}
+
+func (client *HTTPClient) CompilerVersions(compiler string) (interface{}, error) {
+	cacheKey := fmt.Sprintf("BlockscoutCompilerVersions_%s", compiler)
+	var commonRespTmp CommonResp
+
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return &commonRespTmp.Result, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(COMPILER_VERSIONS, compiler), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting compiler versions from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonResp CommonResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonResp); err != nil {
+		client.logger.Errorf("error parsing compiler versions from blockscout: %v", err)
 	}
 
 	client.httpCache.Set(cacheKey, commonResp, 10*60*1000*time.Millisecond)

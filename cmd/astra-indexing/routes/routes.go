@@ -249,6 +249,11 @@ func InitRouteRegistry(
 			path:    "api/v1/evm-versions",
 			handler: statsHandlers.EvmVersions,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/compiler-versions/{compiler}",
+			handler: statsHandlers.CompilerVersions,
+		},
 	)
 
 	statusHandlers := httpapi_handlers.NewStatusHandler(
