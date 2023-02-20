@@ -153,6 +153,11 @@ func InitRouteRegistry(
 			path:    "api/v1/contract/source-code/{contractaddress}",
 			handler: contractsHandler.GetSourceCodeOfAContractAddressHash,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/contract/token-detail/{contractaddress}",
+			handler: contractsHandler.GetTokenDetail,
+		},
 	)
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(

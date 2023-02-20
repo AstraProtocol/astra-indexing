@@ -49,6 +49,7 @@ const GET_TOKENS_HOLDER_OF_A_CONTRACT_ADDRESS = "/api/v1?module=token&action=get
 const GET_TOKEN_INVENTORY = "/api/v1?module=token&action=getinventory&contractaddress="
 const GET_TOKEN_TRANSFERS_BY_TOKEN_ID = "/api/v1?module=token&action=tokentransfersbytokenid&contractaddress={contractaddresshash}&tokenid={tokenid}"
 const GET_SOURCE_CODE = "/api/v1?module=contract&action=getsourcecode&address="
+const GET_TOKEN_DETAIL = "/api/v1?module=token&action=gettoken&contractaddress="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -1152,4 +1153,35 @@ func (client *HTTPClient) CompilerVersions(compiler string) (interface{}, error)
 	client.httpCache.Set(cacheKey, commonResp, 10*60*1000*time.Millisecond)
 
 	return &commonResp.Result, nil
+}
+
+func (client *HTTPClient) GetTokenDetail(contractAddressHash string) (interface{}, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetTokenbDetail_%s", contractAddressHash)
+	var commonRespTmp CommonResp
+
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return commonRespTmp.Result, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_TOKEN_DETAIL, contractAddressHash), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting token detail by contract address hash from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonResp CommonResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonResp); err != nil {
+		client.logger.Errorf("error parsing token detail by contract address hash from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &commonResp, 10*60*1000*time.Millisecond)
+
+	return commonResp.Result, nil
 }

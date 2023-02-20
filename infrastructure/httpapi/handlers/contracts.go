@@ -465,3 +465,28 @@ func (handler *Contracts) GetSourceCodeOfAContractAddressHash(ctx *fasthttp.Requ
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, sourceCode)
 }
+
+func (handler *Contracts) GetTokenDetail(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GetTokenDetail"
+	// handle api's params
+	var err error
+
+	addressHash, contractParamOk := URLValueGuard(ctx, handler.logger, "contractaddress")
+	if !contractParamOk {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		return
+	}
+	//
+
+	sourceCode, err := handler.blockscoutClient.GetTokenDetail(addressHash)
+	if err != nil {
+		handler.logger.Errorf("error getting token detail of a contract address hash from blockscout: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.Success(ctx, sourceCode)
+}
