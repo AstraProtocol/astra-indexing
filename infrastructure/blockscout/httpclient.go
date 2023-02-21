@@ -685,7 +685,7 @@ func (client *HTTPClient) MarketHistoryChart() (*MarketHistory, error) {
 		client.logger.Errorf("error parsing market history chart from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, marketHistory, 60*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, marketHistory, 10*60*1000*time.Millisecond)
 
 	return &marketHistory, nil
 }
