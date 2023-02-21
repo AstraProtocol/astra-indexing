@@ -325,6 +325,14 @@ func (client *HTTPClient) Balances(accountAddress string) (coin.Coins, error) {
 }
 
 func (client *HTTPClient) BondedBalance(accountAddress string) (coin.Coins, error) {
+	cacheKey := fmt.Sprintf("CosmosBondedBalance_%s", accountAddress)
+	var coinsTmp coin.Coins
+
+	err := client.httpCache.Get(cacheKey, &coinsTmp)
+	if err == nil {
+		return coinsTmp, nil
+	}
+
 	resp := &DelegationsResp{
 		MaybePagination: &Pagination{
 			MaybeNextKey: nil,
@@ -373,10 +381,20 @@ func (client *HTTPClient) BondedBalance(accountAddress string) (coin.Coins, erro
 		}
 	}
 
+	client.httpCache.Set(cacheKey, balance, 60*1000*time.Millisecond)
+
 	return balance, nil
 }
 
 func (client *HTTPClient) RedelegatingBalance(accountAddress string) (coin.Coins, error) {
+	cacheKey := fmt.Sprintf("CosmosRedelegatingBalance_%s", accountAddress)
+	var coinsTmp coin.Coins
+
+	err := client.httpCache.Get(cacheKey, &coinsTmp)
+	if err == nil {
+		return coinsTmp, nil
+	}
+
 	resp := &UnbondingResp{
 		Pagination: Pagination{
 			MaybeNextKey: nil,
@@ -419,10 +437,20 @@ func (client *HTTPClient) RedelegatingBalance(accountAddress string) (coin.Coins
 		}
 	}
 
+	client.httpCache.Set(cacheKey, balance, 60*1000*time.Millisecond)
+
 	return balance, nil
 }
 
 func (client *HTTPClient) UnbondingBalance(accountAddress string) (coin.Coins, error) {
+	cacheKey := fmt.Sprintf("CosmosUnbondingBalance_%s", accountAddress)
+	var coinsTmp coin.Coins
+
+	err := client.httpCache.Get(cacheKey, &coinsTmp)
+	if err == nil {
+		return coinsTmp, nil
+	}
+
 	resp := &UnbondingResp{
 		Pagination: Pagination{
 			MaybeNextKey: nil,
@@ -466,10 +494,20 @@ func (client *HTTPClient) UnbondingBalance(accountAddress string) (coin.Coins, e
 		}
 	}
 
+	client.httpCache.Set(cacheKey, balance, 60*1000*time.Millisecond)
+
 	return balance, nil
 }
 
 func (client *HTTPClient) TotalRewards(accountAddress string) (coin.DecCoins, error) {
+	cacheKey := fmt.Sprintf("CosmosTotalRewards_%s", accountAddress)
+	var decCoinsTmp coin.DecCoins
+
+	err := client.httpCache.Get(cacheKey, &decCoinsTmp)
+	if err == nil {
+		return decCoinsTmp, nil
+	}
+
 	rawRespBody, err := client.request(
 		fmt.Sprintf(
 			"%s/%s/rewards",
@@ -495,10 +533,21 @@ func (client *HTTPClient) TotalRewards(accountAddress string) (coin.DecCoins, er
 		}
 		rewards = rewards.Add(rewardCoin)
 	}
+
+	client.httpCache.Set(cacheKey, rewards, 60*1000*time.Millisecond)
+
 	return rewards, nil
 }
 
 func (client *HTTPClient) Validator(validatorAddress string) (*cosmosapp_interface.Validator, error) {
+	cacheKey := fmt.Sprintf("CosmosValidator_%s", validatorAddress)
+	var validatorTmp *cosmosapp_interface.Validator
+
+	err := client.httpCache.Get(cacheKey, &validatorTmp)
+	if err == nil {
+		return validatorTmp, nil
+	}
+
 	rawRespBody, err := client.request(
 		fmt.Sprintf(
 			"%s/%s",
@@ -515,10 +564,20 @@ func (client *HTTPClient) Validator(validatorAddress string) (*cosmosapp_interfa
 		return nil, err
 	}
 
+	client.httpCache.Set(cacheKey, &validatorResp.Validator, 60*1000*time.Millisecond)
+
 	return &validatorResp.Validator, nil
 }
 
 func (client *HTTPClient) Commission(validatorAddress string) (coin.DecCoins, error) {
+	cacheKey := fmt.Sprintf("CosmosCommission_%s", validatorAddress)
+	var decCoinsTmp coin.DecCoins
+
+	err := client.httpCache.Get(cacheKey, &decCoinsTmp)
+	if err == nil {
+		return decCoinsTmp, nil
+	}
+
 	rawRespBody, err := client.request(
 		fmt.Sprintf("%s/%s/commission",
 			client.getUrl("distribution", "validators"), validatorAddress,
@@ -542,12 +601,23 @@ func (client *HTTPClient) Commission(validatorAddress string) (coin.DecCoins, er
 		}
 		totalCommission = totalCommission.Add(commissionCoin)
 	}
+
+	client.httpCache.Set(cacheKey, totalCommission, 60*1000*time.Millisecond)
+
 	return totalCommission, nil
 }
 
 func (client *HTTPClient) Delegation(
 	delegator string, validator string,
 ) (*cosmosapp_interface.DelegationResponse, error) {
+	cacheKey := fmt.Sprintf("CosmosDelegation_%s_%s", delegator, validator)
+	var delegationResponseTmp *cosmosapp_interface.DelegationResponse
+
+	err := client.httpCache.Get(cacheKey, &delegationResponseTmp)
+	if err == nil {
+		return delegationResponseTmp, nil
+	}
+
 	resp := &DelegationsResp{
 		MaybePagination: &Pagination{
 			MaybeNextKey: nil,
@@ -582,6 +652,7 @@ func (client *HTTPClient) Delegation(
 		for _, delegation := range resp.MaybeDelegationResponses {
 			if delegation.Delegation.DelegatorAddress == delegator &&
 				delegation.Delegation.ValidatorAddress == validator {
+				client.httpCache.Set(cacheKey, delegation, 60*1000*time.Millisecond)
 				return &delegation, nil
 			}
 		}
@@ -595,6 +666,14 @@ func (client *HTTPClient) Delegation(
 }
 
 func (client *HTTPClient) AnnualProvisions() (coin.DecCoin, error) {
+	cacheKey := "CosmosAnnualProvisions"
+	var decCoinTmp coin.DecCoin
+
+	err := client.httpCache.Get(cacheKey, &decCoinTmp)
+	if err == nil {
+		return decCoinTmp, nil
+	}
+
 	rawRespBody, err := client.request(client.getUrl("mint", "annual_provisions"))
 	if err != nil {
 		return coin.DecCoin{}, err
@@ -611,10 +690,20 @@ func (client *HTTPClient) AnnualProvisions() (coin.DecCoin, error) {
 		return coin.DecCoin{}, fmt.Errorf("error parsing coin from annual provision: %v", annualProvisions)
 	}
 
+	client.httpCache.Set(cacheKey, annualProvisions, 10*60*1000*time.Millisecond)
+
 	return annualProvisions, nil
 }
 
 func (client *HTTPClient) TotalBondedBalance() (coin.Coin, error) {
+	cacheKey := "CosmosTotalBondedBalance"
+	var coinTmp coin.Coin
+
+	err := client.httpCache.Get(cacheKey, &coinTmp)
+	if err == nil {
+		return coinTmp, nil
+	}
+
 	resp := &ValidatorsResp{
 		MaybePagination: &Pagination{
 			MaybeNextKey: nil,
@@ -666,10 +755,20 @@ func (client *HTTPClient) TotalBondedBalance() (coin.Coin, error) {
 		}
 	}
 
+	client.httpCache.Set(cacheKey, totalBondedBalance, 60*1000*time.Millisecond)
+
 	return totalBondedBalance, nil
 }
 
 func (client *HTTPClient) Proposals() ([]cosmosapp_interface.Proposal, error) {
+	cacheKey := "CosmosProposals"
+	var proposalsTmp []cosmosapp_interface.Proposal
+
+	err := client.httpCache.Get(cacheKey, &proposalsTmp)
+	if err == nil {
+		return proposalsTmp, nil
+	}
+
 	resp := &ProposalsResp{
 		MaybePagination: &Pagination{
 			MaybeNextKey: nil,
@@ -707,10 +806,20 @@ func (client *HTTPClient) Proposals() ([]cosmosapp_interface.Proposal, error) {
 		}
 	}
 
+	client.httpCache.Set(cacheKey, proposals, 60*1000*time.Millisecond)
+
 	return proposals, nil
 }
 
 func (client *HTTPClient) ProposalById(id string) (cosmosapp_interface.Proposal, error) {
+	cacheKey := fmt.Sprintf("CosmosProposalById_%s", id)
+	var proposalTmp cosmosapp_interface.Proposal
+
+	err := client.httpCache.Get(cacheKey, &proposalTmp)
+	if err == nil {
+		return proposalTmp, nil
+	}
+
 	method := fmt.Sprintf(
 		"%s/%s",
 		client.getUrl("gov", "proposals"), id,
@@ -735,10 +844,20 @@ func (client *HTTPClient) ProposalById(id string) (cosmosapp_interface.Proposal,
 		return cosmosapp_interface.Proposal{}, err
 	}
 
+	client.httpCache.Set(cacheKey, proposalResp.Proposal, 60*1000*time.Millisecond)
+
 	return proposalResp.Proposal, nil
 }
 
 func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, error) {
+	cacheKey := fmt.Sprintf("CosmosProposalTally_%s", id)
+	var tallyTmp cosmosapp_interface.Tally
+
+	err := client.httpCache.Get(cacheKey, &tallyTmp)
+	if err == nil {
+		return tallyTmp, nil
+	}
+
 	method := fmt.Sprintf(
 		"%s/%s/tally",
 		client.getUrl("gov", "proposals"), id,
@@ -763,10 +882,20 @@ func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, e
 		return cosmosapp_interface.Tally{}, err
 	}
 
+	client.httpCache.Set(cacheKey, tallyResp.Tally, 60*1000*time.Millisecond)
+
 	return tallyResp.Tally, nil
 }
 
 func (client *HTTPClient) DepositParams() (cosmosapp_interface.Params, error) {
+	cacheKey := "CosmosDepositParams"
+	var paramsTmp cosmosapp_interface.Params
+
+	err := client.httpCache.Get(cacheKey, &paramsTmp)
+	if err == nil {
+		return paramsTmp, nil
+	}
+
 	method := fmt.Sprintf(
 		"%s/%s/%s/%s/%s",
 		"cosmos", "gov", "v1beta1", "params", "deposit",
@@ -791,15 +920,20 @@ func (client *HTTPClient) DepositParams() (cosmosapp_interface.Params, error) {
 		return cosmosapp_interface.Params{}, err
 	}
 
+	client.httpCache.Set(cacheKey, params, 10*60*1000*time.Millisecond)
+
 	return params, nil
 }
 
 func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
-	txResult := model.Tx{}
-	err := client.httpCache.Get(hash, &txResult)
+	cacheKey := fmt.Sprintf("CosmosTx_%s", hash)
+	var txTmp *model.Tx
+
+	err := client.httpCache.Get(cacheKey, &txTmp)
 	if err == nil {
-		return &txResult, nil
+		return txTmp, nil
 	}
+
 	rawRespBody, err := client.request(
 		fmt.Sprintf(
 			"%s/%s",
@@ -816,7 +950,9 @@ func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error parsing Tx(%s): %v", hash, err)
 	}
-	_ = client.httpCache.Set(hash, tx, time.Minute)
+
+	client.httpCache.Set(hash, tx, 60*1000*time.Millisecond)
+
 	return tx, nil
 }
 
@@ -853,7 +989,7 @@ func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurn, erro
 		return cosmosapp_interface.TotalFeeBurn{}, err
 	}
 
-	client.httpCache.Set(cacheKey, totalFeeBurn, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, totalFeeBurn, 10*60*1000*time.Millisecond)
 
 	return totalFeeBurn, nil
 }
