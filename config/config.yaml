@@ -54,7 +54,7 @@ http_service:
   cors_allowed_headers: [ "Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time" ]
 
 tendermint_app:
-  http_rpc_url: "https://cosmos.astranaut.io"
+  http_rpc_url: "https://cosmos.astranaut.io:26657"
   insecure: false
   # When strict_genesis_parsing enabled, genssi parsing will reject any non-Cosmos SDK built-in module
   # inside genesis file.
