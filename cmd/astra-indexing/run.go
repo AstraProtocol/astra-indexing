@@ -86,10 +86,15 @@ func run(args []string) error {
 				Usage:   " Cosmos App RPC URL",
 				EnvVars: []string{"COSMOSAPP_URL"},
 			},
+			&cli.StringFlag{
+				Name:    "blockscoutURL",
+				Usage:   "Blockscout HTTP RPC URL",
+				EnvVars: []string{"BLOCKSCOUT_URL"},
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			if args := ctx.Args(); args.Len() > 0 {
-				return fmt.Errorf("Unexpected arguments: %q", args.Get(0))
+				return fmt.Errorf("unexpected arguments: %q", args.Get(0))
 			}
 
 			// Prepare FileConfig
@@ -117,6 +122,7 @@ func run(args []string) error {
 
 				TendermintHTTPRPCUrl: ctx.String("tendermintURL"),
 				CosmosHTTPRPCUrl:     ctx.String("cosmosAppURL"),
+				BlockscoutHTTPRPCUrl: ctx.String("blockscoutURL"),
 
 				GithubAPIUsername: ctx.String("githubAPIUsername"),
 				GithubAPIToken:    ctx.String("githubAPIToken"),

@@ -54,18 +54,18 @@ http_service:
   cors_allowed_headers: [ "Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time" ]
 
 tendermint_app:
-  http_rpc_url: "http://104.248.149.15:26657"
+  #http_rpc_url:
   insecure: false
   # When strict_genesis_parsing enabled, genssi parsing will reject any non-Cosmos SDK built-in module
   # inside genesis file.
   strict_genesis_parsing: false
 
 cosmos_app:
-  http_rpc_url: "http://104.248.149.15:1317"
+  #http_rpc_url:
   insecure: false
 
 blockscout_app:
-  http_rpc_url: "http://blockscout.tiki.services"
+  #http_rpc_url:
   insecure: false
 
 debug:

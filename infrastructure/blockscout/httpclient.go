@@ -51,6 +51,7 @@ const GET_TOKEN_TRANSFERS_BY_TOKEN_ID = "/api/v1?module=token&action=tokentransf
 const GET_SOURCE_CODE = "/api/v1?module=contract&action=getsourcecode&address="
 const GET_TOKEN_DETAIL = "/api/v1?module=token&action=gettoken&contractaddress="
 const GET_TOKEN_METADATA = "/api/v1?module=token&action=getmetadata&contractaddress={contractaddresshash}&tokenid={tokenid}"
+const GET_ADDRESS_BALANCE = "/api/v1?module=account&action=balance&address="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -378,6 +379,8 @@ func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string,
 	cacheKey := fmt.Sprintf("BlockscoutGetDetailAddressByAddressHashAsync_%s", addressHash)
 	var addressRespTmp AddressResp
 
+	go client.FetchAndUpdateAddressBalance(addressHash)
+
 	err := client.httpCache.Get(cacheKey, &addressRespTmp)
 	if err == nil {
 		addressChan <- addressRespTmp
@@ -407,7 +410,7 @@ func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string,
 		client.logger.Errorf("error parsing address detail from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, addressResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, addressResp, 60*1000*time.Millisecond)
 
 	addressChan <- addressResp
 }
@@ -1217,4 +1220,35 @@ func (client *HTTPClient) GetTokenMetadata(contractAddressHash string, tokenId s
 	client.httpCache.Set(cacheKey, commonResp, 10*60*1000*time.Millisecond)
 
 	return commonResp.Result, nil
+}
+
+func (client *HTTPClient) FetchAndUpdateAddressBalance(addressHash string) (interface{}, error) {
+	cacheKey := fmt.Sprintf("FetchAndUpdateAddressBalance_%s", addressHash)
+	var commonRespTmp CommonResp
+
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return &commonRespTmp.Result, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_ADDRESS_BALANCE, addressHash), nil, nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var commonResp CommonResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&commonResp); err != nil {
+		return nil, err
+	}
+
+	if commonResp.Status == "0" {
+		return nil, fmt.Errorf(ADDRESS_NOT_FOUND)
+	}
+
+	client.httpCache.Set(cacheKey, &commonResp, 10*1000*time.Millisecond)
+
+	return &commonResp.Result, nil
 }
