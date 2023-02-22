@@ -26,6 +26,7 @@ type CLIConfig struct {
 
 	TendermintHTTPRPCUrl string
 	CosmosHTTPRPCUrl     string
+	BlockscoutHTTPRPCUrl string
 
 	GithubAPIUsername string
 	GithubAPIToken    string
