@@ -508,7 +508,7 @@ func (client *HTTPClient) GetTopAddressesBalance(queryParams []string, mappingPa
 		client.logger.Errorf("error parsing top addresses balance from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, &topAddressesBalanceResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &topAddressesBalanceResp, 10*1000*time.Millisecond)
 
 	return &topAddressesBalanceResp, nil
 }
