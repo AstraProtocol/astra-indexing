@@ -38,6 +38,8 @@ var (
 const ERR_CODE_ACCOUNT_NOT_FOUND = 2
 const ERR_CODE_ACCOUNT_NO_DELEGATION = 5
 
+const TIME_CACHE = 10 * time.Second
+
 type HTTPClient struct {
 	httpClient   *retryablehttp.Client
 	rpcUrl       string
@@ -267,7 +269,7 @@ func (client *HTTPClient) Account(accountAddress string) (*cosmosapp_interface.A
 		return nil, fmt.Errorf("unrecognized account type: %s", rawAccount.Type)
 	}
 
-	client.httpCache.Set(cacheKey, &account, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &account, TIME_CACHE)
 
 	return &account, nil
 }
@@ -319,7 +321,7 @@ func (client *HTTPClient) Balances(accountAddress string) (coin.Coins, error) {
 		}
 	}
 
-	client.httpCache.Set(cacheKey, balances, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, balances, TIME_CACHE)
 
 	return balances, nil
 }
@@ -381,7 +383,7 @@ func (client *HTTPClient) BondedBalance(accountAddress string) (coin.Coins, erro
 		}
 	}
 
-	client.httpCache.Set(cacheKey, balance, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, balance, TIME_CACHE)
 
 	return balance, nil
 }
@@ -437,7 +439,7 @@ func (client *HTTPClient) RedelegatingBalance(accountAddress string) (coin.Coins
 		}
 	}
 
-	client.httpCache.Set(cacheKey, balance, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, balance, TIME_CACHE)
 
 	return balance, nil
 }
@@ -494,7 +496,7 @@ func (client *HTTPClient) UnbondingBalance(accountAddress string) (coin.Coins, e
 		}
 	}
 
-	client.httpCache.Set(cacheKey, balance, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, balance, TIME_CACHE)
 
 	return balance, nil
 }
@@ -534,7 +536,7 @@ func (client *HTTPClient) TotalRewards(accountAddress string) (coin.DecCoins, er
 		rewards = rewards.Add(rewardCoin)
 	}
 
-	client.httpCache.Set(cacheKey, rewards, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, rewards, TIME_CACHE)
 
 	return rewards, nil
 }
@@ -564,7 +566,7 @@ func (client *HTTPClient) Validator(validatorAddress string) (*cosmosapp_interfa
 		return nil, err
 	}
 
-	client.httpCache.Set(cacheKey, &validatorResp.Validator, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &validatorResp.Validator, TIME_CACHE)
 
 	return &validatorResp.Validator, nil
 }
@@ -602,7 +604,7 @@ func (client *HTTPClient) Commission(validatorAddress string) (coin.DecCoins, er
 		totalCommission = totalCommission.Add(commissionCoin)
 	}
 
-	client.httpCache.Set(cacheKey, totalCommission, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, totalCommission, TIME_CACHE)
 
 	return totalCommission, nil
 }
@@ -652,7 +654,7 @@ func (client *HTTPClient) Delegation(
 		for _, delegation := range resp.MaybeDelegationResponses {
 			if delegation.Delegation.DelegatorAddress == delegator &&
 				delegation.Delegation.ValidatorAddress == validator {
-				client.httpCache.Set(cacheKey, delegation, 60*1000*time.Millisecond)
+				client.httpCache.Set(cacheKey, delegation, TIME_CACHE)
 				return &delegation, nil
 			}
 		}
@@ -690,7 +692,7 @@ func (client *HTTPClient) AnnualProvisions() (coin.DecCoin, error) {
 		return coin.DecCoin{}, fmt.Errorf("error parsing coin from annual provision: %v", annualProvisions)
 	}
 
-	client.httpCache.Set(cacheKey, annualProvisions, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, annualProvisions, TIME_CACHE)
 
 	return annualProvisions, nil
 }
@@ -755,7 +757,7 @@ func (client *HTTPClient) TotalBondedBalance() (coin.Coin, error) {
 		}
 	}
 
-	client.httpCache.Set(cacheKey, totalBondedBalance, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, totalBondedBalance, TIME_CACHE)
 
 	return totalBondedBalance, nil
 }
@@ -806,7 +808,7 @@ func (client *HTTPClient) Proposals() ([]cosmosapp_interface.Proposal, error) {
 		}
 	}
 
-	client.httpCache.Set(cacheKey, proposals, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, proposals, TIME_CACHE)
 
 	return proposals, nil
 }
@@ -844,7 +846,7 @@ func (client *HTTPClient) ProposalById(id string) (cosmosapp_interface.Proposal,
 		return cosmosapp_interface.Proposal{}, err
 	}
 
-	client.httpCache.Set(cacheKey, proposalResp.Proposal, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, proposalResp.Proposal, TIME_CACHE)
 
 	return proposalResp.Proposal, nil
 }
@@ -882,7 +884,7 @@ func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, e
 		return cosmosapp_interface.Tally{}, err
 	}
 
-	client.httpCache.Set(cacheKey, tallyResp.Tally, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, tallyResp.Tally, TIME_CACHE)
 
 	return tallyResp.Tally, nil
 }
@@ -920,7 +922,7 @@ func (client *HTTPClient) DepositParams() (cosmosapp_interface.Params, error) {
 		return cosmosapp_interface.Params{}, err
 	}
 
-	client.httpCache.Set(cacheKey, params, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, params, TIME_CACHE)
 
 	return params, nil
 }
@@ -989,7 +991,7 @@ func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurn, erro
 		return cosmosapp_interface.TotalFeeBurn{}, err
 	}
 
-	client.httpCache.Set(cacheKey, totalFeeBurn, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, totalFeeBurn, TIME_CACHE)
 
 	return totalFeeBurn, nil
 }
@@ -1033,7 +1035,7 @@ func (client *HTTPClient) VestingBalances(account string) (cosmosapp_interface.V
 		return cosmosapp_interface.VestingBalances{}, err
 	}
 
-	client.httpCache.Set(cacheKey, vestingBalances, 60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, vestingBalances, TIME_CACHE)
 
 	return vestingBalances, nil
 }
