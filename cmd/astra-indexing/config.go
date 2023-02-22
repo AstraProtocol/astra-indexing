@@ -65,6 +65,9 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	if cliConfig.CosmosHTTPRPCUrl != "" {
 		config.CosmosApp.HTTPRPCUrl = cliConfig.CosmosHTTPRPCUrl
 	}
+	if cliConfig.BlockscoutHTTPRPCUrl != "" {
+		config.BlockscoutApp.HTTPRPCUrl = cliConfig.BlockscoutHTTPRPCUrl
+	}
 	if cliConfig.GithubAPIUsername != "" {
 		config.IndexService.GithubAPI.Username = cliConfig.GithubAPIUsername
 	}
