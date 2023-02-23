@@ -156,7 +156,7 @@ func NewHTTPClient(logger applogger.Logger, url string) *HTTPClient {
 		}),
 		httpClient,
 		strings.TrimSuffix(url, "/"),
-		cache.NewCache("blockscout"),
+		cache.NewCache(),
 	}
 }
 

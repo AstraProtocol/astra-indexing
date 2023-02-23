@@ -20,7 +20,7 @@ type ChainStats struct {
 func NewChainStats(rdbHandle *rdb.Handle) *ChainStats {
 	return &ChainStats{
 		rdbHandle,
-		cache.NewCache("chain_stats"),
+		cache.NewCache(),
 	}
 }
 

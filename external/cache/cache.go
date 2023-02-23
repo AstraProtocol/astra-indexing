@@ -6,6 +6,8 @@ import (
 	"github.com/eko/gocache/lib/v4/store"
 	redis_store "github.com/eko/gocache/store/redis/v4"
 	"github.com/go-redis/redis/v8"
+	"log"
+	"os"
 	"time"
 )
 
@@ -14,10 +16,15 @@ type AstraCache struct {
 }
 
 func NewCache() *AstraCache {
-	redisStore := redis_store.NewRedis(redis.NewClient(&redis.Options{
-		Addr: "127.0.0.1:6379",
-	}))
+	redisURL, ok := os.LookupEnv("REDIS_URL")
 
+	if !ok {
+		log.Fatalln("Missing REDIS_URL string")
+	}
+
+	redisStore := redis_store.NewRedis(redis.NewClient(&redis.Options{
+		Addr: redisURL,
+	}))
 	return &AstraCache{astraCache: redisStore}
 }
 

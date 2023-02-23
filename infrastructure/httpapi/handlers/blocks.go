@@ -55,7 +55,7 @@ func NewBlocks(logger applogger.Logger, rdbHandle *rdb.Handle, blockscoutClient 
 		transaction_view.NewTransactionsView(rdbHandle),
 		blockevent_view.NewBlockEvents(rdbHandle),
 		validator_view.NewValidatorBlockCommitments(rdbHandle),
-		cache.NewCache("blocks"),
+		cache.NewCache(),
 		blockscoutClient,
 	}
 }
@@ -138,7 +138,7 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 	}
 
 	_ = handler.astraCache.Set(blockPaginationKey,
-		NewBlocksPaginationResult(blocks, *paginationResult), 2400*time.Millisecond)
+		NewBlocksPaginationResult(blocks, *paginationResult), 3*time.Second)
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
