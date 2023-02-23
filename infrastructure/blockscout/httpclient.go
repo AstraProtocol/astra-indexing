@@ -51,6 +51,7 @@ const GET_TOKEN_TRANSFERS_BY_TOKEN_ID = "/api/v1?module=token&action=tokentransf
 const GET_SOURCE_CODE = "/api/v1?module=contract&action=getsourcecode&address="
 const GET_TOKEN_DETAIL = "/api/v1?module=token&action=gettoken&contractaddress="
 const GET_TOKEN_METADATA = "/api/v1?module=token&action=getmetadata&contractaddress={contractaddresshash}&tokenid={tokenid}"
+const GET_ADDRESS_BALANCE = "/api/v1?module=account&action=balance&address="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const DEFAULT_PAGE = 1
@@ -186,7 +187,7 @@ func (client *HTTPClient) GetDetailEvmTxByCosmosTxHash(txHash string) (*Transact
 		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
 
-	client.httpCache.Set(cacheKey, &txResp.Result, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &txResp.Result, 60*1000*time.Millisecond)
 
 	return &txResp.Result, nil
 }
@@ -217,7 +218,7 @@ func (client *HTTPClient) GetDetailEvmTxByEvmTxHash(evmTxHash string) (*Transact
 		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
 
-	client.httpCache.Set(cacheKey, &txResp.Result, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &txResp.Result, 60*1000*time.Millisecond)
 
 	return &txResp.Result, nil
 }
@@ -255,7 +256,7 @@ func (client *HTTPClient) GetDetailEvmTxByCosmosTxHashAsync(txHash string, trans
 		client.logger.Errorf("error parsing transaction evm by cosmos tx hash from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, transactionEvmResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, transactionEvmResp, 60*1000*time.Millisecond)
 
 	transactionEvmRespChan <- transactionEvmResp
 }
@@ -293,7 +294,7 @@ func (client *HTTPClient) GetDetailEvmTxByEvmTxHashAsync(evmTxHash string, trans
 		client.logger.Errorf("error parsing transaction evm by evm tx hash from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, transactionEvmResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, transactionEvmResp, 60*1000*time.Millisecond)
 
 	transactionEvmRespChan <- transactionEvmResp
 }
@@ -369,7 +370,7 @@ func (client *HTTPClient) GetAddressCountersAsync(addressHash string, addressCou
 		client.logger.Errorf("error parsing address counters from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, addressCounterResp, 30*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, addressCounterResp, 60*1000*time.Millisecond)
 
 	addressCountersChan <- addressCounterResp
 }
@@ -377,6 +378,8 @@ func (client *HTTPClient) GetAddressCountersAsync(addressHash string, addressCou
 func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string, addressChan chan AddressResp) {
 	cacheKey := fmt.Sprintf("BlockscoutGetDetailAddressByAddressHashAsync_%s", addressHash)
 	var addressRespTmp AddressResp
+
+	go client.FetchAndUpdateAddressBalance(addressHash)
 
 	err := client.httpCache.Get(cacheKey, &addressRespTmp)
 	if err == nil {
@@ -407,7 +410,7 @@ func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string,
 		client.logger.Errorf("error parsing address detail from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, addressResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, addressResp, 60*1000*time.Millisecond)
 
 	addressChan <- addressResp
 }
@@ -439,7 +442,7 @@ func (client *HTTPClient) GetSearchResults(keyword string) []SearchResult {
 		return []SearchResult{}
 	}
 
-	client.httpCache.Set(cacheKey, seachResults, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, seachResults, 10*1000*time.Millisecond)
 
 	return seachResults
 }
@@ -477,7 +480,7 @@ func (client *HTTPClient) GetSearchResultsAsync(keyword string, results chan []S
 		client.logger.Errorf("error parsing search results from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, seachResults, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, seachResults, 10*1000*time.Millisecond)
 
 	results <- seachResults
 }
@@ -508,7 +511,7 @@ func (client *HTTPClient) GetTopAddressesBalance(queryParams []string, mappingPa
 		client.logger.Errorf("error parsing top addresses balance from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, &topAddressesBalanceResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &topAddressesBalanceResp, 10*1000*time.Millisecond)
 
 	return &topAddressesBalanceResp, nil
 }
@@ -560,7 +563,7 @@ func (client *HTTPClient) GetListTokens(queryParams []string, mappingParams map[
 		client.logger.Errorf("error parsing list token from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, &commonPaginationResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &commonPaginationResp, 60*1000*time.Millisecond)
 
 	return &commonPaginationResp, nil
 }
@@ -654,7 +657,7 @@ func (client *HTTPClient) GetAbiByTransactionHash(txHash string) (*AbiResult, er
 		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
 
-	client.httpCache.Set(cacheKey, &abiResp.Result, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &abiResp.Result, 60*1000*time.Millisecond)
 
 	return &abiResp.Result, nil
 }
@@ -871,7 +874,7 @@ func (client *HTTPClient) GetListInternalTxsByAddressHash(addressHash string, qu
 		client.logger.Errorf("error parsing list internal txs by address hash from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, &commonResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &commonResp, 60*1000*time.Millisecond)
 
 	return &commonResp, nil
 }
@@ -902,7 +905,7 @@ func (client *HTTPClient) GetListTokenTransfersByAddressHash(addressHash string,
 		client.logger.Errorf("error parsing list token transfers by address hash from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, &commonPaginationResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &commonPaginationResp, 60*1000*time.Millisecond)
 
 	return &commonPaginationResp, nil
 }
@@ -933,7 +936,7 @@ func (client *HTTPClient) GetListTokenTransfersByContractAddressHash(contractAdd
 		client.logger.Errorf("error parsing list token transfers by contract address hash from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, &commonPaginationResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &commonPaginationResp, 60*1000*time.Millisecond)
 
 	return &commonPaginationResp, nil
 }
@@ -995,7 +998,7 @@ func (client *HTTPClient) GetTokenHoldersOfAContractAddress(contractAddressHash 
 		client.logger.Errorf("error parsing list token holders of a contract address hash from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, &commonPaginationResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &commonPaginationResp, 60*1000*time.Millisecond)
 
 	return &commonPaginationResp, nil
 }
@@ -1026,7 +1029,7 @@ func (client *HTTPClient) GetTokenInventoryOfAContractAddress(contractAddressHas
 		client.logger.Errorf("error parsing token inventory of a contract address hash from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, &commonPaginationResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &commonPaginationResp, 60*1000*time.Millisecond)
 
 	return &commonPaginationResp, nil
 }
@@ -1058,7 +1061,7 @@ func (client *HTTPClient) GetTokenTransfersByTokenId(contractAddressHash string,
 		client.logger.Errorf("error parsing token transfers by token id from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, &commonPaginationResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &commonPaginationResp, 60*1000*time.Millisecond)
 
 	return &commonPaginationResp, nil
 }
@@ -1089,7 +1092,7 @@ func (client *HTTPClient) GetSourceCodeByContractAddressHash(contractAddressHash
 		return nil, fmt.Errorf(ADDRESS_NOT_FOUND)
 	}
 
-	client.httpCache.Set(cacheKey, &commonResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &commonResp, 60*1000*time.Millisecond)
 
 	return &commonResp.Result, nil
 }
@@ -1182,7 +1185,7 @@ func (client *HTTPClient) GetTokenDetail(contractAddressHash string) (interface{
 		client.logger.Errorf("error parsing token detail by contract address hash from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, &commonResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, &commonResp, 60*1000*time.Millisecond)
 
 	return commonResp.Result, nil
 }
@@ -1214,7 +1217,38 @@ func (client *HTTPClient) GetTokenMetadata(contractAddressHash string, tokenId s
 		client.logger.Errorf("error parsing token metadata from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, commonResp, 10*60*1000*time.Millisecond)
+	client.httpCache.Set(cacheKey, commonResp, 60*1000*time.Millisecond)
 
 	return commonResp.Result, nil
+}
+
+func (client *HTTPClient) FetchAndUpdateAddressBalance(addressHash string) (interface{}, error) {
+	cacheKey := fmt.Sprintf("FetchAndUpdateAddressBalance_%s", addressHash)
+	var commonRespTmp CommonResp
+
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return &commonRespTmp.Result, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_ADDRESS_BALANCE, addressHash), nil, nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var commonResp CommonResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&commonResp); err != nil {
+		return nil, err
+	}
+
+	if commonResp.Status == "0" {
+		return nil, fmt.Errorf(ADDRESS_NOT_FOUND)
+	}
+
+	client.httpCache.Set(cacheKey, &commonResp, 10*1000*time.Millisecond)
+
+	return &commonResp.Result, nil
 }

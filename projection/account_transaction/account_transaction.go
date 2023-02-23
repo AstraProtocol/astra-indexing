@@ -486,11 +486,11 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 				*/
 			} else {
 				if msgEvent == nil {
-					projection.logger.Errorf("message event is empty")
+					projection.logger.Debug("message event is empty")
 				} else {
-					projection.logger.Errorf("error message event: %v", msgEvent.String())
+					projection.logger.Debugf("error message event: %v", msgEvent.String())
 				}
-				projection.logger.Errorf("error preparing total gas used and total fees of account: %v", senderAddress)
+				projection.logger.Debugf("error preparing total gas used and total fees of account: %v", senderAddress)
 			}
 		}
 	}

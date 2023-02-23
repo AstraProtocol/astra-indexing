@@ -138,6 +138,7 @@ func (handler *Transactions) ListInternalTransactionsByHash(ctx *fasthttp.Reques
 		if err != nil {
 			handler.logger.Errorf("error finding list internal transactions by hash: %v", err)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+			httpapi.InternalServerError(ctx)
 			return
 		}
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
