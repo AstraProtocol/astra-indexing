@@ -893,7 +893,6 @@ func (projection *AccountMessage) HandleEvents(height int64, events []event_enti
 				},
 				Accounts: []string{
 					typedEvent.Params.FromAddress,
-					typedEvent.Params.ToAddress,
 				},
 			})
 		}
