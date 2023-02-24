@@ -22,13 +22,14 @@ func (depositorsView *MockDepositorsView) Insert(row *DepositorRow) error {
 func (depositorsView *MockDepositorsView) ListByProposalId(
 	proposalId string,
 	order DepositorListOrder,
+	filters Filters,
 	pagination *pagination2.Pagination,
 ) (
 	[]DepositorWithMonikerRow,
 	*pagination2.Result,
 	error,
 ) {
-	mockArgs := depositorsView.Called(proposalId, order, pagination)
+	mockArgs := depositorsView.Called(proposalId, order, filters, pagination)
 	result1, _ := mockArgs.Get(0).([]DepositorWithMonikerRow)
 	result2, _ := mockArgs.Get(1).(*pagination2.Result)
 	return result1, result2, mockArgs.Error(2)

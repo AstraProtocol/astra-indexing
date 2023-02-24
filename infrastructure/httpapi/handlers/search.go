@@ -194,6 +194,14 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 			}
 		}
 	}
+
+	// searching blocks in case of blockscout is slower than chainindexing
+	if search.isResultsEmpty(results) {
+		blocks, err := search.blocksView.Search(keyword)
+		if err == nil {
+			results.Blocks = search.parseBlocks(blocks)
+		}
+	}
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, results)
 }
@@ -212,6 +220,18 @@ func (search *Search) parseValidators(data []validator_view.ValidatorRow) []bloc
 		validators = append(validators, validator)
 	}
 	return validators
+}
+
+func (search *Search) parseBlocks(data []block_view.Block) []blockscout_infrastructure.BlockResult {
+	var blocks []blockscout_infrastructure.BlockResult
+	for _, block_data := range data {
+		var block blockscout_infrastructure.BlockResult
+		block.BlockHash = block_data.Hash
+		block.BlockNumber = int(block_data.Height)
+		block.InsertedAt = block_data.Time
+		blocks = append(blocks, block)
+	}
+	return blocks
 }
 
 func (search *Search) parseAddresses(data account_view.AccountRow, blockscout_data []blockscout_infrastructure.SearchResult) []blockscout_infrastructure.AddressResult {
