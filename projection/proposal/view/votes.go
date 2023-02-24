@@ -26,6 +26,7 @@ type Votes interface {
 	ListByProposalId(
 		proposalId string,
 		order VoteListOrder,
+		filters Filters,
 		pagination *pagination.Pagination,
 	) ([]VoteWithMonikerRow, *pagination.Result, error)
 }
@@ -179,6 +180,7 @@ func (votesView *VotesView) FindByProposalIdVoter(proposalId string, voterAddres
 func (votesView *VotesView) ListByProposalId(
 	proposalId string,
 	order VoteListOrder,
+	filters Filters,
 	pagination *pagination.Pagination,
 ) ([]VoteWithMonikerRow, *pagination.Result, error) {
 	stmtBuilder := votesView.rdb.StmtBuilder.Select(
@@ -201,6 +203,18 @@ func (votesView *VotesView) ListByProposalId(
 	).Where(
 		fmt.Sprintf("%s.proposal_id = ?", VOTES_TABLE_NAME), proposalId,
 	)
+
+	if filters.Answer != "" {
+		stmtBuilder = stmtBuilder.Where(
+			fmt.Sprintf("%s.answer = ?", VOTES_TABLE_NAME), filters.Answer,
+		)
+	}
+
+	if filters.Address != "" {
+		stmtBuilder = stmtBuilder.Where(
+			fmt.Sprintf("%s.voter_address = ?", VOTES_TABLE_NAME), filters.Address,
+		)
+	}
 
 	if order.VoteAtBlockHeight == view.ORDER_DESC {
 		stmtBuilder = stmtBuilder.OrderBy(fmt.Sprintf("%s.vote_at_block_height DESC", VOTES_TABLE_NAME))
@@ -278,9 +292,13 @@ type VoteListOrder struct {
 	VoteAtBlockHeight view.ORDER
 }
 
+type Filters struct {
+	Answer  string
+	Address string
+}
+
 type VoteWithMonikerRow struct {
 	VoteRow
-
 	MaybeVoterMoniker *string `json:"maybe_voter_moniker"`
 }
 

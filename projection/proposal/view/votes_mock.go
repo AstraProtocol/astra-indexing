@@ -39,13 +39,14 @@ func (votesView *MockVotesView) FindByProposalIdVoter(
 func (votesView *MockVotesView) ListByProposalId(
 	proposalId string,
 	order VoteListOrder,
+	filters Filters,
 	pagination *pagination2.Pagination,
 ) (
 	[]VoteWithMonikerRow,
 	*pagination2.Result,
 	error,
 ) {
-	mockArgs := votesView.Called(proposalId, order, pagination)
+	mockArgs := votesView.Called(proposalId, order, filters, pagination)
 	result1, _ := mockArgs.Get(0).([]VoteWithMonikerRow)
 	result2, _ := mockArgs.Get(1).(*pagination2.Result)
 	return result1, result2, mockArgs.Error(2)
