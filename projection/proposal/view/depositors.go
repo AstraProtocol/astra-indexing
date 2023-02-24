@@ -24,6 +24,7 @@ type Depositors interface {
 	ListByProposalId(
 		proposalId string,
 		order DepositorListOrder,
+		filters Filters,
 		pagination *pagination.Pagination,
 	) (
 		[]DepositorWithMonikerRow,
@@ -82,6 +83,7 @@ func (depositorsView *DepositorsView) Insert(row *DepositorRow) error {
 func (depositorsView *DepositorsView) ListByProposalId(
 	proposalId string,
 	order DepositorListOrder,
+	filters Filters,
 	pagination *pagination.Pagination,
 ) ([]DepositorWithMonikerRow, *pagination.Result, error) {
 	stmtBuilder := depositorsView.rdb.StmtBuilder.Select(
@@ -103,6 +105,12 @@ func (depositorsView *DepositorsView) ListByProposalId(
 	).Where(
 		fmt.Sprintf("%s.proposal_id = ?", DEPOSITORS_TABLE_NAME), proposalId,
 	)
+
+	if filters.Address != "" {
+		stmtBuilder = stmtBuilder.Where(
+			fmt.Sprintf("%s.depositor_address = ?", DEPOSITORS_TABLE_NAME), filters.Address,
+		)
+	}
 
 	if order.DepositAtBlockHeight == view.ORDER_DESC {
 		stmtBuilder = stmtBuilder.OrderBy(fmt.Sprintf("%s.id DESC", DEPOSITORS_TABLE_NAME))

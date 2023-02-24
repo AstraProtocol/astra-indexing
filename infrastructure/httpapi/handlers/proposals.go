@@ -207,7 +207,7 @@ func (handler *Proposals) ListVotesById(ctx *fasthttp.RequestCtx) {
 		filters.Answer = string(queryArgs.Peek("answer"))
 	}
 	if queryArgs.Has("voterAddress") {
-		filters.VoterAddress = string(queryArgs.Peek("voterAddress"))
+		filters.Address = string(queryArgs.Peek("voterAddress"))
 	}
 
 	votes, paginationResult, err := handler.votesView.ListByProposalId(idParam, proposal_view.VoteListOrder{
@@ -242,9 +242,14 @@ func (handler *Proposals) ListDepositorsById(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
+	filters := proposal_view.Filters{}
+	if queryArgs.Has("depositorAddress") {
+		filters.Address = string(queryArgs.Peek("depositorAddress"))
+	}
+
 	depositors, paginationResult, err := handler.depositorsView.ListByProposalId(idParam, proposal_view.DepositorListOrder{
 		DepositAtBlockHeight: depositAtOrder,
-	}, pagination)
+	}, filters, pagination)
 	if err != nil {
 		handler.logger.Errorf("error listing proposal votes: %v", err)
 		httpapi.InternalServerError(ctx)

@@ -210,9 +210,9 @@ func (votesView *VotesView) ListByProposalId(
 		)
 	}
 
-	if filters.VoterAddress != "" {
+	if filters.Address != "" {
 		stmtBuilder = stmtBuilder.Where(
-			fmt.Sprintf("%s.voter_address = ?", VOTES_TABLE_NAME), filters.VoterAddress,
+			fmt.Sprintf("%s.voter_address = ?", VOTES_TABLE_NAME), filters.Address,
 		)
 	}
 
@@ -293,8 +293,8 @@ type VoteListOrder struct {
 }
 
 type Filters struct {
-	Answer       string
-	VoterAddress string
+	Answer  string
+	Address string
 }
 
 type VoteWithMonikerRow struct {
