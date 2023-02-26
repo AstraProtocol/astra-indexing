@@ -1,2 +1,1 @@
-ALTER TABLE view_account_transaction_data DROP CONSTRAINT IF EXISTS hash_unique_account_transaction_data;
 DROP TABLE IF EXISTS view_account_transaction_data;
