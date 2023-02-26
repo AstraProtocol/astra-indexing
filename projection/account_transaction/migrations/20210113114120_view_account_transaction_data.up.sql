@@ -17,5 +17,4 @@ CREATE TABLE view_account_transaction_data (
    timeout_height BIGINT NOT NULL,
    messages JSONB NOT NULL,
    PRIMARY KEY (id)
-)
-ALTER TABLE view_account_transaction_data ADD CONSTRAINT hash_unique_account_transaction_data UNIQUE (hash);
+);
