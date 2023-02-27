@@ -91,6 +91,11 @@ func run(args []string) error {
 				Usage:   "Blockscout HTTP RPC URL",
 				EnvVars: []string{"BLOCKSCOUT_URL"},
 			},
+			&cli.StringFlag{
+				Name:    "corsAllowedOrigins",
+				Usage:   "Cors Allowed Origins",
+				EnvVars: []string{"CORS_ALLOWED_ORIGINS"},
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			if args := ctx.Args(); args.Len() > 0 {
@@ -126,6 +131,8 @@ func run(args []string) error {
 
 				GithubAPIUsername: ctx.String("githubAPIUsername"),
 				GithubAPIToken:    ctx.String("githubAPIToken"),
+
+				CorsAllowedOrigins: ctx.String("corsAllowedOrigins"),
 			}
 			if ctx.IsSet("color") {
 				cliConfig.LoggerColor = primptr.Bool(ctx.Bool("color"))
