@@ -297,6 +297,10 @@ type Filters struct {
 	Address string
 }
 
+func (filter Filters) ToStr() string {
+	return filter.Answer + "_" + filter.Address
+}
+
 type VoteWithMonikerRow struct {
 	VoteRow
 	MaybeVoterMoniker *string `json:"maybe_voter_moniker"`

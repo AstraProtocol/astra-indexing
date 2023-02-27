@@ -246,11 +246,16 @@ func (handler *Proposals) ListVotesById(ctx *fasthttp.RequestCtx) {
 			voteAtOrder = view.ORDER_DESC
 		}
 	}
+	filters := proposal_view.Filters{}
+	if queryArgs.Has("answer") {
+		filters.Answer = string(queryArgs.Peek("answer"))
+	}
+	if queryArgs.Has("voterAddress") {
+		filters.Address = string(queryArgs.Peek("voterAddress"))
+	}
 
-	voteCacheKey := fmt.Sprintf("voteById_%s_%s", idParam, voteAtOrder)
-
+	voteCacheKey := fmt.Sprintf("voteById_%s_%s_%s", idParam, voteAtOrder, filters.ToStr())
 	var tmpVoteCache VotesPaginationResult
-
 	err := handler.astraCache.Get(voteCacheKey, &tmpVoteCache)
 	if err == nil {
 		httpapi.SuccessWithPagination(ctx, tmpVoteCache.Votes, &tmpVoteCache.PaginationResult)
@@ -259,7 +264,7 @@ func (handler *Proposals) ListVotesById(ctx *fasthttp.RequestCtx) {
 
 	votes, paginationResult, err := handler.votesView.ListByProposalId(idParam, proposal_view.VoteListOrder{
 		VoteAtBlockHeight: voteAtOrder,
-	}, parsePagination)
+	}, filters, parsePagination)
 	if err != nil {
 		handler.logger.Errorf("error listing proposal votes: %v", err)
 		httpapi.InternalServerError(ctx)
@@ -302,10 +307,23 @@ func (handler *Proposals) ListDepositorsById(ctx *fasthttp.RequestCtx) {
 			depositAtOrder = view.ORDER_DESC
 		}
 	}
+	filters := proposal_view.Filters{}
+	if queryArgs.Has("depositorAddress") {
+		filters.Address = string(queryArgs.Peek("depositorAddress"))
+	}
+
+	depositCacheKey := fmt.Sprintf("depositById_%s_%s_%s", idParam, depositAtOrder, filters.ToStr())
+	var tmpDepositorCache DepositPaginationResult
+
+	err := handler.astraCache.Get(depositCacheKey, &tmpDepositorCache)
+	if err == nil {
+		httpapi.SuccessWithPagination(ctx, tmpDepositorCache.Depositor, &tmpDepositorCache.PaginationResult)
+		return
+	}
 
 	depositors, paginationResult, err := handler.depositorsView.ListByProposalId(idParam, proposal_view.DepositorListOrder{
 		DepositAtBlockHeight: depositAtOrder,
-	}, parsePagination)
+	}, filters, parsePagination)
 	if err != nil {
 		handler.logger.Errorf("error listing proposal votes: %v", err)
 		httpapi.InternalServerError(ctx)

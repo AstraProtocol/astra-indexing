@@ -186,7 +186,7 @@ func (handler *Validators) List(ctx *fasthttp.RequestCtx) {
 		paginationParse.OffsetParams().Limit, order.ToStr())
 
 	var tmpValidatorPaginationResult ValidatorPaginationResult
-	err = handler.astraCache.Get(keyCacheValidator, tmpValidatorPaginationResult)
+	err = handler.astraCache.Get(keyCacheValidator, &tmpValidatorPaginationResult)
 	if err == nil {
 		httpapi.SuccessWithPagination(ctx,
 			tmpValidatorPaginationResult.ValidatorRowWithAPY,
