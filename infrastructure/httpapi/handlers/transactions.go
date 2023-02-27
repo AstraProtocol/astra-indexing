@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
+	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
 	"strconv"
 	"time"
 
@@ -57,7 +59,6 @@ func NewTransactions(
 func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 	startTime := time.Now()
 	recordMethod := "FindTransactionByHash"
-
 	hashParam, hashParamOk := URLValueGuard(ctx, handler.logger, "hash")
 	if !hashParamOk {
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
@@ -87,6 +88,13 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 			return
 		}
 	} else {
+		cacheKey := fmt.Sprintf("FindByTxCosmosHash%s", hashParam)
+		var transactionRow transactionView.TransactionRow
+		err := handler.astraCache.Get(cacheKey, &transactionRow)
+		if err == nil {
+			httpapi.Success(ctx, transactionRow)
+			return
+		}
 		if evm_utils.IsHexTx(hashParam) {
 			transaction, err := handler.transactionsView.FindByEvmHash(hashParam)
 			if err != nil {
@@ -101,6 +109,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 				return
 			}
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+			_ = handler.astraCache.Set(cacheKey, transaction, utils.TIME_CACHE_LONG)
 			httpapi.Success(ctx, transaction)
 			return
 		} else {
@@ -117,6 +126,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 				return
 			}
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+			_ = handler.astraCache.Set(cacheKey, transaction, utils.TIME_CACHE_LONG)
 			httpapi.Success(ctx, transaction)
 			return
 		}
@@ -179,7 +189,7 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 		httpapi.SuccessWithPagination(ctx, tmpTransactions.TransactionRows, &tmpTransactions.PaginationResult)
 		return
 	}
-	blocks, paginationResult, err := handler.transactionsView.List(transactionView.TransactionsListFilter{
+	txs, paginationResult, err := handler.transactionsView.List(transactionView.TransactionsListFilter{
 		MaybeBlockHeight: nil,
 	}, transactionView.TransactionsListOrder{
 		Height: heightOrder,
@@ -197,10 +207,10 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 	}
 
 	_ = handler.astraCache.Set(transactionPaginationKey,
-		NewTransactionsPaginationResult(blocks, *paginationResult), 2400*time.Millisecond)
+		NewTransactionsPaginationResult(txs, *paginationResult), utils.TIME_CACHE_FAST)
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
-	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
+	httpapi.SuccessWithPagination(ctx, txs, paginationResult)
 }
 
 func (handler *Transactions) GetAbiByTransactionHash(ctx *fasthttp.RequestCtx) {

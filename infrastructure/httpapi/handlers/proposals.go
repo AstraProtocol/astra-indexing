@@ -2,6 +2,10 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
+	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
+	"github.com/AstraProtocol/astra-indexing/external/cache"
+	"github.com/AstraProtocol/astra-indexing/infrastructure"
 	"math/big"
 	"time"
 
@@ -29,6 +33,7 @@ type Proposals struct {
 
 	totalBonded              coin.Coin
 	totalBondedLastUpdatedAt time.Time
+	astraCache               *cache.AstraCache
 }
 
 func NewProposals(logger applogger.Logger, rdbHandle *rdb.Handle, cosmosClient cosmosapp.Client) *Proposals {
@@ -43,12 +48,33 @@ func NewProposals(logger applogger.Logger, rdbHandle *rdb.Handle, cosmosClient c
 
 		coin.Coin{},
 		time.Unix(int64(0), int64(0)),
+		cache.NewCache(),
+	}
+}
+
+type ProposalPaginationResult struct {
+	Proposals        []proposal_view.ProposalWithMonikerRow `json:"proposalWithMonikerRow"`
+	PaginationResult pagination.Result                      `json:"paginationResult"`
+}
+
+func NewProposalPaginationResult(proposalRows []proposal_view.ProposalWithMonikerRow,
+	paginationResult pagination.Result) *ProposalPaginationResult {
+	return &ProposalPaginationResult{
+		proposalRows,
+		paginationResult,
 	}
 }
 
 func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 	idParam, idParamOk := URLValueGuard(ctx, handler.logger, "id")
 	if !idParamOk {
+		return
+	}
+	var tmpProposal ProposalDetails
+	proposalKey := fmt.Sprintf("proposal_%s", idParam)
+	err := handler.astraCache.Get(proposalKey, &tmpProposal)
+	if err == nil {
+		httpapi.Success(ctx, tmpProposal)
 		return
 	}
 	proposal, err := handler.proposalsView.FindById(idParam)
@@ -141,14 +167,13 @@ func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 			NoWithVeto: tally.NoWithVeto,
 		},
 	}
-
+	_ = handler.astraCache.Set(proposalKey, proposalDetails, infrastructure.TIME_CACHE_FAST)
 	httpapi.Success(ctx, proposalDetails)
 }
 
 func (handler *Proposals) List(ctx *fasthttp.RequestCtx) {
 	var err error
-
-	pagination, err := httpapi.ParsePagination(ctx)
+	pagePagination, err := httpapi.ParsePagination(ctx)
 	if err != nil {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
@@ -161,25 +186,46 @@ func (handler *Proposals) List(ctx *fasthttp.RequestCtx) {
 			idOrder = view.ORDER_DESC
 		}
 	}
-
+	proposalKey := "Proposals_" + idOrder
 	filter := proposal_view.ProposalListFilter{
 		MaybeStatus: nil,
 	}
 	if queryArgs.Has("filter.status") {
 		status := string(queryArgs.Peek("filter.status"))
 		filter.MaybeStatus = &status
+		proposalKey += "_" + status
+	}
+
+	var tmpProposalCache ProposalPaginationResult
+	err = handler.astraCache.Get(proposalKey, &tmpProposalCache)
+	if err == nil {
+		httpapi.SuccessWithPagination(ctx, tmpProposalCache.Proposals, &tmpProposalCache.PaginationResult)
+		return
 	}
 
 	proposals, paginationResult, err := handler.proposalsView.List(filter, proposal_view.ProposalListOrder{
 		Id: idOrder,
-	}, pagination)
+	}, pagePagination)
 	if err != nil {
 		handler.logger.Errorf("error listing proposals: %v", err)
 		httpapi.InternalServerError(ctx)
 		return
 	}
-
+	_ = handler.astraCache.Set(proposalKey, NewProposalPaginationResult(proposals, *paginationResult), infrastructure.TIME_CACHE_FAST)
 	httpapi.SuccessWithPagination(ctx, proposals, paginationResult)
+}
+
+type VotesPaginationResult struct {
+	Votes            []proposal_view.VoteWithMonikerRow `json:"voteWithMonikerRow"`
+	PaginationResult pagination.Result                  `json:"paginationResult"`
+}
+
+func NewVotesPaginationResult(voteRows []proposal_view.VoteWithMonikerRow,
+	paginationResult pagination.Result) *VotesPaginationResult {
+	return &VotesPaginationResult{
+		voteRows,
+		paginationResult,
+	}
 }
 
 func (handler *Proposals) ListVotesById(ctx *fasthttp.RequestCtx) {
@@ -187,8 +233,7 @@ func (handler *Proposals) ListVotesById(ctx *fasthttp.RequestCtx) {
 	if !idParamOk {
 		return
 	}
-
-	pagination, paginationError := httpapi.ParsePagination(ctx)
+	parsePagination, paginationError := httpapi.ParsePagination(ctx)
 	if paginationError != nil {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
@@ -202,16 +247,40 @@ func (handler *Proposals) ListVotesById(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
+	voteCacheKey := fmt.Sprintf("voteById_%s_%s", idParam, voteAtOrder)
+
+	var tmpVoteCache VotesPaginationResult
+
+	err := handler.astraCache.Get(voteCacheKey, &tmpVoteCache)
+	if err == nil {
+		httpapi.SuccessWithPagination(ctx, tmpVoteCache.Votes, &tmpVoteCache.PaginationResult)
+		return
+	}
+
 	votes, paginationResult, err := handler.votesView.ListByProposalId(idParam, proposal_view.VoteListOrder{
 		VoteAtBlockHeight: voteAtOrder,
-	}, pagination)
+	}, parsePagination)
 	if err != nil {
 		handler.logger.Errorf("error listing proposal votes: %v", err)
 		httpapi.InternalServerError(ctx)
 		return
 	}
-
+	_ = handler.astraCache.Set(voteCacheKey, NewVotesPaginationResult(votes, *paginationResult),
+		infrastructure.TIME_CACHE_FAST)
 	httpapi.SuccessWithPagination(ctx, votes, paginationResult)
+}
+
+type DepositPaginationResult struct {
+	Depositor        []proposal_view.DepositorWithMonikerRow `json:"depositorWithMonikerRow"`
+	PaginationResult pagination.Result                       `json:"paginationResult"`
+}
+
+func NewDepositPaginationResult(depositorRows []proposal_view.DepositorWithMonikerRow,
+	paginationResult pagination.Result) *DepositPaginationResult {
+	return &DepositPaginationResult{
+		depositorRows,
+		paginationResult,
+	}
 }
 
 func (handler *Proposals) ListDepositorsById(ctx *fasthttp.RequestCtx) {
@@ -220,7 +289,7 @@ func (handler *Proposals) ListDepositorsById(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	pagination, paginationError := httpapi.ParsePagination(ctx)
+	parsePagination, paginationError := httpapi.ParsePagination(ctx)
 	if paginationError != nil {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
@@ -234,14 +303,25 @@ func (handler *Proposals) ListDepositorsById(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
+	depositCacheKey := fmt.Sprintf("depositById_%s_%s", idParam, depositAtOrder)
+	var tmpDepositorCache DepositPaginationResult
+
+	err := handler.astraCache.Get(depositCacheKey, &tmpDepositorCache)
+	if err == nil {
+		httpapi.SuccessWithPagination(ctx, tmpDepositorCache.Depositor, &tmpDepositorCache.PaginationResult)
+		return
+	}
+
 	depositors, paginationResult, err := handler.depositorsView.ListByProposalId(idParam, proposal_view.DepositorListOrder{
 		DepositAtBlockHeight: depositAtOrder,
-	}, pagination)
+	}, parsePagination)
 	if err != nil {
 		handler.logger.Errorf("error listing proposal votes: %v", err)
 		httpapi.InternalServerError(ctx)
 		return
 	}
+	_ = handler.astraCache.Set(depositCacheKey, NewDepositPaginationResult(depositors, *paginationResult),
+		infrastructure.TIME_CACHE_FAST)
 
 	httpapi.SuccessWithPagination(ctx, depositors, paginationResult)
 }
