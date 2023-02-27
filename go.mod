@@ -10,6 +10,8 @@ require (
 	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/cosmos/cosmos-sdk v0.45.8
 	github.com/cosmos/ibc-go/v3 v3.2.0
+	github.com/eko/gocache/lib/v4 v4.1.2
+	github.com/eko/gocache/store/redis/v4 v4.1.2
 	github.com/ettle/strcase v0.1.1
 	github.com/evmos/ethermint v0.19.2
 	github.com/evmos/evmos/v6 v6.0.1
@@ -21,7 +23,6 @@ require (
 	github.com/jackc/pgconn v1.8.0
 	github.com/jackc/pgtype v1.6.2
 	github.com/jackc/pgx/v4 v4.10.1
-	github.com/jellydator/ttlcache/v3 v3.0.0
 	github.com/json-iterator/go v1.1.12
 	github.com/lab259/cors v0.2.0
 	github.com/luci/go-render v0.0.0-20160219211803-9a04cc21af0f
@@ -29,15 +30,21 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.13.0
+	github.com/prometheus/client_golang v1.14.0
 	github.com/rs/zerolog v1.27.0
 	github.com/slok/go-http-metrics v0.10.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	github.com/tendermint/tendermint v0.34.21
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/valyala/fasthttp v1.40.0
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	gopkg.in/yaml.v2 v2.4.0
+)
+
+require (
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/go-redis/redis/v8 v8.11.5 // indirect
+	github.com/golang/mock v1.6.0 // indirect
 )
 
 require (
@@ -134,7 +141,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.2 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/prometheus/tsdb v0.10.0 // indirect
@@ -151,7 +158,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.12.0 // indirect
-	github.com/stretchr/objx v0.4.0 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/subosito/gotenv v1.4.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/tendermint/btcd v0.1.1 // indirect
@@ -165,9 +172,9 @@ require (
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
+	golang.org/x/exp v0.0.0-20221126150942-6ab00d035af9 // indirect
 	golang.org/x/net v0.0.0-20220726230323-06994584191e // indirect
-	golang.org/x/sys v0.0.0-20220727055044-e65921a090b8 // indirect
+	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df // indirect

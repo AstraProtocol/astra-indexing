@@ -304,11 +304,31 @@ type ValidatorsListFilter struct {
 }
 
 type ValidatorsListOrder struct {
-	MaybeStatus              *view.ORDER
-	MaybePower               *view.ORDER
-	MaybeCommission          *view.ORDER
-	MaybeJoinedAtBlockHeight *view.ORDER
-	MaybeImpreciseUpTime     *view.ORDER
+	MaybeStatus              *view.ORDER `json:"maybe_status"`
+	MaybePower               *view.ORDER `json:"maybe_power"`
+	MaybeCommission          *view.ORDER `json:"maybe_commission"`
+	MaybeJoinedAtBlockHeight *view.ORDER `json:"maybe_joined_at_block_height"`
+	MaybeImpreciseUpTime     *view.ORDER `json:"maybe_imprecise_up_time"`
+}
+
+func (validatorOrder ValidatorsListOrder) ToStr() string {
+	var result string
+	if validatorOrder.MaybeStatus != nil {
+		result += *validatorOrder.MaybeStatus + "_"
+	}
+	if validatorOrder.MaybePower != nil {
+		result += *validatorOrder.MaybePower + "_"
+	}
+	if validatorOrder.MaybeCommission != nil {
+		result += *validatorOrder.MaybeCommission + "_"
+	}
+	if validatorOrder.MaybeJoinedAtBlockHeight != nil {
+		result += *validatorOrder.MaybeJoinedAtBlockHeight + "_"
+	}
+	if validatorOrder.MaybeImpreciseUpTime != nil {
+		result += *validatorOrder.MaybeImpreciseUpTime + "_"
+	}
+	return result
 }
 
 func (validatorsView *Validators) ListAll(
