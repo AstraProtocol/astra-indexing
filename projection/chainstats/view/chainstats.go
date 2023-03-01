@@ -20,7 +20,7 @@ type ChainStats struct {
 func NewChainStats(rdbHandle *rdb.Handle) *ChainStats {
 	return &ChainStats{
 		rdbHandle,
-		cache.NewCache("chain_stats"),
+		cache.NewCache(),
 	}
 }
 
@@ -114,7 +114,7 @@ func (view *ChainStats) FindBy(metrics string) (string, error) {
 
 func (view *ChainStats) GetTransactionsHistoryForChart(date_range int) ([]TransactionHistory, error) {
 	cacheKey := fmt.Sprintf("GetTransactionsHistoryForChart_%d", date_range)
-	tmpTransactionHistoryList := []TransactionHistory{}
+	var tmpTransactionHistoryList []TransactionHistory
 
 	err := view.astraCache.Get(cacheKey, &tmpTransactionHistoryList)
 	if err == nil {

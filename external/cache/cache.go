@@ -1,33 +1,31 @@
 package cache
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
-	"strconv"
+	"github.com/eko/gocache/lib/v4/store"
+	redis_store "github.com/eko/gocache/store/redis/v4"
+	"github.com/go-redis/redis/v8"
+	"log"
+	"os"
 	"time"
-
-	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
-	"github.com/jellydator/ttlcache/v3"
 )
 
 type AstraCache struct {
-	astraCache *ttlcache.Cache[string, []byte]
+	astraCache *redis_store.RedisStore
 }
 
-func NewCache(appName string) *AstraCache {
-	cache := ttlcache.New[string, []byte]()
-	go cache.Start() // starts automatic expired item deletion
-	go func() {
-		for {
-			metrics := cache.Metrics()
-			prometheus.RecordCacheMissed(appName, strconv.FormatUint(metrics.Misses, 10))
-			prometheus.RecordCacheInsertion(appName, strconv.FormatUint(metrics.Insertions, 10))
-			prometheus.RecordCacheHits(appName, strconv.FormatUint(metrics.Hits, 10))
-			prometheus.RecordCacheEviction(appName, strconv.FormatUint(metrics.Evictions, 10))
-			time.Sleep(2 * time.Second)
-		}
-	}()
-	return &AstraCache{astraCache: cache}
+func NewCache() *AstraCache {
+	redisURL, ok := os.LookupEnv("REDIS_URL")
+
+	if !ok {
+		log.Fatalln("Missing REDIS_URL string")
+	}
+
+	redisStore := redis_store.NewRedis(redis.NewClient(&redis.Options{
+		Addr: redisURL,
+	}))
+	return &AstraCache{astraCache: redisStore}
 }
 
 func (ac *AstraCache) Set(key string, value interface{}, expireAt time.Duration) error {
@@ -35,14 +33,13 @@ func (ac *AstraCache) Set(key string, value interface{}, expireAt time.Duration)
 	if err != nil {
 		return err
 	}
-	ac.astraCache.Set(key, tmpValue, expireAt)
-	return nil
+	return ac.astraCache.Set(context.Background(), key, tmpValue, store.WithExpiration(expireAt))
 }
 
 func (ac *AstraCache) Get(key string, valueOutput interface{}) error {
-	tmpData := ac.astraCache.Get(key)
-	if tmpData != nil {
-		return json.Unmarshal(tmpData.Value(), &valueOutput)
+	tmpData, err := ac.astraCache.Get(context.Background(), key)
+	if err != nil {
+		return err
 	}
-	return fmt.Errorf("not found")
+	return json.Unmarshal([]byte(tmpData.(string)), &valueOutput)
 }

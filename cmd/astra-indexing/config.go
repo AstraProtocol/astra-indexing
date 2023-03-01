@@ -30,6 +30,8 @@ type CLIConfig struct {
 
 	GithubAPIUsername string
 	GithubAPIToken    string
+
+	CorsAllowedOrigins string
 }
 
 func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
@@ -73,5 +75,8 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	}
 	if cliConfig.GithubAPIToken != "" {
 		config.IndexService.GithubAPI.Token = cliConfig.GithubAPIToken
+	}
+	if cliConfig.CorsAllowedOrigins != "" {
+		config.HTTPService.CorsAllowedOrigins = []string{cliConfig.CorsAllowedOrigins}
 	}
 }

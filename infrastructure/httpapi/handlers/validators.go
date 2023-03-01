@@ -3,8 +3,11 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
+	"github.com/AstraProtocol/astra-indexing/external/cache"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/primptr"
+	"github.com/AstraProtocol/astra-indexing/infrastructure"
 	"github.com/AstraProtocol/astra-indexing/projection/chainstats"
 	"math/big"
 	"strings"
@@ -29,7 +32,6 @@ import (
 // Then in recent 7 days, number of estimated generated block will be:
 //
 // nRecentBlocks: n (block) = 7(day) * 24(hour/day) * 3600(sec/hour) / 6(sec/block)
-//
 const nRecentBlocksInInt = 100800
 
 type Validators struct {
@@ -44,6 +46,7 @@ type Validators struct {
 	validatorActivitiesView *validator_view.ValidatorActivities
 	chainStatsView          *chainstats_view.ChainStats
 	blockView               *block_view.Blocks
+	astraCache              *cache.AstraCache
 }
 
 func NewValidators(
@@ -68,6 +71,7 @@ func NewValidators(
 		validator_view.NewValidatorActivities(rdbHandle),
 		chainstats_view.NewChainStats(rdbHandle),
 		block_view.NewBlocks(rdbHandle),
+		cache.NewCache(),
 	}
 }
 
@@ -90,6 +94,13 @@ func (handler *Validators) FindBy(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	validatorCacheKey := fmt.Sprintf("validatorAddress_%s", addressParams)
+	var tmpValidatorDetail ValidatorDetails
+	err := handler.astraCache.Get(validatorCacheKey, &tmpValidatorDetail)
+	if err == nil {
+		httpapi.Success(ctx, tmpValidatorDetail)
+		return
+	}
 	rawValidator, err := handler.validatorsView.FindBy(identity)
 	if err != nil {
 		if errors.Is(err, rdb.ErrNoRows) {
@@ -122,11 +133,25 @@ func (handler *Validators) FindBy(ctx *fasthttp.RequestCtx) {
 		validator.SelfDelegation = delegation.Balance.Amount
 	}
 
+	_ = handler.astraCache.Set(validatorCacheKey, validator, infrastructure.TIME_CACHE_FAST)
 	httpapi.Success(ctx, validator)
 }
 
+type ValidatorPaginationResult struct {
+	ValidatorRowWithAPY []validatorRowWithAPY `json:"validatorRowWithAPY"`
+	PaginationResult    pagination.Result     `json:"paginationResult"`
+}
+
+func NewValidatorPaginationResult(validators []validatorRowWithAPY,
+	paginationResult pagination.Result) *ValidatorPaginationResult {
+	return &ValidatorPaginationResult{
+		validators,
+		paginationResult,
+	}
+}
+
 func (handler *Validators) List(ctx *fasthttp.RequestCtx) {
-	pagination, err := httpapi.ParsePagination(ctx)
+	paginationParse, err := httpapi.ParsePagination(ctx)
 	if err != nil {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
@@ -156,9 +181,21 @@ func (handler *Validators) List(ctx *fasthttp.RequestCtx) {
 			}
 		}
 	}
+	keyCacheValidator := fmt.Sprintf("validatorList_%d_%d_%v",
+		paginationParse.OffsetParams().Page,
+		paginationParse.OffsetParams().Limit, order.ToStr())
+
+	var tmpValidatorPaginationResult ValidatorPaginationResult
+	err = handler.astraCache.Get(keyCacheValidator, &tmpValidatorPaginationResult)
+	if err == nil {
+		httpapi.SuccessWithPagination(ctx,
+			tmpValidatorPaginationResult.ValidatorRowWithAPY,
+			&tmpValidatorPaginationResult.PaginationResult)
+		return
+	}
 
 	validators, paginationResult, err := handler.validatorsView.List(
-		validator_view.ValidatorsListFilter{}, order, pagination,
+		validator_view.ValidatorsListFilter{}, order, paginationParse,
 	)
 	if err != nil {
 		handler.logger.Errorf("error listing validators: %v", err)
@@ -178,6 +215,10 @@ func (handler *Validators) List(ctx *fasthttp.RequestCtx) {
 			validator,
 		})
 	}
+
+	_ = handler.astraCache.Set(keyCacheValidator,
+		NewValidatorPaginationResult(validatorsWithAPY, *paginationResult),
+		infrastructure.TIME_CACHE_FAST)
 
 	httpapi.SuccessWithPagination(ctx, validatorsWithAPY, paginationResult)
 }
@@ -274,10 +315,23 @@ func (handler *Validators) getAverageBlockTime() (*big.Float, error) {
 	return averageBlockTime, nil
 }
 
+type ListValidatorsRowPaginationResult struct {
+	ListValidatorRow []validator_view.ListValidatorRow `json:"listValidatorRow"`
+	PaginationResult pagination.Result                 `json:"paginationResult"`
+}
+
+func NewListValidatorsRowPaginationResult(listValidatorRow []validator_view.ListValidatorRow,
+	paginationResult pagination.Result) *ListValidatorsRowPaginationResult {
+	return &ListValidatorsRowPaginationResult{
+		listValidatorRow,
+		paginationResult,
+	}
+}
+
 func (handler *Validators) ListActive(ctx *fasthttp.RequestCtx) {
 	var err error
 
-	pagination, err := httpapi.ParsePagination(ctx)
+	paginationParse, err := httpapi.ParsePagination(ctx)
 	if err != nil {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
@@ -308,24 +362,51 @@ func (handler *Validators) ListActive(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
+	keyCacheListActive := fmt.Sprintf("ValidatorListActive_%d_%d_%s",
+		paginationParse.OffsetParams().Page, paginationParse.OffsetParams().Limit, order.ToStr())
+
+	var tmpListValidatorRowPaginationResult ListValidatorsRowPaginationResult
+
+	err = handler.astraCache.Get(keyCacheListActive, &tmpListValidatorRowPaginationResult)
+	if err == nil {
+		httpapi.SuccessWithPagination(ctx, tmpListValidatorRowPaginationResult.ListValidatorRow,
+			&tmpListValidatorRowPaginationResult.PaginationResult)
+		return
+	}
+
 	validators, paginationResult, err := handler.validatorsView.List(validator_view.ValidatorsListFilter{
 		MaybeStatuses: []constants.Status{
 			constants.BONDED,
 			constants.JAILED,
 			constants.UNBONDING,
 		},
-	}, order, pagination)
+	}, order, paginationParse)
 	if err != nil {
 		handler.logger.Errorf("error listing active validators: %v", err)
 		httpapi.InternalServerError(ctx)
 		return
 	}
 
+	_ = handler.astraCache.Set(keyCacheListActive,
+		NewListValidatorsRowPaginationResult(validators, *paginationResult), infrastructure.TIME_CACHE_FAST)
 	httpapi.SuccessWithPagination(ctx, validators, paginationResult)
 }
 
+type ListActivitiesActivityRowPaginationResult struct {
+	ValidatorActivityRow []validator_view.ValidatorActivityRow `json:"validatorActivityRow"`
+	PaginationResult     pagination.Result                     `json:"paginationResult"`
+}
+
+func NewValidatorActivityRowPaginationResult(listValidatorRow []validator_view.ValidatorActivityRow,
+	paginationResult pagination.Result) *ListActivitiesActivityRowPaginationResult {
+	return &ListActivitiesActivityRowPaginationResult{
+		listValidatorRow,
+		paginationResult,
+	}
+}
+
 func (handler *Validators) ListActivities(ctx *fasthttp.RequestCtx) {
-	pagination, err := httpapi.ParsePagination(ctx)
+	paginationParse, err := httpapi.ParsePagination(ctx)
 	if err != nil {
 		httpapi.BadRequest(ctx, err)
 		return
@@ -363,14 +444,29 @@ func (handler *Validators) ListActivities(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	blocks, paginationResult, err := handler.validatorActivitiesView.List(filter, order, pagination)
+	cacheKeyListActivities := "validator_ListActivities_"
+	if order.MaybeBlockHeight != nil {
+		cacheKeyListActivities = "validator_ListActivities_" + *order.MaybeBlockHeight
+	}
+	var tmpListActivitiesRow ListActivitiesActivityRowPaginationResult
+
+	err = handler.astraCache.Get(cacheKeyListActivities, &tmpListActivitiesRow)
+	if err == nil {
+		httpapi.SuccessWithPagination(ctx, tmpListActivitiesRow.ValidatorActivityRow,
+			&tmpListActivitiesRow.PaginationResult)
+		return
+	}
+
+	validators, paginationResult, err := handler.validatorActivitiesView.List(filter, order, paginationParse)
 	if err != nil {
 		handler.logger.Errorf("error listing activities: %v", err)
 		httpapi.InternalServerError(ctx)
 		return
 	}
-
-	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
+	_ = handler.astraCache.Set(cacheKeyListActivities,
+		NewValidatorActivityRowPaginationResult(validators, *paginationResult),
+		infrastructure.TIME_CACHE_FAST)
+	httpapi.SuccessWithPagination(ctx, validators, paginationResult)
 }
 
 type ValidatorDetails struct {
