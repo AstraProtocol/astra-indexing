@@ -3,9 +3,10 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
 	"strconv"
 	"time"
+
+	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
 	"github.com/AstraProtocol/astra-indexing/external/cache"
@@ -171,6 +172,14 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
+	}
+
+	// limited page and limit number
+	if paginationInput.OffsetParams().Page > 2500 {
+		paginationInput.OffsetParams().Page = 2500
+	}
+	if paginationInput.OffsetParams().Limit > 20 {
+		paginationInput.OffsetParams().Limit = 20
 	}
 
 	heightOrder := view.ORDER_ASC
