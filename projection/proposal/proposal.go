@@ -1,11 +1,14 @@
 package proposal
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"time"
 
+	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/rdbparambase"
 	rdbparambase_types "github.com/AstraProtocol/astra-indexing/appinterface/projection/rdbparambase/types"
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/rdbprojectionbase"
@@ -533,6 +536,60 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 				return fmt.Errorf("error updating proposal which has ended: %v", err)
 			}
 
+			// gov change params
+			if mutProposal.Status == view.PROPOSAL_STATUS_PASSED && mutProposal.Type == event_usecase.MSG_SUBMIT_PARAM_CHANGE_PROPOSAL {
+				paramsView := rdbparambase.NewParams(rdbTxHandle, "view_proposal_params")
+				data, err := json.Marshal(mutProposal.Data)
+				if err != nil {
+					return fmt.Errorf("error cast data to json string: %v", err)
+				}
+
+				var changesData []cosmosapp.Change
+				err = json.Unmarshal(data, &changesData)
+				if err != nil {
+					return fmt.Errorf("error parse data to changes data: %v", err)
+				}
+
+				for _, changeParam := range changesData {
+					if changeParam.Subspace == "gov" {
+						if changeParam.Key == "votingparams" {
+							changeValue := map[string]string{}
+							if err := json.Unmarshal([]byte(changeParam.Value), &changeValue); err != nil {
+								return fmt.Errorf("error parse change value: %v", err)
+							}
+							value, exists := changeValue["voting_period"]
+							if exists {
+								var param rdbparambase_types.ParamAccessor
+								param.Module = "gov"
+								param.Key = "voting_period"
+								_, err := strconv.ParseFloat(value, 64)
+								if err == nil {
+									value = value + "s"
+								}
+								paramsView.Set(param, value)
+							}
+						}
+						if changeParam.Key == "depositparams" {
+							changeValue := map[string]string{}
+							if err := json.Unmarshal([]byte(changeParam.Value), &changeValue); err != nil {
+								return fmt.Errorf("error parse change value: %v", err)
+							}
+							value, exists := changeValue["max_deposit_period"]
+							if exists {
+								var param rdbparambase_types.ParamAccessor
+								param.Module = "gov"
+								param.Key = "max_deposit_period"
+								_, err := strconv.ParseFloat(value, 64)
+								if err == nil {
+									value = value + "s"
+								}
+								paramsView.Set(param, value)
+							}
+						}
+					}
+				}
+
+			}
 		} else if deposit, ok := event.(*event_usecase.MsgDeposit); ok {
 			mutProposal, queryProposalErr := proposalsView.FindById(deposit.ProposalId)
 			if queryProposalErr != nil {
