@@ -536,7 +536,7 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 				return fmt.Errorf("error updating proposal which has ended: %v", err)
 			}
 
-			// gov change params
+			// gov change period params
 			if mutProposal.Status == view.PROPOSAL_STATUS_PASSED && mutProposal.Type == event_usecase.MSG_SUBMIT_PARAM_CHANGE_PROPOSAL {
 				paramsView := rdbparambase.NewParams(rdbTxHandle, "view_proposal_params")
 				data, err := json.Marshal(mutProposal.Data)
@@ -566,7 +566,7 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 								if err == nil {
 									value = value + "s"
 								}
-								paramsView.Set(param, value)
+								go paramsView.Set(param, value)
 							}
 						}
 						if changeParam.Key == "depositparams" {
@@ -583,7 +583,7 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 								if err == nil {
 									value = value + "s"
 								}
-								paramsView.Set(param, value)
+								go paramsView.Set(param, value)
 							}
 						}
 					}
