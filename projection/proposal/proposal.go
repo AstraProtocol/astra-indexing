@@ -566,7 +566,7 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 								if err == nil {
 									value = value + "s"
 								}
-								go paramsView.Set(param, value)
+								paramsView.Set(param, value)
 							}
 						}
 						if changeParam.Key == "depositparams" {
@@ -583,7 +583,7 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 								if err == nil {
 									value = value + "s"
 								}
-								go paramsView.Set(param, value)
+								paramsView.Set(param, value)
 							}
 						}
 					}
