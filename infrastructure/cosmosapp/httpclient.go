@@ -325,6 +325,61 @@ func (client *HTTPClient) Balances(accountAddress string) (coin.Coins, error) {
 	return balances, nil
 }
 
+func (client *HTTPClient) BalancesAsync(accountAddress string, balancesChan chan coin.Coins) {
+	cacheKey := fmt.Sprintf("CosmosBalancesAsync_%s", accountAddress)
+	var coinsTmp coin.Coins
+
+	err := client.httpCache.Get(cacheKey, &coinsTmp)
+	if err == nil {
+		balancesChan <- coinsTmp
+		return
+	}
+
+	resp := &BankBalancesResp{
+		Pagination: Pagination{
+			MaybeNextKey: nil,
+			Total:        "",
+		},
+	}
+	balances := coin.NewEmptyCoins()
+	for {
+		queryUrl := fmt.Sprintf("%s/%s", client.getUrl("bank", "balances"), accountAddress)
+		if resp.Pagination.MaybeNextKey != nil {
+			queryUrl = fmt.Sprintf(
+				"%s?pagination.key=%s",
+				queryUrl, url.QueryEscape(*resp.Pagination.MaybeNextKey),
+			)
+		}
+
+		rawRespBody, err := client.request(queryUrl)
+		if err != nil {
+			balancesChan <- balances
+			return
+		}
+		defer rawRespBody.Close()
+
+		if err := jsoniter.NewDecoder(rawRespBody).Decode(&resp); err != nil {
+			balancesChan <- balances
+			return
+		}
+		for _, balanceKVPair := range resp.BankBalanceResponses {
+			balance, coinErr := coin.NewCoinFromString(balanceKVPair.Denom, balanceKVPair.Amount)
+			if coinErr != nil {
+				balancesChan <- balances
+				return
+			}
+			balances = balances.Add(balance)
+		}
+
+		if resp.Pagination.MaybeNextKey == nil {
+			break
+		}
+	}
+
+	client.httpCache.Set(cacheKey, balances, utils.TIME_CACHE_FAST)
+	balancesChan <- balances
+}
+
 func (client *HTTPClient) BondedBalance(accountAddress string) (coin.Coins, error) {
 	cacheKey := fmt.Sprintf("CosmosBondedBalance_%s", accountAddress)
 	var coinsTmp coin.Coins
@@ -387,6 +442,74 @@ func (client *HTTPClient) BondedBalance(accountAddress string) (coin.Coins, erro
 	return balance, nil
 }
 
+func (client *HTTPClient) BondedBalanceAsync(accountAddress string, bondedBalancesChan chan coin.Coins) {
+	cacheKey := fmt.Sprintf("CosmosBondedBalanceAsync_%s", accountAddress)
+	var coinsTmp coin.Coins
+
+	err := client.httpCache.Get(cacheKey, &coinsTmp)
+	if err == nil {
+		bondedBalancesChan <- coinsTmp
+		return
+	}
+
+	resp := &DelegationsResp{
+		MaybePagination: &Pagination{
+			MaybeNextKey: nil,
+			Total:        "",
+		},
+	}
+	balance := coin.NewEmptyCoins()
+	for {
+		queryUrl := fmt.Sprintf("%s/%s", client.getUrl("staking", "delegations"), accountAddress)
+		if resp.MaybePagination.MaybeNextKey != nil {
+			queryUrl = fmt.Sprintf(
+				"%s?pagination.key=%s",
+				queryUrl, url.QueryEscape(*resp.MaybePagination.MaybeNextKey),
+			)
+		}
+
+		rawRespBody, statusCode, err := client.rawRequest(queryUrl)
+		if err != nil {
+			bondedBalancesChan <- balance
+			return
+		}
+		defer rawRespBody.Close()
+
+		if decodeErr := jsoniter.NewDecoder(rawRespBody).Decode(&resp); decodeErr != nil {
+			bondedBalancesChan <- balance
+			return
+		}
+		if resp.MaybeCode != nil {
+			if *resp.MaybeCode == ERR_CODE_ACCOUNT_NOT_FOUND {
+				bondedBalancesChan <- balance
+				return
+			} else if *resp.MaybeCode == ERR_CODE_ACCOUNT_NO_DELEGATION {
+				bondedBalancesChan <- balance
+				return
+			}
+		}
+		if statusCode != 200 {
+			bondedBalancesChan <- balance
+			return
+		}
+		for _, delegation := range resp.MaybeDelegationResponses {
+			delegatedCoin, coinErr := coin.NewCoinFromString(delegation.Balance.Denom, delegation.Balance.Amount)
+			if coinErr != nil {
+				bondedBalancesChan <- balance
+				return
+			}
+			balance = balance.Add(delegatedCoin)
+		}
+
+		if resp.MaybePagination.MaybeNextKey == nil {
+			break
+		}
+	}
+
+	client.httpCache.Set(cacheKey, balance, utils.TIME_CACHE_FAST)
+	bondedBalancesChan <- balance
+}
+
 func (client *HTTPClient) RedelegatingBalance(accountAddress string) (coin.Coins, error) {
 	cacheKey := fmt.Sprintf("CosmosRedelegatingBalance_%s", accountAddress)
 	var coinsTmp coin.Coins
@@ -441,6 +564,65 @@ func (client *HTTPClient) RedelegatingBalance(accountAddress string) (coin.Coins
 	client.httpCache.Set(cacheKey, balance, utils.TIME_CACHE_FAST)
 
 	return balance, nil
+}
+
+func (client *HTTPClient) RedelegatingBalanceAsync(accountAddress string, redelegatingBalancesChan chan coin.Coins) {
+	cacheKey := fmt.Sprintf("CosmosRedelegatingBalanceAsync_%s", accountAddress)
+	var coinsTmp coin.Coins
+
+	err := client.httpCache.Get(cacheKey, &coinsTmp)
+	if err == nil {
+		redelegatingBalancesChan <- coinsTmp
+		return
+	}
+
+	resp := &UnbondingResp{
+		Pagination: Pagination{
+			MaybeNextKey: nil,
+			Total:        "",
+		},
+	}
+	balance := coin.NewEmptyCoins()
+	for {
+		queryUrl := fmt.Sprintf(
+			"%s/%s/redelegations", client.getUrl("staking", "delegators"), accountAddress,
+		)
+		if resp.Pagination.MaybeNextKey != nil {
+			queryUrl = fmt.Sprintf(
+				"%s?pagination.key=%s",
+				queryUrl, url.QueryEscape(*resp.Pagination.MaybeNextKey),
+			)
+		}
+
+		rawRespBody, err := client.request(queryUrl)
+		if err != nil {
+			redelegatingBalancesChan <- balance
+			return
+		}
+		defer rawRespBody.Close()
+
+		if err := jsoniter.NewDecoder(rawRespBody).Decode(&resp); err != nil {
+			redelegatingBalancesChan <- balance
+			return
+		}
+		for _, unbonding := range resp.UnbondingResponses {
+			for _, entry := range unbonding.Entries {
+				unbondingCoin, coinErr := coin.NewCoinFromString(client.bondingDenom, entry.Balance)
+				if coinErr != nil {
+					redelegatingBalancesChan <- balance
+					return
+				}
+				balance = balance.Add(unbondingCoin)
+			}
+		}
+
+		if resp.Pagination.MaybeNextKey == nil {
+			break
+		}
+	}
+
+	client.httpCache.Set(cacheKey, balance, utils.TIME_CACHE_FAST)
+	redelegatingBalancesChan <- balance
 }
 
 func (client *HTTPClient) UnbondingBalance(accountAddress string) (coin.Coins, error) {
@@ -500,6 +682,66 @@ func (client *HTTPClient) UnbondingBalance(accountAddress string) (coin.Coins, e
 	return balance, nil
 }
 
+func (client *HTTPClient) UnbondingBalanceAsync(accountAddress string, unbondingBalancesChan chan coin.Coins) {
+	cacheKey := fmt.Sprintf("CosmosUnbondingBalanceAsync_%s", accountAddress)
+	var coinsTmp coin.Coins
+
+	err := client.httpCache.Get(cacheKey, &coinsTmp)
+	if err == nil {
+		unbondingBalancesChan <- coinsTmp
+		return
+	}
+
+	resp := &UnbondingResp{
+		Pagination: Pagination{
+			MaybeNextKey: nil,
+			Total:        "",
+		},
+	}
+	balance := coin.NewEmptyCoins()
+	for {
+		queryUrl := fmt.Sprintf(
+			"%s/%s/unbonding_delegations",
+			client.getUrl("staking", "delegators"), accountAddress,
+		)
+		if resp.Pagination.MaybeNextKey != nil {
+			queryUrl = fmt.Sprintf(
+				"%s?pagination.key=%s",
+				queryUrl, url.QueryEscape(*resp.Pagination.MaybeNextKey),
+			)
+		}
+
+		rawRespBody, err := client.request(queryUrl)
+		if err != nil {
+			unbondingBalancesChan <- balance
+			return
+		}
+		defer rawRespBody.Close()
+
+		if err := jsoniter.NewDecoder(rawRespBody).Decode(&resp); err != nil {
+			unbondingBalancesChan <- balance
+			return
+		}
+		for _, unbonding := range resp.UnbondingResponses {
+			for _, entry := range unbonding.Entries {
+				unbondingCoin, coinErr := coin.NewCoinFromString(client.bondingDenom, entry.Balance)
+				if coinErr != nil {
+					unbondingBalancesChan <- balance
+					return
+				}
+				balance = balance.Add(unbondingCoin)
+			}
+		}
+
+		if resp.Pagination.MaybeNextKey == nil {
+			break
+		}
+	}
+
+	client.httpCache.Set(cacheKey, balance, utils.TIME_CACHE_FAST)
+	unbondingBalancesChan <- balance
+}
+
 func (client *HTTPClient) TotalRewards(accountAddress string) (coin.DecCoins, error) {
 	cacheKey := fmt.Sprintf("CosmosTotalRewards_%s", accountAddress)
 	var decCoinsTmp coin.DecCoins
@@ -538,6 +780,49 @@ func (client *HTTPClient) TotalRewards(accountAddress string) (coin.DecCoins, er
 	client.httpCache.Set(cacheKey, rewards, utils.TIME_CACHE_FAST)
 
 	return rewards, nil
+}
+
+func (client *HTTPClient) TotalRewardsAsync(accountAddress string, rewardBalanceChan chan coin.DecCoins) {
+	cacheKey := fmt.Sprintf("CosmosTotalRewardsAsync_%s", accountAddress)
+	var decCoinsTmp coin.DecCoins
+
+	err := client.httpCache.Get(cacheKey, &decCoinsTmp)
+	if err == nil {
+		rewardBalanceChan <- decCoinsTmp
+		return
+	}
+
+	rewards := coin.NewEmptyDecCoins()
+	rawRespBody, err := client.request(
+		fmt.Sprintf(
+			"%s/%s/rewards",
+			client.getUrl("distribution", "delegators"),
+			accountAddress,
+		), "",
+	)
+	if err != nil {
+		rewardBalanceChan <- rewards
+		return
+	}
+	defer rawRespBody.Close()
+
+	var delegatorRewardResp DelegatorRewardResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&delegatorRewardResp); err != nil {
+		rewardBalanceChan <- rewards
+		return
+	}
+
+	for _, total := range delegatorRewardResp.Total {
+		rewardCoin, coinErr := coin.NewDecCoinFromString(total.Denom, total.Amount)
+		if coinErr != nil {
+			rewardBalanceChan <- rewards
+			return
+		}
+		rewards = rewards.Add(rewardCoin)
+	}
+
+	client.httpCache.Set(cacheKey, rewards, utils.TIME_CACHE_FAST)
+	rewardBalanceChan <- rewards
 }
 
 func (client *HTTPClient) Validator(validatorAddress string) (*cosmosapp_interface.Validator, error) {
@@ -606,6 +891,47 @@ func (client *HTTPClient) Commission(validatorAddress string) (coin.DecCoins, er
 	client.httpCache.Set(cacheKey, totalCommission, utils.TIME_CACHE_FAST)
 
 	return totalCommission, nil
+}
+
+func (client *HTTPClient) CommissionAsync(validatorAddress string, commissionBalanceChan chan coin.DecCoins) {
+	cacheKey := fmt.Sprintf("CosmosCommissionAsync_%s", validatorAddress)
+	var decCoinsTmp coin.DecCoins
+
+	err := client.httpCache.Get(cacheKey, &decCoinsTmp)
+	if err == nil {
+		commissionBalanceChan <- decCoinsTmp
+		return
+	}
+
+	totalCommission := coin.NewEmptyDecCoins()
+	rawRespBody, err := client.request(
+		fmt.Sprintf("%s/%s/commission",
+			client.getUrl("distribution", "validators"), validatorAddress,
+		), "",
+	)
+	if err != nil {
+		commissionBalanceChan <- totalCommission
+		return
+	}
+	defer rawRespBody.Close()
+
+	var commissionResp ValidatorCommissionResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&commissionResp); err != nil {
+		commissionBalanceChan <- totalCommission
+		return
+	}
+
+	for _, commission := range commissionResp.Commissions.Commission {
+		commissionCoin, coinErr := coin.NewDecCoinFromString(commission.Denom, commission.Amount)
+		if coinErr != nil {
+			commissionBalanceChan <- totalCommission
+			return
+		}
+		totalCommission = totalCommission.Add(commissionCoin)
+	}
+
+	client.httpCache.Set(cacheKey, totalCommission, utils.TIME_CACHE_FAST)
+	commissionBalanceChan <- totalCommission
 }
 
 func (client *HTTPClient) Delegation(

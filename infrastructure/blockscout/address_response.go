@@ -6,6 +6,12 @@ import (
 
 type Address struct {
 	Balance             string                    `json:"balance"`
+	BondedBalance       string                    `json:"bondedBalance"`
+	RedelegatingBalance string                    `json:"redelegatingBalance"`
+	UnbondingBalance    string                    `json:"unbondingBalance"`
+	TotalRewards        string                    `json:"totalRewards"`
+	Commissions         string                    `json:"commissions"`
+	TotalBalance        string                    `json:"totalBalance"`
 	ContractName        string                    `json:"contractName"`
 	CreationTransaction string                    `json:"creationTransaction"`
 	Creator             string                    `json:"creator"`

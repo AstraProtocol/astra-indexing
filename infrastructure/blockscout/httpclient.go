@@ -381,8 +381,6 @@ func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string,
 	cacheKey := fmt.Sprintf("BlockscoutGetDetailAddressByAddressHashAsync_%s", addressHash)
 	var addressRespTmp AddressResp
 
-	go client.FetchAndUpdateAddressBalance(addressHash)
-
 	err := client.httpCache.Get(cacheKey, &addressRespTmp)
 	if err == nil {
 		addressChan <- addressRespTmp
@@ -410,6 +408,10 @@ func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string,
 	var addressResp AddressResp
 	if err := json.Unmarshal(respBody.Bytes(), &addressResp); err != nil {
 		client.logger.Errorf("error parsing address detail from blockscout: %v", err)
+	}
+
+	if addressResp.Status == "1" {
+		go client.FetchAndUpdateAddressBalance(addressHash)
 	}
 
 	client.httpCache.Set(cacheKey, addressResp, utils.TIME_CACHE_FAST)
