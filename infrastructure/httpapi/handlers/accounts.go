@@ -163,7 +163,7 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 		if blockscoutAddressResp.Status == "1" {
 			addressDetail = blockscoutAddressResp.Result
 			addressDetail.Balance = info.Balance.AmountOf("aastra").String()
-			addressDetail.BondedBalance = info.BondedBalance.AmountOf("aastra").String()
+			addressDetail.DelegationBalance = info.BondedBalance.AmountOf("aastra").String()
 			addressDetail.UnbondingBalance = info.UnbondingBalance.AmountOf("aastra").String()
 			addressDetail.RedelegatingBalance = info.RedelegatingBalance.AmountOf("aastra").String()
 			addressDetail.Commissions = info.Commissions.AmountOf("aastra").String()
@@ -199,7 +199,7 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 			}
 
 			addressDetail.Balance = info.Balance.AmountOf("aastra").String()
-			addressDetail.BondedBalance = info.BondedBalance.AmountOf("aastra").String()
+			addressDetail.DelegationBalance = info.BondedBalance.AmountOf("aastra").String()
 			addressDetail.UnbondingBalance = info.UnbondingBalance.AmountOf("aastra").String()
 			addressDetail.RedelegatingBalance = info.RedelegatingBalance.AmountOf("aastra").String()
 			addressDetail.Commissions = info.Commissions.AmountOf("aastra").String()
