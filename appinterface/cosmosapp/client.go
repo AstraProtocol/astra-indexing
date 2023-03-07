@@ -9,13 +9,24 @@ import (
 
 type Client interface {
 	Account(accountAddress string) (*Account, error)
+
 	Balances(accountAddress string) (coin.Coins, error)
+	BalancesAsync(accountAddress string, balancesChan chan coin.Coins)
+
 	BondedBalance(accountAddress string) (coin.Coins, error)
+	BondedBalanceAsync(accountAddress string, bondedBalanceChan chan coin.Coins)
+
 	RedelegatingBalance(accountAddress string) (coin.Coins, error)
+	RedelegatingBalanceAsync(accountAddress string, redelegatingBalanceChan chan coin.Coins)
+
 	UnbondingBalance(accountAddress string) (coin.Coins, error)
+	UnbondingBalanceAsync(accountAddress string, unbondingBalanceChan chan coin.Coins)
 
 	TotalRewards(accountAddress string) (coin.DecCoins, error)
+	TotalRewardsAsync(accountAddress string, rewardBalanceChan chan coin.DecCoins)
+
 	Commission(validatorAddress string) (coin.DecCoins, error)
+	CommissionAsync(validatorAddress string, commissionBalanceChan chan coin.DecCoins)
 
 	Validator(validatorAddress string) (*Validator, error)
 	Delegation(delegator string, validator string) (*DelegationResponse, error)

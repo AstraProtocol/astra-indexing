@@ -122,6 +122,14 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	// limited page and limit number
+	if paginationInput.OffsetParams().Page > 2500 {
+		paginationInput.OffsetParams().Page = 2500
+	}
+	if paginationInput.OffsetParams().Limit > 20 {
+		paginationInput.OffsetParams().Limit = 20
+	}
+
 	heightOrder := view.ORDER_ASC
 	queryArgs := ctx.QueryArgs()
 	if queryArgs.Has("order") {

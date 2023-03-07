@@ -85,53 +85,133 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 	go handler.blockscoutClient.GetDetailAddressByAddressHashAsync(addressHash, addressRespChan)
 
 	info := AccountInfo{
-		Balance: coin.NewEmptyCoins(),
+		Balance:             coin.NewEmptyCoins(),
+		BondedBalance:       coin.NewEmptyCoins(),
+		RedelegatingBalance: coin.NewEmptyCoins(),
+		UnbondingBalance:    coin.NewEmptyCoins(),
+		TotalRewards:        coin.NewEmptyDecCoins(),
+		Commissions:         coin.NewEmptyDecCoins(),
+		TotalBalance:        coin.NewEmptyDecCoins(),
 	}
 
-	if balance, queryErr := handler.cosmosClient.Balances(accountParam); queryErr != nil {
-		handler.logger.Errorf("error fetching account balance: %v", queryErr)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-		httpapi.InternalServerError(ctx)
-		return
+	balanceChan := make(chan coin.Coins)
+	bondedBalanceChan := make(chan coin.Coins)
+	redelegatingBalanceChan := make(chan coin.Coins)
+	unbondingBalanceChan := make(chan coin.Coins)
+	rewardBalanceChan := make(chan coin.DecCoins)
+	commissionBalanceChan := make(chan coin.DecCoins)
+
+	go handler.cosmosClient.BalancesAsync(accountParam, balanceChan)
+	go handler.cosmosClient.BondedBalanceAsync(accountParam, bondedBalanceChan)
+	go handler.cosmosClient.RedelegatingBalanceAsync(accountParam, redelegatingBalanceChan)
+	go handler.cosmosClient.UnbondingBalanceAsync(accountParam, unbondingBalanceChan)
+	go handler.cosmosClient.TotalRewardsAsync(accountParam, rewardBalanceChan)
+
+	hasValidator := false
+	validator, err := handler.validatorsView.FindBy(validator_view.ValidatorIdentity{
+		MaybeOperatorAddress: primptr.String(tmcosmosutils.MustValidatorAddressFromAccountAddress(
+			handler.validatorAddressPrefix, accountParam,
+		)),
+	})
+	if err != nil {
+		if !errors.Is(err, rdb.ErrNoRows) {
+			handler.logger.Errorf("error fetching account's validator: %v", err)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+			httpapi.InternalServerError(ctx)
+			return
+		}
+		// account does not have validator
+		hasValidator = false
 	} else {
-		info.Balance = balance
+		// account has validator
+		hasValidator = true
+		go handler.cosmosClient.CommissionAsync(validator.OperatorAddress, commissionBalanceChan)
 	}
+
+	info.Balance = <-balanceChan
+	info.BondedBalance = <-bondedBalanceChan
+	info.RedelegatingBalance = <-redelegatingBalanceChan
+	info.UnbondingBalance = <-unbondingBalanceChan
+	info.TotalRewards = <-rewardBalanceChan
+
+	if hasValidator {
+		info.Commissions = <-commissionBalanceChan
+	} else {
+		info.Commissions = coin.NewDecCoins()
+	}
+
+	totalBalance := coin.NewEmptyDecCoins()
+	totalBalance = totalBalance.Add(coin.NewDecCoinsFromCoins(info.Balance...)...)
+	totalBalance = totalBalance.Add(coin.NewDecCoinsFromCoins(info.BondedBalance...)...)
+	totalBalance = totalBalance.Add(coin.NewDecCoinsFromCoins(info.RedelegatingBalance...)...)
+	totalBalance = totalBalance.Add(coin.NewDecCoinsFromCoins(info.UnbondingBalance...)...)
+	totalBalance = totalBalance.Add(info.TotalRewards...)
+	totalBalance = totalBalance.Add(info.Commissions...)
+	info.TotalBalance = totalBalance
 
 	vestingBalances, _ := handler.cosmosClient.VestingBalances(accountParam)
 
 	var addressDetail blockscout_infrastructure.Address
 
 	blockscoutAddressResp := <-addressRespChan
-	if blockscoutAddressResp.Status == "1" {
-		addressDetail = blockscoutAddressResp.Result
-		addressDetail.Balance = info.Balance.AmountOf("aastra").String()
-	} else {
-		rawLatestHeight, err := handler.statusView.FindBy("LatestHeight")
-		if err != nil {
-			handler.logger.Errorf("error fetching latest height: %v", err)
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-			httpapi.InternalServerError(ctx)
-			return
-		}
 
-		var latestHeight int64 = 0
-		if rawLatestHeight != "" {
-			// TODO: Use big.Int
-			if n, err := strconv.ParseInt(rawLatestHeight, 10, 64); err != nil {
-				handler.logger.Errorf("error converting latest height from string to int64: %v", err)
+	if blockscoutAddressResp.Message == "Address not found" {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.NotFound(ctx)
+		return
+	} else {
+		if blockscoutAddressResp.Status == "1" {
+			addressDetail = blockscoutAddressResp.Result
+			addressDetail.Balance = info.Balance.AmountOf("aastra").String()
+			addressDetail.DelegationBalance = info.BondedBalance.AmountOf("aastra").String()
+			addressDetail.UnbondingBalance = info.UnbondingBalance.AmountOf("aastra").String()
+			addressDetail.RedelegatingBalance = info.RedelegatingBalance.AmountOf("aastra").String()
+			addressDetail.Commissions = info.Commissions.AmountOf("aastra").String()
+			addressDetail.TotalRewards = info.TotalRewards.AmountOf("aastra").String()
+			addressDetail.TotalBalance = info.TotalBalance.AmountOf("aastra").String()
+		} else {
+			_, err := handler.cosmosClient.Account(accountParam)
+			if err != nil {
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+				httpapi.NotFound(ctx)
+				return
+			}
+
+			rawLatestHeight, err := handler.statusView.FindBy("LatestHeight")
+			if err != nil {
+				handler.logger.Errorf("error fetching latest height: %v", err)
 				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
 				httpapi.InternalServerError(ctx)
 				return
-			} else {
-				latestHeight = n
 			}
-		}
 
-		addressDetail.Balance = info.Balance.AmountOf("aastra").String()
-		addressDetail.LastBalanceUpdate = latestHeight
-		addressDetail.Type = "address"
-		addressDetail.Verified = false
+			var latestHeight int64 = 0
+			if rawLatestHeight != "" {
+				// TODO: Use big.Int
+				if n, err := strconv.ParseInt(rawLatestHeight, 10, 64); err != nil {
+					handler.logger.Errorf("error converting latest height from string to int64: %v", err)
+					prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+					httpapi.InternalServerError(ctx)
+					return
+				} else {
+					latestHeight = n
+				}
+			}
+
+			addressDetail.Balance = info.Balance.AmountOf("aastra").String()
+			addressDetail.DelegationBalance = info.BondedBalance.AmountOf("aastra").String()
+			addressDetail.UnbondingBalance = info.UnbondingBalance.AmountOf("aastra").String()
+			addressDetail.RedelegatingBalance = info.RedelegatingBalance.AmountOf("aastra").String()
+			addressDetail.Commissions = info.Commissions.AmountOf("aastra").String()
+			addressDetail.TotalRewards = info.TotalRewards.AmountOf("aastra").String()
+			addressDetail.TotalBalance = info.TotalBalance.AmountOf("aastra").String()
+
+			addressDetail.LastBalanceUpdate = latestHeight
+			addressDetail.Type = "address"
+			addressDetail.Verified = false
+		}
 	}
+
 	addressDetail.VestingBalances = vestingBalances
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())

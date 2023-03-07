@@ -9,6 +9,7 @@ import (
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/external/cache"
+	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 )
 
@@ -168,7 +169,7 @@ func (view *ChainStats) GetTransactionsHistoryForChart(date_range int) ([]Transa
 
 	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
-	view.astraCache.Set(cacheKey, transactionHistoryList, 5*60*1000*time.Millisecond)
+	view.astraCache.Set(cacheKey, transactionHistoryList, utils.TIME_CACHE_LONG)
 
 	return transactionHistoryList, nil
 }
@@ -228,7 +229,7 @@ func (view *ChainStats) GetTransactionsHistory(from_date time.Time, end_date tim
 
 	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
-	view.astraCache.Set(cacheKey, transactionHistoryList, 10*60*1000*time.Millisecond)
+	view.astraCache.Set(cacheKey, transactionHistoryList, utils.TIME_CACHE_LONG)
 
 	return transactionHistoryList, nil
 }
@@ -288,7 +289,7 @@ func (view *ChainStats) GetActiveAddressesHistory(from_date time.Time, end_date 
 
 	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
-	view.astraCache.Set(cacheKey, activeAddressHistoryList, 10*60*1000*time.Millisecond)
+	view.astraCache.Set(cacheKey, activeAddressHistoryList, utils.TIME_CACHE_LONG)
 
 	return activeAddressHistoryList, nil
 }
@@ -350,7 +351,7 @@ func (view *ChainStats) GetTotalAddressesGrowth(from_date time.Time, end_date ti
 
 	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
-	view.astraCache.Set(cacheKey, totalAddressGrowthList, 10*60*1000*time.Millisecond)
+	view.astraCache.Set(cacheKey, totalAddressGrowthList, utils.TIME_CACHE_LONG)
 
 	return totalAddressGrowthList, nil
 }
@@ -410,7 +411,7 @@ func (view *ChainStats) GetGasUsedHistory(from_date time.Time, end_date time.Tim
 
 	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
-	view.astraCache.Set(cacheKey, totalGasUsedHistoryList, 10*60*1000*time.Millisecond)
+	view.astraCache.Set(cacheKey, totalGasUsedHistoryList, utils.TIME_CACHE_LONG)
 
 	return totalGasUsedHistoryList, nil
 }
@@ -476,7 +477,7 @@ func (view *ChainStats) GetTotalFeeHistory(from_date time.Time, end_date time.Ti
 
 	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
-	view.astraCache.Set(cacheKey, totalFeeHistoryList, 10*60*1000*time.Millisecond)
+	view.astraCache.Set(cacheKey, totalFeeHistoryList, utils.TIME_CACHE_LONG)
 
 	return totalFeeHistoryList, nil
 }
@@ -548,7 +549,7 @@ func (view *ChainStats) GetTotalActiveAddresses() (int64, error) {
 
 	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
-	view.astraCache.Set(cacheKey, *total, 10*60*1000*time.Millisecond)
+	view.astraCache.Set(cacheKey, *total, utils.TIME_CACHE_LONG)
 
 	return *total, nil
 }
@@ -584,7 +585,7 @@ func (view *ChainStats) GetTotalGasUsed() (int64, error) {
 
 	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
-	view.astraCache.Set(cacheKey, *total, 10*60*1000*time.Millisecond)
+	view.astraCache.Set(cacheKey, *total, utils.TIME_CACHE_LONG)
 
 	return *total, nil
 }
@@ -623,7 +624,7 @@ func (view *ChainStats) GetTotalTransactionFees() (*big.Int, error) {
 
 	prometheus.RecordApiExecTime(recordMethod, "chainstats", "query", time.Since(startTime).Milliseconds())
 
-	view.astraCache.Set(cacheKey, totalBigInt, 10*60*1000*time.Millisecond)
+	view.astraCache.Set(cacheKey, totalBigInt, utils.TIME_CACHE_LONG)
 
 	return totalBigInt, nil
 }
