@@ -331,7 +331,6 @@ func (client *HTTPClient) BalancesAsync(accountAddress string, balancesChan chan
 
 	err := client.httpCache.Get(cacheKey, &coinsTmp)
 	if err == nil {
-		println("CHECK")
 		balancesChan <- coinsTmp
 		return
 	}
