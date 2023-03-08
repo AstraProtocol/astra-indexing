@@ -100,12 +100,14 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 	unbondingBalanceChan := make(chan coin.Coins)
 	rewardBalanceChan := make(chan coin.DecCoins)
 	commissionBalanceChan := make(chan coin.DecCoins)
+	vestingBalanceChan := make(chan cosmosapp.VestingBalances)
 
 	go handler.cosmosClient.BalancesAsync(accountParam, balanceChan)
 	go handler.cosmosClient.BondedBalanceAsync(accountParam, bondedBalanceChan)
 	go handler.cosmosClient.RedelegatingBalanceAsync(accountParam, redelegatingBalanceChan)
 	go handler.cosmosClient.UnbondingBalanceAsync(accountParam, unbondingBalanceChan)
 	go handler.cosmosClient.TotalRewardsAsync(accountParam, rewardBalanceChan)
+	go handler.cosmosClient.VestingBalancesAsync(accountParam, vestingBalanceChan)
 
 	hasValidator := false
 	validator, err := handler.validatorsView.FindBy(validator_view.ValidatorIdentity{
@@ -149,11 +151,11 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 	totalBalance = totalBalance.Add(info.Commissions...)
 	info.TotalBalance = totalBalance
 
-	vestingBalances, _ := handler.cosmosClient.VestingBalances(accountParam)
-
-	var addressDetail blockscout_infrastructure.Address
+	vestingBalances := <-vestingBalanceChan
 
 	blockscoutAddressResp := <-addressRespChan
+
+	var addressDetail blockscout_infrastructure.Address
 
 	if blockscoutAddressResp.Message == "Address not found" {
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())

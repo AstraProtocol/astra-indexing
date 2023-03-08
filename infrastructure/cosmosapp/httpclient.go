@@ -335,6 +335,11 @@ func (client *HTTPClient) BalancesAsync(accountAddress string, balancesChan chan
 		return
 	}
 
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(balancesChan)
+	}()
+
 	resp := &BankBalancesResp{
 		Pagination: Pagination{
 			MaybeNextKey: nil,
@@ -451,6 +456,11 @@ func (client *HTTPClient) BondedBalanceAsync(accountAddress string, bondedBalanc
 		bondedBalancesChan <- coinsTmp
 		return
 	}
+
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(bondedBalancesChan)
+	}()
 
 	resp := &DelegationsResp{
 		MaybePagination: &Pagination{
@@ -576,6 +586,11 @@ func (client *HTTPClient) RedelegatingBalanceAsync(accountAddress string, redele
 		return
 	}
 
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(redelegatingBalancesChan)
+	}()
+
 	resp := &UnbondingResp{
 		Pagination: Pagination{
 			MaybeNextKey: nil,
@@ -692,6 +707,11 @@ func (client *HTTPClient) UnbondingBalanceAsync(accountAddress string, unbonding
 		return
 	}
 
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(unbondingBalancesChan)
+	}()
+
 	resp := &UnbondingResp{
 		Pagination: Pagination{
 			MaybeNextKey: nil,
@@ -791,6 +811,11 @@ func (client *HTTPClient) TotalRewardsAsync(accountAddress string, rewardBalance
 		rewardBalanceChan <- decCoinsTmp
 		return
 	}
+
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(rewardBalanceChan)
+	}()
 
 	rewards := coin.NewEmptyDecCoins()
 	rawRespBody, err := client.request(
@@ -902,6 +927,11 @@ func (client *HTTPClient) CommissionAsync(validatorAddress string, commissionBal
 		commissionBalanceChan <- decCoinsTmp
 		return
 	}
+
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(commissionBalanceChan)
+	}()
 
 	totalCommission := coin.NewEmptyDecCoins()
 	rawRespBody, err := client.request(
@@ -1356,12 +1386,65 @@ func (client *HTTPClient) VestingBalances(account string) (cosmosapp_interface.V
 
 	var vestingBalances cosmosapp_interface.VestingBalances
 	if err := jsoniter.NewDecoder(rawRespBody).Decode(&vestingBalances); err != nil {
-		return cosmosapp_interface.VestingBalances{}, err
+		return vestingBalancesEmpty, err
 	}
 
 	client.httpCache.Set(cacheKey, vestingBalances, utils.TIME_CACHE_FAST)
 
 	return vestingBalances, nil
+}
+
+func (client *HTTPClient) VestingBalancesAsync(account string, vestingBalancesChan chan cosmosapp_interface.VestingBalances) {
+	cacheKey := fmt.Sprintf("CosmosVestingBalancesAsync_%s", account)
+	var vestingBalancesTmp cosmosapp_interface.VestingBalances
+
+	err := client.httpCache.Get(cacheKey, &vestingBalancesTmp)
+	if err == nil {
+		vestingBalancesChan <- vestingBalancesTmp
+		return
+	}
+
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(vestingBalancesChan)
+	}()
+
+	method := fmt.Sprintf(
+		"%s/%s/%s/%s/%s",
+		"evmos", "vesting", "v1", "balances", account,
+	)
+	rawRespBody, statusCode, err := client.rawRequest(
+		method,
+	)
+
+	vestingBalancesEmpty := cosmosapp_interface.VestingBalances{}
+	vestingBalancesEmpty.Locked = []cosmosapp_interface.VestingBalance{}
+	vestingBalancesEmpty.Unvested = []cosmosapp_interface.VestingBalance{}
+	vestingBalancesEmpty.Vested = []cosmosapp_interface.VestingBalance{}
+
+	if err != nil {
+		vestingBalancesChan <- vestingBalancesEmpty
+		return
+	}
+	if statusCode == 404 {
+		vestingBalancesChan <- vestingBalancesEmpty
+		return
+	}
+	if statusCode != 200 {
+		rawRespBody.Close()
+		vestingBalancesChan <- vestingBalancesEmpty
+		return
+	}
+	defer rawRespBody.Close()
+
+	var vestingBalances cosmosapp_interface.VestingBalances
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&vestingBalances); err != nil {
+		vestingBalancesChan <- vestingBalancesEmpty
+		return
+	}
+
+	client.httpCache.Set(cacheKey, vestingBalances, utils.TIME_CACHE_FAST)
+	vestingBalancesChan <- vestingBalances
 }
 
 func ParseTxsResp(rawRespReader io.Reader) (*model.Tx, error) {

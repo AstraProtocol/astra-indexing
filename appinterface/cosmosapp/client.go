@@ -42,7 +42,9 @@ type Client interface {
 	Tx(txHash string) (*model.Tx, error)
 
 	TotalFeeBurn() (TotalFeeBurn, error)
+
 	VestingBalances(account string) (VestingBalances, error)
+	VestingBalancesAsync(account string, vestingBalancesChan chan VestingBalances)
 }
 
 var ErrAccountNotFound = errors.New("account not found")
