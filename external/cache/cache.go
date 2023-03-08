@@ -23,7 +23,11 @@ func NewCache() *AstraCache {
 		log.Fatalln("Missing REDIS_URL string")
 	}
 
-	opt, _ := redis.ParseURL(redisURL)
+	opt, err := redis.ParseURL(redisURL)
+	if err != nil {
+		log.Fatalln("Error parsing REDIS_URL string")
+	}
+
 	redisStore := redis_store.NewRedis(redis.NewClient(opt))
 	return &AstraCache{astraCache: redisStore}
 }
