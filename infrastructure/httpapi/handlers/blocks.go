@@ -43,6 +43,7 @@ type Blocks struct {
 	blockEventsView               *blockevent_view.BlockEvents
 	validatorBlockCommitmentsView *validator_view.ValidatorBlockCommitments
 	astraCache                    *cache.AstraCache
+	astraLocalCache               *cache.AstraLocalCache
 	blockscoutClient              blockscout_infrastructure.HTTPClient
 }
 
@@ -57,6 +58,7 @@ func NewBlocks(logger applogger.Logger, rdbHandle *rdb.Handle, blockscoutClient 
 		blockevent_view.NewBlockEvents(rdbHandle),
 		validator_view.NewValidatorBlockCommitments(rdbHandle),
 		cache.NewCache(),
+		cache.NewLocalCache("BlocksCache"),
 		blockscoutClient,
 	}
 }
@@ -140,7 +142,7 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 
 	blockPaginationKey := getKeyPagination(paginationInput, heightOrder)
 	tmpBlockPage := BlocksPaginationResult{}
-	err = handler.astraCache.Get(blockPaginationKey, &tmpBlockPage)
+	err = handler.astraLocalCache.Get(blockPaginationKey, &tmpBlockPage)
 	if err == nil {
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 		httpapi.SuccessWithPagination(ctx, tmpBlockPage.Blocks, &tmpBlockPage.PaginationResult)
@@ -161,7 +163,7 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 		paginationResult.Por.TotalPage()
 	}
 
-	_ = handler.astraCache.Set(blockPaginationKey, NewBlocksPaginationResult(blocks, *paginationResult), utils.TIME_CACHE_FAST)
+	_ = handler.astraLocalCache.Set(blockPaginationKey, NewBlocksPaginationResult(blocks, *paginationResult), utils.TIME_CACHE_FAST)
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)

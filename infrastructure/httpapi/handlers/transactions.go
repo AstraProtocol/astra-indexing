@@ -28,6 +28,7 @@ type Transactions struct {
 	transactionsView transactionView.BlockTransactions
 	blockscoutClient blockscout_infrastructure.HTTPClient
 	astraCache       *cache.AstraCache
+	astraLocalCache  *cache.AstraLocalCache
 }
 
 type TransactionsPaginationResult struct {
@@ -54,6 +55,7 @@ func NewTransactions(
 		transactionView.NewTransactionsView(rdbHandle),
 		blockscoutClient,
 		cache.NewCache(),
+		cache.NewLocalCache("TransactionsCache"),
 	}
 }
 
@@ -192,7 +194,7 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 
 	transactionPaginationKey := getKeyPagination(paginationInput, heightOrder)
 	tmpTransactions := TransactionsPaginationResult{}
-	err = handler.astraCache.Get(transactionPaginationKey, &tmpTransactions)
+	err = handler.astraLocalCache.Get(transactionPaginationKey, &tmpTransactions)
 	if err == nil {
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 		httpapi.SuccessWithPagination(ctx, tmpTransactions.TransactionRows, &tmpTransactions.PaginationResult)
@@ -215,7 +217,7 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 		paginationResult.Por.TotalPage()
 	}
 
-	_ = handler.astraCache.Set(transactionPaginationKey,
+	_ = handler.astraLocalCache.Set(transactionPaginationKey,
 		NewTransactionsPaginationResult(txs, *paginationResult), utils.TIME_CACHE_FAST)
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())

@@ -16,6 +16,7 @@ require (
 	github.com/evmos/ethermint v0.19.2
 	github.com/evmos/evmos/v6 v6.0.1
 	github.com/fasthttp/router v1.4.12
+	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang-migrate/migrate/v4 v4.15.1
 	github.com/google/go-querystring v1.0.0
 	github.com/google/uuid v1.3.0
@@ -23,6 +24,7 @@ require (
 	github.com/jackc/pgconn v1.8.0
 	github.com/jackc/pgtype v1.6.2
 	github.com/jackc/pgx/v4 v4.10.1
+	github.com/jellydator/ttlcache/v3 v3.0.0
 	github.com/json-iterator/go v1.1.12
 	github.com/lab259/cors v0.2.0
 	github.com/luci/go-render v0.0.0-20160219211803-9a04cc21af0f
@@ -43,7 +45,6 @@ require (
 
 require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 )
 
