@@ -16,7 +16,13 @@ type AstraLocalCache struct {
 
 func NewLocalCache(appName string) *AstraLocalCache {
 	cache := ttlcache.New[string, []byte]()
-	go cache.Start() // starts automatic expired item deletion
+	// force expired item deletion
+	go func() {
+		for {
+			time.Sleep(time.Second)
+			cache.DeleteExpired()
+		}
+	}()
 	go func() {
 		for {
 			metrics := cache.Metrics()
