@@ -3,12 +3,13 @@ package cache
 import (
 	"context"
 	"encoding/json"
-	"github.com/eko/gocache/lib/v4/store"
-	redis_store "github.com/eko/gocache/store/redis/v4"
-	"github.com/go-redis/redis/v8"
 	"log"
 	"os"
 	"time"
+
+	"github.com/eko/gocache/lib/v4/store"
+	redis_store "github.com/eko/gocache/store/redis/v4"
+	"github.com/go-redis/redis/v8"
 )
 
 type AstraCache struct {
@@ -22,9 +23,8 @@ func NewCache() *AstraCache {
 		log.Fatalln("Missing REDIS_URL string")
 	}
 
-	redisStore := redis_store.NewRedis(redis.NewClient(&redis.Options{
-		Addr: redisURL,
-	}))
+	opt, _ := redis.ParseURL(redisURL)
+	redisStore := redis_store.NewRedis(redis.NewClient(opt))
 	return &AstraCache{astraCache: redisStore}
 }
 
