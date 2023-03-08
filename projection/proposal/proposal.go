@@ -564,9 +564,9 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 								param.Key = "voting_period"
 								_, err := strconv.ParseFloat(value, 64)
 								if err == nil {
-									value = value + "s"
+									value = value + "ns"
+									paramsView.Set(param, value)
 								}
-								paramsView.Set(param, value)
 							}
 						}
 						if changeParam.Key == "depositparams" {
@@ -581,9 +581,9 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 								param.Key = "max_deposit_period"
 								_, err := strconv.ParseFloat(value, 64)
 								if err == nil {
-									value = value + "s"
+									value = value + "ns"
+									paramsView.Set(param, value)
 								}
-								paramsView.Set(param, value)
 							}
 						}
 					}
