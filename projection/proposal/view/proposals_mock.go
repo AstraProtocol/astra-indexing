@@ -5,6 +5,7 @@ import (
 
 	testify_mock "github.com/stretchr/testify/mock"
 
+	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 	pagination2 "github.com/AstraProtocol/astra-indexing/appinterface/pagination"
 )
 
@@ -31,6 +32,11 @@ func (proposalsView *MockProposalsView) IncrementTotalVoteBy(
 
 func (proposalsView *MockProposalsView) Update(row *ProposalRow) error {
 	mockArgs := proposalsView.Called(row)
+	return mockArgs.Error(0)
+}
+
+func (proposalsView *MockProposalsView) UpdateTally(proposalId string, tally cosmosapp.Tally) error {
+	mockArgs := proposalsView.Called(proposalId, tally)
 	return mockArgs.Error(0)
 }
 

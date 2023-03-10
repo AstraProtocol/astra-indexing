@@ -47,8 +47,9 @@ type Proposal struct {
 	paramBase     *rdbparambase.Base
 	validatorBase *rdbvalidatorbase.Base
 
-	rdbConn rdb.Conn
-	logger  applogger.Logger
+	rdbConn      rdb.Conn
+	cosmosClient cosmosapp.Client
+	logger       applogger.Logger
 
 	conNodeAddressPrefix string
 
@@ -59,6 +60,7 @@ func NewProposal(
 	logger applogger.Logger,
 	rdbConn rdb.Conn,
 	conNodeAddressPrefix string,
+	cosmosClient cosmosapp.Client,
 	migrationHelper migrationhelper.MigrationHelper,
 ) *Proposal {
 	return &Proposal{
@@ -86,6 +88,7 @@ func NewProposal(
 		rdbvalidatorbase.NewBase(view.VALIDATORS_TABLE_NAME, conNodeAddressPrefix),
 
 		rdbConn,
+		cosmosClient,
 		logger,
 		conNodeAddressPrefix,
 
@@ -534,6 +537,18 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 			mutProposal.MaybeVotingEndBlockHeight = &height
 			if err := proposalsView.Update(&mutProposal.ProposalRow); err != nil {
 				return fmt.Errorf("error updating proposal which has ended: %v", err)
+			}
+
+			// gov update tally
+			if mutProposal.Status == view.PROPOSAL_STATUS_PASSED {
+				proposalId := mutProposal.ProposalId
+				tally, queryTallyErr := projection.cosmosClient.ProposalTally(proposalId)
+				if queryTallyErr != nil {
+					if err := proposalsView.UpdateTally(proposalId, tally); err != nil {
+						return fmt.Errorf("error updating proposal tally which has ended: %v", err)
+					}
+
+				}
 			}
 
 			// gov change period params

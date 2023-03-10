@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 	pagination_interface "github.com/AstraProtocol/astra-indexing/appinterface/pagination"
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -22,6 +23,7 @@ type Proposals interface {
 	Insert(proposal *ProposalRow) error
 	IncrementTotalVoteBy(proposalId uint64, voteToAdd *big.Int) error
 	Update(row *ProposalRow) error
+	UpdateTally(proposalId string, tally cosmosapp.Tally) error
 	FindById(proposalId string) (*ProposalWithMonikerRow, error)
 	List(
 		filter ProposalListFilter,
@@ -189,6 +191,26 @@ func (proposalView *ProposalsView) Update(row *ProposalRow) error {
 	}
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("error updating proposal: no rows updated: %w", rdb.ErrWrite)
+	}
+
+	return nil
+}
+
+func (proposalView *ProposalsView) UpdateTally(id string, tally cosmosapp.Tally) error {
+	sql, sqlArgs, err := proposalView.rdb.StmtBuilder.Update(
+		PROPOSALS_TABLE_NAME,
+	).SetMap(map[string]interface{}{
+		"tally": tally,
+	}).Where("proposal_id = ?", id).ToSql()
+	if err != nil {
+		return fmt.Errorf("error building proposal tally update sql: %v: %w", err, rdb.ErrPrepare)
+	}
+	result, err := proposalView.rdb.Exec(sql, sqlArgs...)
+	if err != nil {
+		return fmt.Errorf("error updating proposal tally: %v: %w", err, rdb.ErrWrite)
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("error updating proposal tally: no rows updated: %w", rdb.ErrWrite)
 	}
 
 	return nil
