@@ -237,6 +237,7 @@ func (proposalView *ProposalsView) FindById(proposalId string) (*ProposalWithMon
 		fmt.Sprintf("%s.maybe_voting_end_block_height", PROPOSALS_TABLE_NAME),
 		fmt.Sprintf("%s.maybe_voting_end_time", PROPOSALS_TABLE_NAME),
 		fmt.Sprintf("%s.moniker", VALIDATORS_TABLE_NAME),
+		fmt.Sprintf("%s.tally", PROPOSALS_TABLE_NAME),
 	).From(
 		PROPOSALS_TABLE_NAME,
 	).LeftJoin(
@@ -255,6 +256,7 @@ func (proposalView *ProposalsView) FindById(proposalId string) (*ProposalWithMon
 
 	var row ProposalWithMonikerRow
 	var dataJSON *string
+	var tallyJSON *string
 	var initialDepositJSON *string
 	var totalDepositJSON *string
 	totalVoteJSON := proposalView.rdb.NtobReader()
@@ -283,6 +285,7 @@ func (proposalView *ProposalsView) FindById(proposalId string) (*ProposalWithMon
 		&row.MaybeVotingEndBlockHeight,
 		votingEndTimeReader.ScannableArg(),
 		&row.MaybeProposerMoniker,
+		&tallyJSON,
 	); err != nil {
 		if errors.Is(err, rdb.ErrNoRows) {
 			return nil, rdb.ErrNoRows
@@ -291,6 +294,7 @@ func (proposalView *ProposalsView) FindById(proposalId string) (*ProposalWithMon
 	}
 
 	json.MustUnmarshalFromString(*dataJSON, &row.Data)
+	json.MustUnmarshalFromString(*tallyJSON, &row.Tally)
 	json.MustUnmarshalFromString(*initialDepositJSON, &row.InitialDeposit)
 	json.MustUnmarshalFromString(*totalDepositJSON, &row.TotalDeposit)
 
@@ -350,6 +354,7 @@ func (proposalView *ProposalsView) List(
 		fmt.Sprintf("%s.maybe_voting_end_block_height", PROPOSALS_TABLE_NAME),
 		fmt.Sprintf("%s.maybe_voting_end_time", PROPOSALS_TABLE_NAME),
 		fmt.Sprintf("%s.moniker", VALIDATORS_TABLE_NAME),
+		fmt.Sprintf("%s.tally", PROPOSALS_TABLE_NAME),
 	).From(
 		PROPOSALS_TABLE_NAME,
 	).LeftJoin(
@@ -388,6 +393,7 @@ func (proposalView *ProposalsView) List(
 	for rowsResult.Next() {
 		var row ProposalWithMonikerRow
 		var dataJSON *string
+		var tallyJSON *string
 		var initialDepositJSON *string
 		var totalDepositJSON *string
 		totalVoteJSON := proposalView.rdb.NtobReader()
@@ -416,6 +422,7 @@ func (proposalView *ProposalsView) List(
 			&row.MaybeVotingEndBlockHeight,
 			votingEndTimeReader.ScannableArg(),
 			&row.MaybeProposerMoniker,
+			&tallyJSON,
 		); scanErr != nil {
 			if errors.Is(scanErr, rdb.ErrNoRows) {
 				return nil, nil, rdb.ErrNoRows
@@ -424,6 +431,7 @@ func (proposalView *ProposalsView) List(
 		}
 
 		json.MustUnmarshalFromString(*dataJSON, &row.Data)
+		json.MustUnmarshalFromString(*tallyJSON, &row.Tally)
 		json.MustUnmarshalFromString(*initialDepositJSON, &row.InitialDeposit)
 		json.MustUnmarshalFromString(*totalDepositJSON, &row.TotalDeposit)
 
@@ -506,4 +514,5 @@ type ProposalRow struct {
 	MaybeVotingStartTime         *utctime.UTCTime `json:"maybeVotingStartTime"`
 	MaybeVotingEndBlockHeight    *int64           `json:"maybeVotingEndBlockHeight"`
 	MaybeVotingEndTime           *utctime.UTCTime `json:"maybeVotingEndTime"`
+	Tally                        interface{}      `json:"tally"`
 }

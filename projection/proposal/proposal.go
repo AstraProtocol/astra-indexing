@@ -540,15 +540,12 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 			}
 
 			// gov update tally
-			if mutProposal.Status == view.PROPOSAL_STATUS_PASSED {
-				proposalId := mutProposal.ProposalId
-				tally, queryTallyErr := projection.cosmosClient.ProposalTally(proposalId)
-				if queryTallyErr != nil {
-					if err := proposalsView.UpdateTally(proposalId, tally); err != nil {
-						return fmt.Errorf("error updating proposal tally which has ended: %v", err)
-					}
-
+			tally, queryTallyErr := projection.cosmosClient.ProposalTally(mutProposal.ProposalId)
+			if queryTallyErr != nil {
+				if err := proposalsView.UpdateTally(mutProposal.ProposalId, tally); err != nil {
+					return fmt.Errorf("error updating proposal tally which has ended: %v", err)
 				}
+
 			}
 
 			// gov change period params
