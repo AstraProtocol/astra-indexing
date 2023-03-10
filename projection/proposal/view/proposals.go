@@ -54,6 +54,11 @@ func (proposalView *ProposalsView) Insert(proposal *ProposalRow) error {
 		return fmt.Errorf("error JSON marshalling proposal data for insertion: %v: %w", err, rdb.ErrBuildSQLStmt)
 	}
 
+	var tallyJSON string
+	if tallyJSON, err = jsoniter.MarshalToString(proposal.Tally); err != nil {
+		return fmt.Errorf("error JSON marshalling proposal tally for insertion: %v: %w", err, rdb.ErrBuildSQLStmt)
+	}
+
 	sql, sqlArgs, err := proposalView.rdb.StmtBuilder.Insert(
 		PROPOSALS_TABLE_NAME,
 	).Columns(
@@ -75,6 +80,7 @@ func (proposalView *ProposalsView) Insert(proposal *ProposalRow) error {
 		"maybe_voting_start_time",
 		"maybe_voting_end_block_height",
 		"maybe_voting_end_time",
+		"tally",
 	).Values(
 		proposal.ProposalId,
 		proposal.Title,
@@ -94,6 +100,7 @@ func (proposalView *ProposalsView) Insert(proposal *ProposalRow) error {
 		proposalView.rdb.Tton(proposal.MaybeVotingStartTime),
 		proposal.MaybeVotingEndBlockHeight,
 		proposalView.rdb.Tton(proposal.MaybeVotingEndTime),
+		tallyJSON,
 	).ToSql()
 	if err != nil {
 		return fmt.Errorf("error building proposal insertion sql: %v: %w", err, rdb.ErrBuildSQLStmt)
@@ -196,12 +203,12 @@ func (proposalView *ProposalsView) Update(row *ProposalRow) error {
 	return nil
 }
 
-func (proposalView *ProposalsView) UpdateTally(id string, tally cosmosapp.Tally) error {
+func (proposalView *ProposalsView) UpdateTally(proposalId string, tally cosmosapp.Tally) error {
 	sql, sqlArgs, err := proposalView.rdb.StmtBuilder.Update(
 		PROPOSALS_TABLE_NAME,
 	).SetMap(map[string]interface{}{
-		"tally": tally,
-	}).Where("proposal_id = ?", id).ToSql()
+		"tally": json.MustMarshalToString(tally),
+	}).Where("proposal_id = ?", proposalId).ToSql()
 	if err != nil {
 		return fmt.Errorf("error building proposal tally update sql: %v: %w", err, rdb.ErrPrepare)
 	}

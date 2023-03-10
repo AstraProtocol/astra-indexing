@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
+	cosmosapp_interface "github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/rdbparambase"
 	rdbparambase_types "github.com/AstraProtocol/astra-indexing/appinterface/projection/rdbparambase/types"
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/rdbprojectionbase"
@@ -48,7 +48,7 @@ type Proposal struct {
 	validatorBase *rdbvalidatorbase.Base
 
 	rdbConn      rdb.Conn
-	cosmosClient cosmosapp.Client
+	cosmosClient cosmosapp_interface.Client
 	logger       applogger.Logger
 
 	conNodeAddressPrefix string
@@ -60,7 +60,7 @@ func NewProposal(
 	logger applogger.Logger,
 	rdbConn rdb.Conn,
 	conNodeAddressPrefix string,
-	cosmosClient cosmosapp.Client,
+	cosmosClient cosmosapp_interface.Client,
 	migrationHelper migrationhelper.MigrationHelper,
 ) *Proposal {
 	return &Proposal{
@@ -190,6 +190,7 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 				MaybeVotingStartTime:         nil,
 				MaybeVotingEndTime:           nil,
 				MaybeVotingEndBlockHeight:    nil,
+				Tally:                        nil,
 			}
 
 			if insertProposalErr := proposalsView.Insert(&row); insertProposalErr != nil {
@@ -243,6 +244,7 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 				MaybeVotingStartTime:         nil,
 				MaybeVotingEndTime:           nil,
 				MaybeVotingEndBlockHeight:    nil,
+				Tally:                        nil,
 			}
 
 			if insertProposalErr := proposalsView.Insert(&row); insertProposalErr != nil {
@@ -299,6 +301,7 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 				MaybeVotingStartTime:      nil,
 				MaybeVotingEndTime:        nil,
 				MaybeVotingEndBlockHeight: nil,
+				Tally:                     nil,
 			}
 
 			if insertProposalErr := proposalsView.Insert(&row); insertProposalErr != nil {
@@ -352,6 +355,7 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 				MaybeVotingStartTime:         nil,
 				MaybeVotingEndTime:           nil,
 				MaybeVotingEndBlockHeight:    nil,
+				Tally:                        nil,
 			}
 
 			if insertProposalErr := proposalsView.Insert(&row); insertProposalErr != nil {
@@ -405,6 +409,7 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 				MaybeVotingStartTime:         nil,
 				MaybeVotingEndTime:           nil,
 				MaybeVotingEndBlockHeight:    nil,
+				Tally:                        nil,
 			}
 
 			if insertProposalErr := proposalsView.Insert(&row); insertProposalErr != nil {
@@ -458,6 +463,7 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 				MaybeVotingStartTime:         nil,
 				MaybeVotingEndTime:           nil,
 				MaybeVotingEndBlockHeight:    nil,
+				Tally:                        nil,
 			}
 
 			if insertProposalErr := proposalsView.Insert(&row); insertProposalErr != nil {
@@ -541,11 +547,10 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 
 			// gov update tally
 			tally, queryTallyErr := projection.cosmosClient.ProposalTally(mutProposal.ProposalId)
-			if queryTallyErr != nil {
+			if queryTallyErr == nil {
 				if err := proposalsView.UpdateTally(mutProposal.ProposalId, tally); err != nil {
 					return fmt.Errorf("error updating proposal tally which has ended: %v", err)
 				}
-
 			}
 
 			// gov change period params
@@ -556,7 +561,7 @@ func (projection *Proposal) HandleEvents(height int64, events []event_entity.Eve
 					return fmt.Errorf("error cast data to json string: %v", err)
 				}
 
-				var changesData []cosmosapp.Change
+				var changesData []cosmosapp_interface.Change
 				err = json.Unmarshal(data, &changesData)
 				if err != nil {
 					return fmt.Errorf("error parse data to changes data: %v", err)
