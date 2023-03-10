@@ -86,8 +86,8 @@ logger:
 
 prometheus:
   enable: true
-  export_path: "/"
-  port: "9090"
+  export_path: "/metrics"
+  port: "8081"
 
 cronjobstats:
   enable: true
