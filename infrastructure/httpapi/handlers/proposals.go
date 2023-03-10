@@ -89,26 +89,25 @@ func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	tally, queryTallyErr := handler.cosmosClient.ProposalTally(idParam)
-	if queryTallyErr != nil {
-		if !errors.Is(queryTallyErr, cosmosapp.ErrProposalNotFound) {
-			handler.logger.Errorf("error retrieving proposal tally: %v", queryTallyErr)
-			httpapi.InternalServerError(ctx)
-			return
-		}
-		tally = cosmosapp.Tally{
-			Yes:        "0",
-			Abstain:    "0",
-			No:         "0",
-			NoWithVeto: "0",
-		}
+	tally := cosmosapp.Tally{}
+	if proposal.Tally != nil {
+		tallyMap := proposal.Tally.(map[string]interface{})
+		tally.No = tallyMap["no"].(string)
+		tally.Yes = tallyMap["yes"].(string)
+		tally.Abstain = tallyMap["abstain"].(string)
+		tally.NoWithVeto = tallyMap["no_with_veto"].(string)
+	} else {
+		tally.No = "0"
+		tally.Yes = "0"
+		tally.Abstain = "0"
+		tally.NoWithVeto = "0"
 	}
 
 	if handler.totalBondedLastUpdatedAt.Add(1 * time.Hour).Before(time.Now()) {
 		var queryTotalBondedErr error
 		handler.totalBonded, queryTotalBondedErr = handler.cosmosClient.TotalBondedBalance()
 		if queryTotalBondedErr != nil {
-			handler.logger.Errorf("error retrieving total bonded balance: %v", queryTallyErr)
+			handler.logger.Errorf("error retrieving total bonded balance: %v", queryTotalBondedErr)
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -158,7 +157,6 @@ func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 
 	proposalDetails := ProposalDetails{
 		proposal,
-
 		requiredVotingPower.Text('f', 0),
 		totalVotedPower.Text(10),
 		ProposalVotedPowerResult{
@@ -168,7 +166,7 @@ func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 			NoWithVeto: tally.NoWithVeto,
 		},
 	}
-	_ = handler.astraCache.Set(proposalKey, proposalDetails, infrastructure.TIME_CACHE_FAST)
+	handler.astraCache.Set(proposalKey, proposalDetails, infrastructure.TIME_CACHE_FAST)
 	httpapi.Success(ctx, proposalDetails)
 }
 
@@ -212,7 +210,7 @@ func (handler *Proposals) List(ctx *fasthttp.RequestCtx) {
 		httpapi.InternalServerError(ctx)
 		return
 	}
-	_ = handler.astraCache.Set(proposalKey, NewProposalPaginationResult(proposals, *paginationResult), infrastructure.TIME_CACHE_FAST)
+	handler.astraCache.Set(proposalKey, NewProposalPaginationResult(proposals, *paginationResult), infrastructure.TIME_CACHE_FAST)
 	httpapi.SuccessWithPagination(ctx, proposals, paginationResult)
 }
 
@@ -271,8 +269,7 @@ func (handler *Proposals) ListVotesById(ctx *fasthttp.RequestCtx) {
 		httpapi.InternalServerError(ctx)
 		return
 	}
-	_ = handler.astraCache.Set(voteCacheKey, NewVotesPaginationResult(votes, *paginationResult),
-		infrastructure.TIME_CACHE_FAST)
+	handler.astraCache.Set(voteCacheKey, NewVotesPaginationResult(votes, *paginationResult), infrastructure.TIME_CACHE_FAST)
 	httpapi.SuccessWithPagination(ctx, votes, paginationResult)
 }
 
@@ -330,9 +327,7 @@ func (handler *Proposals) ListDepositorsById(ctx *fasthttp.RequestCtx) {
 		httpapi.InternalServerError(ctx)
 		return
 	}
-	_ = handler.astraCache.Set(depositCacheKey, NewDepositPaginationResult(depositors, *paginationResult),
-		infrastructure.TIME_CACHE_FAST)
-
+	handler.astraCache.Set(depositCacheKey, NewDepositPaginationResult(depositors, *paginationResult), infrastructure.TIME_CACHE_FAST)
 	httpapi.SuccessWithPagination(ctx, depositors, paginationResult)
 }
 

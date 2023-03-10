@@ -1191,7 +1191,6 @@ func (client *HTTPClient) ProposalById(id string) (cosmosapp_interface.Proposal,
 		return cosmosapp_interface.Proposal{}, cosmosapp_interface.ErrProposalNotFound
 	}
 	if statusCode != 200 {
-		rawRespBody.Close()
 		return cosmosapp_interface.Proposal{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
 	}
 	defer rawRespBody.Close()
@@ -1228,7 +1227,6 @@ func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, e
 		return cosmosapp_interface.Tally{}, cosmosapp_interface.ErrProposalNotFound
 	}
 	if statusCode != 200 {
-		rawRespBody.Close()
 		return cosmosapp_interface.Tally{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
 	}
 	defer rawRespBody.Close()
@@ -1239,7 +1237,6 @@ func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, e
 	}
 
 	client.httpCache.Set(cacheKey, tallyResp.Tally, utils.TIME_CACHE_FAST)
-
 	return tallyResp.Tally, nil
 }
 
@@ -1266,7 +1263,6 @@ func (client *HTTPClient) DepositParams() (cosmosapp_interface.Params, error) {
 		return cosmosapp_interface.Params{}, cosmosapp_interface.ErrProposalNotFound
 	}
 	if statusCode != 200 {
-		rawRespBody.Close()
 		return cosmosapp_interface.Params{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
 	}
 	defer rawRespBody.Close()
@@ -1335,7 +1331,6 @@ func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurn, erro
 		return cosmosapp_interface.TotalFeeBurn{}, cosmosapp_interface.ErrTotalFeeBurnNotFound
 	}
 	if statusCode != 200 {
-		rawRespBody.Close()
 		return cosmosapp_interface.TotalFeeBurn{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
 	}
 	defer rawRespBody.Close()
@@ -1379,7 +1374,6 @@ func (client *HTTPClient) VestingBalances(account string) (cosmosapp_interface.V
 		return vestingBalancesEmpty, cosmosapp_interface.ErrTotalFeeBurnNotFound
 	}
 	if statusCode != 200 {
-		rawRespBody.Close()
 		return vestingBalancesEmpty, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
 	}
 	defer rawRespBody.Close()
@@ -1431,7 +1425,6 @@ func (client *HTTPClient) VestingBalancesAsync(account string, vestingBalancesCh
 		return
 	}
 	if statusCode != 200 {
-		rawRespBody.Close()
 		vestingBalancesChan <- vestingBalancesEmpty
 		return
 	}
