@@ -1,9 +1,10 @@
 package main
 
 import (
+	"strings"
+
 	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/AstraProtocol/astra-indexing/projection/blockevent"
-	"strings"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -149,9 +150,9 @@ func InitProjection(name string, params InitProjectionParams, util evmUtil.EvmUt
 		return chainstats.NewChainStats(params.Logger, params.RdbConn, migrationHelper)
 	case "Proposal":
 		if params.GithubAPIToken == "" {
-			return proposal.NewProposal(params.Logger, params.RdbConn, params.ConsNodeAddressPrefix, nil)
+			return proposal.NewProposal(params.Logger, params.RdbConn, params.ConsNodeAddressPrefix, params.CosmosAppClient, nil)
 		}
-		return proposal.NewProposal(params.Logger, params.RdbConn, params.ConsNodeAddressPrefix, migrationHelper)
+		return proposal.NewProposal(params.Logger, params.RdbConn, params.ConsNodeAddressPrefix, params.CosmosAppClient, migrationHelper)
 	case "Transaction":
 		if params.GithubAPIToken == "" {
 			return transaction.NewTransaction(params.Logger, params.RdbConn, nil, util)

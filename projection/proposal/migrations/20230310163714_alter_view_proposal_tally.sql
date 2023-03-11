@@ -1,0 +1,1 @@
+ALTER TABLE view_proposals ADD tally JSONB;

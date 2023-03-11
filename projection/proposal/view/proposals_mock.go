@@ -34,6 +34,11 @@ func (proposalsView *MockProposalsView) Update(row *ProposalRow) error {
 	return mockArgs.Error(0)
 }
 
+func (proposalsView *MockProposalsView) UpdateTally(proposalId string, tally interface{}) error {
+	mockArgs := proposalsView.Called(proposalId, tally)
+	return mockArgs.Error(0)
+}
+
 func (proposalsView *MockProposalsView) FindById(
 	proposalId string,
 ) (

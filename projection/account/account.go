@@ -22,10 +22,9 @@ import (
 type Account struct {
 	*rdbprojectionbase.Base
 
-	rdbConn      rdb.Conn
-	logger       applogger.Logger
-	cosmosClient cosmosapp_interface.Client // cosmos light client deamon port : 1317 (default)
-
+	rdbConn         rdb.Conn
+	logger          applogger.Logger
+	cosmosClient    cosmosapp_interface.Client // cosmos light client deamon port : 1317 (default)
 	migrationHelper migrationhelper.MigrationHelper
 }
 
@@ -44,7 +43,6 @@ func NewAccount(
 		rdbConn,
 		logger,
 		cosmosClient,
-
 		migrationHelper,
 	}
 }
@@ -54,7 +52,7 @@ var (
 	UpdateLastHandledEventHeight = (*Account).UpdateLastHandledEventHeight
 )
 
-func (_ *Account) GetEventsToListen() []string {
+func (*Account) GetEventsToListen() []string {
 	return []string{
 		// TODO: Genesis account
 		event_usecase.ACCOUNT_TRANSFERRED,
