@@ -1,1 +1,1 @@
-ALTER TABLE view_proposals ADD tally JSONB NOT NULL;
+ALTER TABLE view_proposals ADD tally JSONB;
