@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 	pagination_interface "github.com/AstraProtocol/astra-indexing/appinterface/pagination"
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -23,7 +22,7 @@ type Proposals interface {
 	Insert(proposal *ProposalRow) error
 	IncrementTotalVoteBy(proposalId uint64, voteToAdd *big.Int) error
 	Update(row *ProposalRow) error
-	UpdateTally(proposalId string, tally cosmosapp.Tally) error
+	UpdateTally(proposalId string, tally interface{}) error
 	FindById(proposalId string) (*ProposalWithMonikerRow, error)
 	List(
 		filter ProposalListFilter,
@@ -203,7 +202,7 @@ func (proposalView *ProposalsView) Update(row *ProposalRow) error {
 	return nil
 }
 
-func (proposalView *ProposalsView) UpdateTally(proposalId string, tally cosmosapp.Tally) error {
+func (proposalView *ProposalsView) UpdateTally(proposalId string, tally interface{}) error {
 	sql, sqlArgs, err := proposalView.rdb.StmtBuilder.Update(
 		PROPOSALS_TABLE_NAME,
 	).SetMap(map[string]interface{}{
