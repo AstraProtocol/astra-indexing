@@ -335,6 +335,11 @@ func InitRouteRegistry(
 			path:    "api/v1/proposals/{id}/depositors",
 			handler: proposalsHandler.ListDepositorsById,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/proposals/update_to/{id}",
+			handler: proposalsHandler.UpdateTally,
+		},
 	)
 
 	validatorsHandler := httpapi_handlers.NewValidators(

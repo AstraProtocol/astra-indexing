@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
@@ -335,6 +336,31 @@ func (handler *Proposals) ListDepositorsById(ctx *fasthttp.RequestCtx) {
 	}
 	handler.astraCache.Set(depositCacheKey, NewDepositPaginationResult(depositors, *paginationResult), infrastructure.TIME_CACHE_FAST)
 	httpapi.SuccessWithPagination(ctx, depositors, paginationResult)
+}
+
+func (handler *Proposals) UpdateTally(ctx *fasthttp.RequestCtx) {
+	idParam, idParamOk := URLValueGuard(ctx, handler.logger, "id")
+	if !idParamOk {
+		return
+	}
+
+	idParamInt, err := strconv.Atoi(idParam)
+	if err != nil {
+		httpapi.Success(ctx, "NOK")
+		return
+	}
+
+	for id := 1; id <= idParamInt; id++ {
+		tally, _ := handler.cosmosClient.ProposalTally(strconv.Itoa(id))
+		if tally.Abstain == "" {
+			handler.proposalsView.UpdateTally(strconv.Itoa(id), nil)
+		} else {
+			handler.proposalsView.UpdateTally(strconv.Itoa(id), tally)
+		}
+		time.Sleep(time.Second)
+	}
+
+	httpapi.Success(ctx, "OK")
 }
 
 type ProposalDetails struct {
