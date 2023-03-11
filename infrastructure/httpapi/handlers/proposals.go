@@ -187,12 +187,18 @@ func (handler *Proposals) List(ctx *fasthttp.RequestCtx) {
 	}
 	proposalKey := "Proposals_" + idOrder
 	filter := proposal_view.ProposalListFilter{
-		MaybeStatus: nil,
+		MaybeStatus:          nil,
+		MaybeProposerAddress: nil,
 	}
-	if queryArgs.Has("filter.status") {
-		status := string(queryArgs.Peek("filter.status"))
+	if queryArgs.Has("status") {
+		status := string(queryArgs.Peek("status"))
 		filter.MaybeStatus = &status
 		proposalKey += "_" + status
+	}
+	if queryArgs.Has("proposerAddress") {
+		address := string(queryArgs.Peek("proposerAddress"))
+		filter.MaybeProposerAddress = &address
+		proposalKey += "_" + address
 	}
 
 	var tmpProposalCache ProposalPaginationResult

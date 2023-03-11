@@ -374,6 +374,9 @@ func (proposalView *ProposalsView) List(
 	if filter.MaybeStatus != nil {
 		stmtBuilder = stmtBuilder.Where(fmt.Sprintf("%s.status = ?", PROPOSALS_TABLE_NAME), *filter.MaybeStatus)
 	}
+	if filter.MaybeProposerAddress != nil {
+		stmtBuilder = stmtBuilder.Where(fmt.Sprintf("%s.proposer_address = ?", PROPOSALS_TABLE_NAME), *filter.MaybeProposerAddress)
+	}
 
 	if order.Id == view.ORDER_DESC {
 		stmtBuilder = stmtBuilder.OrderBy(fmt.Sprintf("%s.id DESC", PROPOSALS_TABLE_NAME))
@@ -482,7 +485,8 @@ func (proposalView *ProposalsView) List(
 }
 
 type ProposalListFilter struct {
-	MaybeStatus *string
+	MaybeStatus          *string
+	MaybeProposerAddress *string
 }
 
 type ProposalListOrder struct {
