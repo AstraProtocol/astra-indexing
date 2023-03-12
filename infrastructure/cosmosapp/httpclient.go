@@ -1473,7 +1473,9 @@ func (client *HTTPClient) BlockInfo(height string) (*cosmosapp_interface.BlockIn
 		return nil, err
 	}
 
-	client.httpCache.Set(cacheKey, &blockInfo, utils.TIME_CACHE_LONG)
+	if height != "latest" {
+		client.httpCache.Set(cacheKey, &blockInfo, utils.TIME_CACHE_LONG)
+	}
 	return &blockInfo, nil
 }
 
