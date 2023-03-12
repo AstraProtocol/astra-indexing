@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -44,10 +45,11 @@ type Blocks struct {
 	validatorBlockCommitmentsView *validator_view.ValidatorBlockCommitments
 	astraCache                    *cache.AstraCache
 	astraLocalCache               *cache.AstraLocalCache
+	cosmosClient                  cosmosapp.Client
 	blockscoutClient              blockscout_infrastructure.HTTPClient
 }
 
-func NewBlocks(logger applogger.Logger, rdbHandle *rdb.Handle, blockscoutClient blockscout_infrastructure.HTTPClient) *Blocks {
+func NewBlocks(logger applogger.Logger, rdbHandle *rdb.Handle, cosmosClient cosmosapp.Client, blockscoutClient blockscout_infrastructure.HTTPClient) *Blocks {
 	return &Blocks{
 		logger.WithFields(applogger.LogFields{
 			"module": "BlocksHandler",
@@ -59,6 +61,7 @@ func NewBlocks(logger applogger.Logger, rdbHandle *rdb.Handle, blockscoutClient 
 		validator_view.NewValidatorBlockCommitments(rdbHandle),
 		cache.NewCache(),
 		cache.NewLocalCache("BlocksCache"),
+		cosmosClient,
 		blockscoutClient,
 	}
 }
@@ -102,7 +105,8 @@ func (handler *Blocks) FindBy(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	_ = handler.astraCache.Set(cacheKey, block, utils.TIME_CACHE_MEDIUM)
+	handler.astraCache.Set(cacheKey, block, utils.TIME_CACHE_MEDIUM)
+
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, block)
 }
@@ -163,7 +167,7 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 		paginationResult.Por.TotalPage()
 	}
 
-	_ = handler.astraLocalCache.Set(blockPaginationKey, NewBlocksPaginationResult(blocks, *paginationResult), utils.TIME_CACHE_FAST)
+	handler.astraLocalCache.Set(blockPaginationKey, NewBlocksPaginationResult(blocks, *paginationResult), utils.TIME_CACHE_FAST)
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
@@ -190,7 +194,9 @@ func (handler *Blocks) EthBlockNumber(ctx *fasthttp.RequestCtx) {
 		httpapi.InternalServerError(ctx)
 		return
 	}
-	_ = handler.astraCache.Set(cacheKey, ethBlockNumber, utils.TIME_CACHE_FAST)
+
+	handler.astraCache.Set(cacheKey, ethBlockNumber, utils.TIME_CACHE_FAST)
+
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, ethBlockNumber)
 }
@@ -244,9 +250,40 @@ func (handler *Blocks) ListTransactionsByHeight(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	_ = handler.astraCache.Set(transactionPaginationKey,
+	handler.astraCache.Set(transactionPaginationKey,
 		NewTransactionsPaginationResult(txs, *paginationResult), utils.TIME_CACHE_MEDIUM)
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, txs, paginationResult)
+}
+
+func (handler *Blocks) ListRawTxsByHeight(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "ListRawTxsByHeight"
+
+	blockHeightParam, blockHeightParamOk := URLValueGuard(ctx, handler.logger, "height")
+	if !blockHeightParamOk {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		return
+	}
+
+	if blockHeightParam != "latest" {
+		_, err := strconv.ParseInt(blockHeightParam, 10, 64)
+		if err != nil {
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, errors.New("invalid block height"))
+			return
+		}
+	}
+
+	blockInfo, err := handler.cosmosClient.BlockInfo(blockHeightParam)
+	if err != nil {
+		handler.logger.Errorf("error fetching block info from Cosmos: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.Success(ctx, blockInfo.Block.Data)
 }

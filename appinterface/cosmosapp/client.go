@@ -45,10 +45,13 @@ type Client interface {
 
 	VestingBalances(account string) (VestingBalances, error)
 	VestingBalancesAsync(account string, vestingBalancesChan chan VestingBalances)
+
+	BlockInfo(height string) (*BlockInfo, error)
 }
 
 var ErrAccountNotFound = errors.New("account not found")
 var ErrAccountNoDelegation = errors.New("account has no delegation")
 var ErrProposalNotFound = errors.New("proposal not found")
 var ErrTotalFeeBurnNotFound = errors.New("total fee burn not found")
-var ErrVestingBalancesnNotFound = errors.New("vesting balances not found")
+var ErrVestingBalancesNotFound = errors.New("vesting balances not found")
+var ErrBlockInfoNotFound = errors.New("block info not found")

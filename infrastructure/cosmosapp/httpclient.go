@@ -1371,7 +1371,7 @@ func (client *HTTPClient) VestingBalances(account string) (cosmosapp_interface.V
 		return vestingBalancesEmpty, err
 	}
 	if statusCode == 404 {
-		return vestingBalancesEmpty, cosmosapp_interface.ErrTotalFeeBurnNotFound
+		return vestingBalancesEmpty, cosmosapp_interface.ErrVestingBalancesNotFound
 	}
 	if statusCode != 200 {
 		return vestingBalancesEmpty, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
@@ -1438,6 +1438,43 @@ func (client *HTTPClient) VestingBalancesAsync(account string, vestingBalancesCh
 
 	client.httpCache.Set(cacheKey, vestingBalances, utils.TIME_CACHE_FAST)
 	vestingBalancesChan <- vestingBalances
+}
+
+func (client *HTTPClient) BlockInfo(height string) (*cosmosapp_interface.BlockInfo, error) {
+	cacheKey := fmt.Sprintf("CosmosBlockInfo_%s", height)
+
+	var blockInfoTmp cosmosapp_interface.BlockInfo
+	err := client.httpCache.Get(cacheKey, &blockInfoTmp)
+	if err == nil {
+		return &blockInfoTmp, nil
+	}
+
+	method := fmt.Sprintf(
+		"%s/%s",
+		"blocks", height,
+	)
+	rawRespBody, statusCode, err := client.rawRequest(
+		method,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	if statusCode == 404 {
+		return nil, cosmosapp_interface.ErrBlockInfoNotFound
+	}
+	if statusCode != 200 {
+		return nil, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
+	}
+	defer rawRespBody.Close()
+
+	var blockInfo cosmosapp_interface.BlockInfo
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&blockInfo); err != nil {
+		return nil, err
+	}
+
+	client.httpCache.Set(cacheKey, &blockInfo, utils.TIME_CACHE_LONG)
+	return &blockInfo, nil
 }
 
 func ParseTxsResp(rawRespReader io.Reader) (*model.Tx, error) {

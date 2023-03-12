@@ -44,7 +44,7 @@ func InitRouteRegistry(
 		},
 	)
 
-	blocksHandler := httpapi_handlers.NewBlocks(logger, rdbConn.ToHandle(), *blockscoutClient)
+	blocksHandler := httpapi_handlers.NewBlocks(logger, rdbConn.ToHandle(), cosmosAppClient, *blockscoutClient)
 	routes = append(routes,
 		Route{
 			Method:  GET,
@@ -65,6 +65,11 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/blocks/{height}/transactions",
 			handler: blocksHandler.ListTransactionsByHeight,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/blocks/raw-txs/{height}",
+			handler: blocksHandler.ListRawTxsByHeight,
 		},
 	)
 
