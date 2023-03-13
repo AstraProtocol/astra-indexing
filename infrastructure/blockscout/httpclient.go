@@ -128,12 +128,12 @@ func (client *HTTPClient) request(endpoint string, queryParams []string, mapping
 
 	req, err := retryablehttp.NewRequestWithContext(context.Background(), http.MethodGet, queryUrl, nil)
 	if err != nil {
-		prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(-1), "http", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(408), "http", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf("error creating HTTP request with context: %v", err)
 	}
 	rawResp, err := client.httpClient.Do(req)
 	if err != nil {
-		prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(-1), "http", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(400), "http", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf("error requesting blockscout %s endpoint: %v", queryUrl, err)
 	}
 
