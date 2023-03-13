@@ -158,7 +158,7 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 	}, paginationInput)
 	if err != nil {
 		handler.logger.Errorf("error listing blocks: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusNotFound), "GET", time.Since(startTime).Milliseconds())
 		httpapi.NotFound(ctx)
 		return
 	}
@@ -191,8 +191,8 @@ func (handler *Blocks) EthBlockNumber(ctx *fasthttp.RequestCtx) {
 	ethBlockNumber, err := handler.blockscoutClient.EthBlockNumber()
 	if err != nil {
 		handler.logger.Errorf("error fetching eth block number: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-		httpapi.NotFound(ctx)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, err)
 		return
 	}
 
@@ -283,8 +283,8 @@ func (handler *Blocks) ListRawTxsByHeight(ctx *fasthttp.RequestCtx) {
 	blockInfo, err := handler.cosmosClient.BlockInfo(blockHeightParam)
 	if err != nil {
 		handler.logger.Errorf("error fetching block info from Cosmos: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusNotFound), "GET", time.Since(startTime).Milliseconds())
-		httpapi.NotFound(ctx)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, err)
 		return
 	}
 

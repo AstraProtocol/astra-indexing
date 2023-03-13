@@ -204,12 +204,12 @@ func (client *HTTPClient) request(method string, queryString ...string) (io.Read
 
 	req, err := retryablehttp.NewRequestWithContext(context.Background(), http.MethodGet, queryUrl, nil)
 	if err != nil {
-		prometheus.RecordApiExecTime(method, strconv.Itoa(-1), "rpc", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(method, strconv.Itoa(408), "rpc", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf("error creating HTTP request with context: %v", err)
 	}
 	rawResp, err := client.httpClient.Do(req)
 	if err != nil {
-		prometheus.RecordApiExecTime(method, strconv.Itoa(-1), "rpc", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(method, strconv.Itoa(400), "rpc", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf("error requesting Tendermint %s endpoint: %v", queryUrl, err)
 	}
 	prometheus.RecordApiExecTime(method, strconv.Itoa(rawResp.StatusCode), "rpc", time.Since(startTime).Milliseconds())

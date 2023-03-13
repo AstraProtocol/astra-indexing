@@ -206,7 +206,7 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 
 	pagination, err := httpapi.ParsePagination(ctx)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}

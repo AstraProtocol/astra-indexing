@@ -1555,12 +1555,12 @@ func (client *HTTPClient) request(method string, queryString ...string) (io.Read
 
 	req, err := retryablehttp.NewRequestWithContext(context.Background(), http.MethodGet, queryUrl, nil)
 	if err != nil {
-		prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(-1), "http", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(408), "http", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf("error creating HTTP request with context: %v", err)
 	}
 	rawResp, err := client.httpClient.Do(req)
 	if err != nil {
-		prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(-1), "http", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(400), "http", time.Since(startTime).Milliseconds())
 		return nil, fmt.Errorf("error requesting Cosmos %s endpoint: %v", queryUrl, err)
 	}
 
@@ -1586,13 +1586,13 @@ func (client *HTTPClient) rawRequest(method string, queryString ...string) (io.R
 
 	req, err := retryablehttp.NewRequestWithContext(context.Background(), http.MethodGet, queryUrl, nil)
 	if err != nil {
-		prometheus.RecordApiExecTime(method, strconv.Itoa(-1), "http", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(method, strconv.Itoa(408), "http", time.Since(startTime).Milliseconds())
 		return nil, 0, fmt.Errorf("error creating HTTP request with context: %v", err)
 	}
 	// nolint:bodyclose
 	rawResp, err := client.httpClient.Do(req)
 	if err != nil {
-		prometheus.RecordApiExecTime(method, strconv.Itoa(-1), "http", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(method, strconv.Itoa(400), "http", time.Since(startTime).Milliseconds())
 		return nil, 0, fmt.Errorf("error requesting Cosmos %s endpoint: %v", queryUrl, err)
 	}
 	prometheus.RecordApiExecTime(method, strconv.Itoa(rawResp.StatusCode), "http", time.Since(startTime).Milliseconds())
