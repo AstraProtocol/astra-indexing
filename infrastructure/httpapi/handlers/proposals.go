@@ -19,6 +19,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
+	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	proposal_view "github.com/AstraProtocol/astra-indexing/projection/proposal/view"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 	"github.com/valyala/fasthttp"
@@ -68,24 +69,33 @@ func NewProposalPaginationResult(proposalRows []proposal_view.ProposalWithMonike
 }
 
 func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "ProposalFindById"
+
 	idParam, idParamOk := URLValueGuard(ctx, handler.logger, "id")
 	if !idParamOk {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("id param is invalid"))
 		return
 	}
 	var tmpProposal ProposalDetails
 	proposalKey := fmt.Sprintf("proposal_%s", idParam)
 	err := handler.astraCache.Get(proposalKey, &tmpProposal)
 	if err == nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("id param is invalid"))
 		httpapi.Success(ctx, tmpProposal)
 		return
 	}
 	proposal, err := handler.proposalsView.FindById(idParam)
 	if err != nil {
 		if errors.Is(err, rdb.ErrNoRows) {
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusNotFound), "GET", time.Since(startTime).Milliseconds())
 			httpapi.NotFound(ctx)
 			return
 		}
 		handler.logger.Errorf("error finding proposal by id: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -109,6 +119,7 @@ func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 		handler.totalBonded, queryTotalBondedErr = handler.cosmosClient.TotalBondedBalance()
 		if queryTotalBondedErr != nil {
 			handler.logger.Errorf("error retrieving total bonded balance: %v", queryTotalBondedErr)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -121,6 +132,7 @@ func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 	})
 	if queryQuorumErr != nil {
 		handler.logger.Errorf("error retrieving gov quorum param: %v", queryQuorumErr)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -128,13 +140,15 @@ func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 	quorum, parseQuorumOk := new(big.Float).SetString(quorumStr)
 	if !parseQuorumOk {
 		handler.logger.Errorf("error parsing gov quorum param to big.Float: %v", parseQuorumOk)
-		httpapi.InternalServerError(ctx)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("error parsing gov quorum"))
 		return
 	}
 	totalBonded, parseTotalBondedOk := new(big.Float).SetString(handler.totalBonded.Amount.String())
 	if !parseTotalBondedOk {
 		handler.logger.Errorf("error parsing total bonded balance to big.Float: %v", parseTotalBondedOk)
-		httpapi.InternalServerError(ctx)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("error parsing total bonded balance"))
 		return
 	}
 	requiredVotingPower := new(big.Float).Mul(totalBonded, quorum)
@@ -149,7 +163,8 @@ func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 		votedPower, parseVotedPowerOk := new(big.Int).SetString(votedPowerStr, 10)
 		if !parseVotedPowerOk {
 			handler.logger.Error("error parsing voted power")
-			httpapi.InternalServerError(ctx)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, errors.New("error parsing voted power"))
 			return
 		}
 
@@ -168,13 +183,18 @@ func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 		},
 	}
 	handler.astraCache.Set(proposalKey, proposalDetails, infrastructure.TIME_CACHE_FAST)
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, proposalDetails)
 }
 
 func (handler *Proposals) List(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "ListProposals"
+
 	var err error
 	pagePagination, err := httpapi.ParsePagination(ctx)
 	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
@@ -205,6 +225,7 @@ func (handler *Proposals) List(ctx *fasthttp.RequestCtx) {
 	var tmpProposalCache ProposalPaginationResult
 	err = handler.astraCache.Get(proposalKey, &tmpProposalCache)
 	if err == nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 		httpapi.SuccessWithPagination(ctx, tmpProposalCache.Proposals, &tmpProposalCache.PaginationResult)
 		return
 	}
@@ -214,10 +235,12 @@ func (handler *Proposals) List(ctx *fasthttp.RequestCtx) {
 	}, pagePagination)
 	if err != nil {
 		handler.logger.Errorf("error listing proposals: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
 	handler.astraCache.Set(proposalKey, NewProposalPaginationResult(proposals, *paginationResult), infrastructure.TIME_CACHE_FAST)
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, proposals, paginationResult)
 }
 
@@ -235,12 +258,18 @@ func NewVotesPaginationResult(voteRows []proposal_view.VoteWithMonikerRow,
 }
 
 func (handler *Proposals) ListVotesById(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "ProposalListVotesById"
+
 	idParam, idParamOk := URLValueGuard(ctx, handler.logger, "id")
 	if !idParamOk {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("id param is invalid"))
 		return
 	}
 	parsePagination, paginationError := httpapi.ParsePagination(ctx)
 	if paginationError != nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
@@ -264,6 +293,7 @@ func (handler *Proposals) ListVotesById(ctx *fasthttp.RequestCtx) {
 	var tmpVoteCache VotesPaginationResult
 	err := handler.astraCache.Get(voteCacheKey, &tmpVoteCache)
 	if err == nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 		httpapi.SuccessWithPagination(ctx, tmpVoteCache.Votes, &tmpVoteCache.PaginationResult)
 		return
 	}
@@ -273,10 +303,12 @@ func (handler *Proposals) ListVotesById(ctx *fasthttp.RequestCtx) {
 	}, filters, parsePagination)
 	if err != nil {
 		handler.logger.Errorf("error listing proposal votes: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
 	handler.astraCache.Set(voteCacheKey, NewVotesPaginationResult(votes, *paginationResult), infrastructure.TIME_CACHE_FAST)
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, votes, paginationResult)
 }
 
@@ -294,13 +326,19 @@ func NewDepositPaginationResult(depositorRows []proposal_view.DepositorWithMonik
 }
 
 func (handler *Proposals) ListDepositorsById(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "ProposalListDepositorsById"
+
 	idParam, idParamOk := URLValueGuard(ctx, handler.logger, "id")
 	if !idParamOk {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("id param is invalid"))
 		return
 	}
 
 	parsePagination, paginationError := httpapi.ParsePagination(ctx)
 	if paginationError != nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
@@ -322,6 +360,7 @@ func (handler *Proposals) ListDepositorsById(ctx *fasthttp.RequestCtx) {
 
 	err := handler.astraCache.Get(depositCacheKey, &tmpDepositorCache)
 	if err == nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 		httpapi.SuccessWithPagination(ctx, tmpDepositorCache.Depositor, &tmpDepositorCache.PaginationResult)
 		return
 	}
@@ -331,10 +370,12 @@ func (handler *Proposals) ListDepositorsById(ctx *fasthttp.RequestCtx) {
 	}, filters, parsePagination)
 	if err != nil {
 		handler.logger.Errorf("error listing proposal votes: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
 	handler.astraCache.Set(depositCacheKey, NewDepositPaginationResult(depositors, *paginationResult), infrastructure.TIME_CACHE_FAST)
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, depositors, paginationResult)
 }
 

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -57,7 +58,8 @@ func (handler *AccountTransactions) GetCounters(ctx *fasthttp.RequestCtx) {
 	recordMethod := "GetCounters"
 	accountParam, accountParamOk := URLValueGuard(ctx, handler.logger, "account")
 	if !accountParamOk {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid account param"))
 		return
 	}
 
@@ -125,18 +127,16 @@ func (handler *AccountTransactions) GetTopAddressesBalance(ctx *fasthttp.Request
 	mappingParams := make(map[string]string)
 
 	if string(ctx.QueryArgs().Peek("blockscout")) != "true" {
-		handler.logger.Error("invalid params")
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-		httpapi.InternalServerError(ctx)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid blockscout param"))
 		return
 	}
 
 	if string(ctx.QueryArgs().Peek("page")) != "" {
 		page, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("page")), 10, 0)
 		if err != nil || page <= 0 {
-			handler.logger.Error("page param is invalid")
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-			httpapi.InternalServerError(ctx)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, errors.New("invalid page param"))
 			return
 		}
 	}
@@ -146,9 +146,8 @@ func (handler *AccountTransactions) GetTopAddressesBalance(ctx *fasthttp.Request
 	if string(ctx.QueryArgs().Peek("offset")) != "" {
 		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("offset")), 10, 0)
 		if err != nil || offset <= 0 {
-			handler.logger.Error("offset param is invalid")
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-			httpapi.InternalServerError(ctx)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, errors.New("invalid offset param"))
 			return
 		}
 	}
@@ -168,9 +167,8 @@ func (handler *AccountTransactions) GetTopAddressesBalance(ctx *fasthttp.Request
 
 	topAddressesBalanceResp, err := handler.blockscoutClient.GetTopAddressesBalance(queryParams, mappingParams)
 	if err != nil {
-		handler.logger.Errorf("error getting top addresses balance from blockscout: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-		httpapi.InternalServerError(ctx)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, err)
 		return
 	}
 
@@ -185,9 +183,8 @@ func (handler *AccountTransactions) GetTopAddressesBalance(ctx *fasthttp.Request
 
 	mappingAddressTotal, err := handler.accountTransactionsTotalView.Total.FindByList(identities)
 	if err != nil {
-		handler.logger.Errorf("error getting list total: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-		httpapi.InternalServerError(ctx)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusNotFound), "GET", time.Since(startTime).Milliseconds())
+		httpapi.NotFound(ctx)
 		return
 	}
 
@@ -216,7 +213,8 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 
 	account, accountOk := URLValueGuard(ctx, handler.logger, "account")
 	if !accountOk {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid account param"))
 		return
 	}
 
@@ -248,7 +246,7 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 	)
 	if err != nil {
 		handler.logger.Errorf("error listing account transactions: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -272,23 +270,22 @@ func (handler *AccountTransactions) GetInternalTxsByAddressHash(ctx *fasthttp.Re
 
 	addressHash, accountParamOk := URLValueGuard(ctx, handler.logger, "account")
 	if !accountParamOk {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid account param"))
 		return
 	}
 
 	if string(ctx.QueryArgs().Peek("blockscout")) != "true" {
-		handler.logger.Error("invalid params")
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-		httpapi.InternalServerError(ctx)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid blockscout param"))
 		return
 	}
 
 	if string(ctx.QueryArgs().Peek("page")) != "" {
 		page, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("page")), 10, 0)
 		if err != nil || page <= 0 {
-			handler.logger.Error("page param is invalid")
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-			httpapi.InternalServerError(ctx)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, errors.New("invalid page param"))
 			return
 		}
 	}
@@ -298,9 +295,8 @@ func (handler *AccountTransactions) GetInternalTxsByAddressHash(ctx *fasthttp.Re
 	if string(ctx.QueryArgs().Peek("offset")) != "" {
 		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("offset")), 10, 0)
 		if err != nil || offset <= 0 {
-			handler.logger.Error("offset param is invalid")
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-			httpapi.InternalServerError(ctx)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, errors.New("invalid offset param"))
 			return
 		}
 	}
@@ -325,9 +321,8 @@ func (handler *AccountTransactions) GetInternalTxsByAddressHash(ctx *fasthttp.Re
 
 	tokensAddressResp, err := handler.blockscoutClient.GetListInternalTxsByAddressHash(addressHash, queryParams, mappingParams)
 	if err != nil {
-		handler.logger.Errorf("error getting list internal txs by address hash from blockscout: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-		httpapi.InternalServerError(ctx)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, err)
 		return
 	}
 
@@ -350,23 +345,22 @@ func (handler *AccountTransactions) GetListTokenTransfersByAddressHash(ctx *fast
 
 	addressHash, accountParamOk := URLValueGuard(ctx, handler.logger, "account")
 	if !accountParamOk {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid account param"))
 		return
 	}
 
 	if string(ctx.QueryArgs().Peek("blockscout")) != "true" {
-		handler.logger.Error("invalid params")
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-		httpapi.InternalServerError(ctx)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid blockscout param"))
 		return
 	}
 
 	if string(ctx.QueryArgs().Peek("page")) != "" {
 		page, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("page")), 10, 0)
 		if err != nil || page <= 0 {
-			handler.logger.Error("page param is invalid")
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-			httpapi.InternalServerError(ctx)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, errors.New("invalid page param"))
 			return
 		}
 	}
@@ -376,9 +370,8 @@ func (handler *AccountTransactions) GetListTokenTransfersByAddressHash(ctx *fast
 	if string(ctx.QueryArgs().Peek("offset")) != "" {
 		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("offset")), 10, 0)
 		if err != nil || offset <= 0 {
-			handler.logger.Error("offset param is invalid")
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-			httpapi.InternalServerError(ctx)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, errors.New("invalid offset param"))
 			return
 		}
 	}
@@ -398,9 +391,8 @@ func (handler *AccountTransactions) GetListTokenTransfersByAddressHash(ctx *fast
 
 	tokensAddressResp, err := handler.blockscoutClient.GetListTokenTransfersByAddressHash(addressHash, queryParams, mappingParams)
 	if err != nil {
-		handler.logger.Errorf("error getting list token transfers by address hash from blockscout: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-		httpapi.InternalServerError(ctx)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, err)
 		return
 	}
 
