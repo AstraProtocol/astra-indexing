@@ -64,7 +64,8 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 	recordMethod := "FindTransactionByHash"
 	hashParam, hashParamOk := URLValueGuard(ctx, handler.logger, "hash")
 	if !hashParamOk {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid tx hash"))
 		return
 	}
 	// handle if blockscout is disconnnected
@@ -95,6 +96,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 		var transactionRow transactionView.TransactionRow
 		err := handler.astraCache.Get(cacheKey, &transactionRow)
 		if err == nil {
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 			httpapi.Success(ctx, transactionRow)
 			return
 		}
@@ -102,34 +104,34 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 			transaction, err := handler.transactionsView.FindByEvmHash(hashParam)
 			if err != nil {
 				if errors.Is(err, rdb.ErrNoRows) {
-					prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-					httpapi.NotFound(ctx)
+					prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
+					httpapi.InternalServerError(ctx)
 					return
 				}
 				handler.logger.Errorf("error finding transactions by hash: %v", err)
-				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
 				httpapi.InternalServerError(ctx)
 				return
 			}
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
-			_ = handler.astraCache.Set(cacheKey, transaction, utils.TIME_CACHE_LONG)
+			handler.astraCache.Set(cacheKey, transaction, utils.TIME_CACHE_LONG)
 			httpapi.Success(ctx, transaction)
 			return
 		} else {
 			transaction, err := handler.transactionsView.FindByHash(hashParam)
 			if err != nil {
 				if errors.Is(err, rdb.ErrNoRows) {
-					prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-					httpapi.NotFound(ctx)
+					prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
+					httpapi.InternalServerError(ctx)
 					return
 				}
 				handler.logger.Errorf("error finding transactions by hash: %v", err)
-				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
 				httpapi.InternalServerError(ctx)
 				return
 			}
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
-			_ = handler.astraCache.Set(cacheKey, transaction, utils.TIME_CACHE_LONG)
+			handler.astraCache.Set(cacheKey, transaction, utils.TIME_CACHE_LONG)
 			httpapi.Success(ctx, transaction)
 			return
 		}
@@ -142,7 +144,8 @@ func (handler *Transactions) ListInternalTransactionsByHash(ctx *fasthttp.Reques
 
 	hashParam, hashParamOk := URLValueGuard(ctx, handler.logger, "hash")
 	if !hashParamOk {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid tx hash"))
 		return
 	}
 
@@ -150,17 +153,16 @@ func (handler *Transactions) ListInternalTransactionsByHash(ctx *fasthttp.Reques
 		internalTransactions, err := handler.blockscoutClient.GetListInternalTxs(hashParam)
 		if err != nil {
 			handler.logger.Errorf("error finding list internal transactions by hash: %v", err)
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-			httpapi.InternalServerError(ctx)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, err)
 			return
 		}
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 		httpapi.Success(ctx, internalTransactions)
 		return
 	} else {
-		handler.logger.Errorf("param: %s is not evm tx hash", hashParam)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-		httpapi.InternalServerError(ctx)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid evm tx hash"))
 		return
 	}
 }
@@ -171,7 +173,7 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 
 	paginationInput, err := httpapi.ParsePagination(ctx)
 	if err != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
@@ -207,7 +209,7 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 	}, paginationInput)
 	if err != nil {
 		handler.logger.Errorf("error listing transactions: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
 	}
@@ -217,7 +219,7 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 		paginationResult.Por.TotalPage()
 	}
 
-	_ = handler.astraLocalCache.Set(transactionPaginationKey,
+	handler.astraLocalCache.Set(transactionPaginationKey,
 		NewTransactionsPaginationResult(txs, *paginationResult), utils.TIME_CACHE_FAST)
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
@@ -229,15 +231,16 @@ func (handler *Transactions) GetAbiByTransactionHash(ctx *fasthttp.RequestCtx) {
 	recordMethod := "GetAbiByTransactionHash"
 	txParam, txParamOk := URLValueGuard(ctx, handler.logger, "hash")
 	if !txParamOk {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid tx hash"))
 		return
 	}
 
 	abi, err := handler.blockscoutClient.GetAbiByTransactionHash(txParam)
 	if err != nil {
 		handler.logger.Errorf("error getting abi by tx hash from blockscout: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-		httpapi.InternalServerError(ctx)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusNotFound), "GET", time.Since(startTime).Milliseconds())
+		httpapi.NotFound(ctx)
 		return
 	}
 
@@ -250,15 +253,16 @@ func (handler *Transactions) GetRawTraceByTransactionHash(ctx *fasthttp.RequestC
 	recordMethod := "GetRawTraceByTransactionHash"
 	txParam, txParamOk := URLValueGuard(ctx, handler.logger, "hash")
 	if !txParamOk {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid tx hash"))
 		return
 	}
 
 	rawTrace, err := handler.blockscoutClient.GetRawTraceByTxHash(txParam)
 	if err != nil {
 		handler.logger.Errorf("error getting raw trace by tx hash from blockscout: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-		httpapi.InternalServerError(ctx)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, err)
 		return
 	}
 

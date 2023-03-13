@@ -75,8 +75,8 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 				validators = nil
 			} else {
 				search.logger.Errorf("error searching validator: %v", err)
-				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-				httpapi.InternalServerError(ctx)
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusNotFound), "GET", time.Since(startTime).Milliseconds())
+				httpapi.NotFound(ctx)
 				return
 			}
 		}
@@ -118,8 +118,8 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 				accounts = nil
 			} else {
 				search.logger.Errorf("error searching account: %v", err)
-				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-				httpapi.InternalServerError(ctx)
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusNotFound), "GET", time.Since(startTime).Milliseconds())
+				httpapi.NotFound(ctx)
 				return
 			}
 		}
@@ -157,8 +157,8 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 			transactions = nil
 		} else {
 			search.logger.Errorf("error searching transaction: %v", err)
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
-			httpapi.InternalServerError(ctx)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusNotFound), "GET", time.Since(startTime).Milliseconds())
+			httpapi.NotFound(ctx)
 			return
 		}
 	}
