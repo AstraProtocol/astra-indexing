@@ -216,6 +216,31 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 
 	addressDetail.VestingBalances = vestingBalances
 
+	if addressDetail.LastBalanceUpdate == 0 {
+		rawLatestHeight, err := handler.statusView.FindBy("LatestHeight")
+		if err != nil {
+			handler.logger.Errorf("error fetching latest height: %v", err)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+			httpapi.InternalServerError(ctx)
+			return
+		}
+
+		var latestHeight int64 = 0
+		if rawLatestHeight != "" {
+			// TODO: Use big.Int
+			if n, err := strconv.ParseInt(rawLatestHeight, 10, 64); err != nil {
+				handler.logger.Errorf("error converting latest height from string to int64: %v", err)
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(-1), "GET", time.Since(startTime).Milliseconds())
+				httpapi.InternalServerError(ctx)
+				return
+			} else {
+				latestHeight = n
+			}
+		}
+
+		addressDetail.LastBalanceUpdate = latestHeight
+	}
+
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, addressDetail)
 }

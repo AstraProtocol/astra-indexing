@@ -3,11 +3,13 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"strconv"
+	"time"
+
 	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
 	"github.com/AstraProtocol/astra-indexing/external/cache"
 	"github.com/AstraProtocol/astra-indexing/infrastructure"
-	"math/big"
-	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/rdbparambase/types"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
@@ -88,26 +90,25 @@ func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	tally, queryTallyErr := handler.cosmosClient.ProposalTally(idParam)
-	if queryTallyErr != nil {
-		if !errors.Is(queryTallyErr, cosmosapp.ErrProposalNotFound) {
-			handler.logger.Errorf("error retrieving proposal tally: %v", queryTallyErr)
-			httpapi.InternalServerError(ctx)
-			return
-		}
-		tally = cosmosapp.Tally{
-			Yes:        "0",
-			Abstain:    "0",
-			No:         "0",
-			NoWithVeto: "0",
-		}
+	tally := cosmosapp.Tally{}
+	if proposal.Tally != nil {
+		tallyMap := proposal.Tally.(map[string]interface{})
+		tally.No = tallyMap["no"].(string)
+		tally.Yes = tallyMap["yes"].(string)
+		tally.Abstain = tallyMap["abstain"].(string)
+		tally.NoWithVeto = tallyMap["no_with_veto"].(string)
+	} else {
+		tally.No = "0"
+		tally.Yes = "0"
+		tally.Abstain = "0"
+		tally.NoWithVeto = "0"
 	}
 
 	if handler.totalBondedLastUpdatedAt.Add(1 * time.Hour).Before(time.Now()) {
 		var queryTotalBondedErr error
 		handler.totalBonded, queryTotalBondedErr = handler.cosmosClient.TotalBondedBalance()
 		if queryTotalBondedErr != nil {
-			handler.logger.Errorf("error retrieving total bonded balance: %v", queryTallyErr)
+			handler.logger.Errorf("error retrieving total bonded balance: %v", queryTotalBondedErr)
 			httpapi.InternalServerError(ctx)
 			return
 		}
@@ -157,7 +158,6 @@ func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 
 	proposalDetails := ProposalDetails{
 		proposal,
-
 		requiredVotingPower.Text('f', 0),
 		totalVotedPower.Text(10),
 		ProposalVotedPowerResult{
@@ -167,7 +167,7 @@ func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 			NoWithVeto: tally.NoWithVeto,
 		},
 	}
-	_ = handler.astraCache.Set(proposalKey, proposalDetails, infrastructure.TIME_CACHE_FAST)
+	handler.astraCache.Set(proposalKey, proposalDetails, infrastructure.TIME_CACHE_FAST)
 	httpapi.Success(ctx, proposalDetails)
 }
 
@@ -188,12 +188,18 @@ func (handler *Proposals) List(ctx *fasthttp.RequestCtx) {
 	}
 	proposalKey := "Proposals_" + idOrder
 	filter := proposal_view.ProposalListFilter{
-		MaybeStatus: nil,
+		MaybeStatus:          nil,
+		MaybeProposerAddress: nil,
 	}
-	if queryArgs.Has("filter.status") {
-		status := string(queryArgs.Peek("filter.status"))
+	if queryArgs.Has("status") {
+		status := string(queryArgs.Peek("status"))
 		filter.MaybeStatus = &status
 		proposalKey += "_" + status
+	}
+	if queryArgs.Has("proposerAddress") {
+		address := string(queryArgs.Peek("proposerAddress"))
+		filter.MaybeProposerAddress = &address
+		proposalKey += "_" + address
 	}
 
 	var tmpProposalCache ProposalPaginationResult
@@ -211,7 +217,7 @@ func (handler *Proposals) List(ctx *fasthttp.RequestCtx) {
 		httpapi.InternalServerError(ctx)
 		return
 	}
-	_ = handler.astraCache.Set(proposalKey, NewProposalPaginationResult(proposals, *paginationResult), infrastructure.TIME_CACHE_FAST)
+	handler.astraCache.Set(proposalKey, NewProposalPaginationResult(proposals, *paginationResult), infrastructure.TIME_CACHE_FAST)
 	httpapi.SuccessWithPagination(ctx, proposals, paginationResult)
 }
 
@@ -270,8 +276,7 @@ func (handler *Proposals) ListVotesById(ctx *fasthttp.RequestCtx) {
 		httpapi.InternalServerError(ctx)
 		return
 	}
-	_ = handler.astraCache.Set(voteCacheKey, NewVotesPaginationResult(votes, *paginationResult),
-		infrastructure.TIME_CACHE_FAST)
+	handler.astraCache.Set(voteCacheKey, NewVotesPaginationResult(votes, *paginationResult), infrastructure.TIME_CACHE_FAST)
 	httpapi.SuccessWithPagination(ctx, votes, paginationResult)
 }
 
@@ -329,10 +334,33 @@ func (handler *Proposals) ListDepositorsById(ctx *fasthttp.RequestCtx) {
 		httpapi.InternalServerError(ctx)
 		return
 	}
-	_ = handler.astraCache.Set(depositCacheKey, NewDepositPaginationResult(depositors, *paginationResult),
-		infrastructure.TIME_CACHE_FAST)
-
+	handler.astraCache.Set(depositCacheKey, NewDepositPaginationResult(depositors, *paginationResult), infrastructure.TIME_CACHE_FAST)
 	httpapi.SuccessWithPagination(ctx, depositors, paginationResult)
+}
+
+func (handler *Proposals) UpdateTally(ctx *fasthttp.RequestCtx) {
+	idParam, idParamOk := URLValueGuard(ctx, handler.logger, "id")
+	if !idParamOk {
+		return
+	}
+
+	idParamInt, err := strconv.Atoi(idParam)
+	if err != nil {
+		httpapi.Success(ctx, "NOK")
+		return
+	}
+
+	for id := 1; id <= idParamInt; id++ {
+		tally, _ := handler.cosmosClient.ProposalTally(strconv.Itoa(id))
+		if tally.Abstain == "" {
+			handler.proposalsView.UpdateTally(strconv.Itoa(id), nil)
+		} else {
+			handler.proposalsView.UpdateTally(strconv.Itoa(id), tally)
+		}
+		time.Sleep(time.Second)
+	}
+
+	httpapi.Success(ctx, "OK")
 }
 
 type ProposalDetails struct {

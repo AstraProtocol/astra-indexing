@@ -1191,7 +1191,6 @@ func (client *HTTPClient) ProposalById(id string) (cosmosapp_interface.Proposal,
 		return cosmosapp_interface.Proposal{}, cosmosapp_interface.ErrProposalNotFound
 	}
 	if statusCode != 200 {
-		rawRespBody.Close()
 		return cosmosapp_interface.Proposal{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
 	}
 	defer rawRespBody.Close()
@@ -1228,7 +1227,6 @@ func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, e
 		return cosmosapp_interface.Tally{}, cosmosapp_interface.ErrProposalNotFound
 	}
 	if statusCode != 200 {
-		rawRespBody.Close()
 		return cosmosapp_interface.Tally{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
 	}
 	defer rawRespBody.Close()
@@ -1239,7 +1237,6 @@ func (client *HTTPClient) ProposalTally(id string) (cosmosapp_interface.Tally, e
 	}
 
 	client.httpCache.Set(cacheKey, tallyResp.Tally, utils.TIME_CACHE_FAST)
-
 	return tallyResp.Tally, nil
 }
 
@@ -1266,7 +1263,6 @@ func (client *HTTPClient) DepositParams() (cosmosapp_interface.Params, error) {
 		return cosmosapp_interface.Params{}, cosmosapp_interface.ErrProposalNotFound
 	}
 	if statusCode != 200 {
-		rawRespBody.Close()
 		return cosmosapp_interface.Params{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
 	}
 	defer rawRespBody.Close()
@@ -1335,7 +1331,6 @@ func (client *HTTPClient) TotalFeeBurn() (cosmosapp_interface.TotalFeeBurn, erro
 		return cosmosapp_interface.TotalFeeBurn{}, cosmosapp_interface.ErrTotalFeeBurnNotFound
 	}
 	if statusCode != 200 {
-		rawRespBody.Close()
 		return cosmosapp_interface.TotalFeeBurn{}, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
 	}
 	defer rawRespBody.Close()
@@ -1376,10 +1371,9 @@ func (client *HTTPClient) VestingBalances(account string) (cosmosapp_interface.V
 		return vestingBalancesEmpty, err
 	}
 	if statusCode == 404 {
-		return vestingBalancesEmpty, cosmosapp_interface.ErrTotalFeeBurnNotFound
+		return vestingBalancesEmpty, cosmosapp_interface.ErrVestingBalancesNotFound
 	}
 	if statusCode != 200 {
-		rawRespBody.Close()
 		return vestingBalancesEmpty, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
 	}
 	defer rawRespBody.Close()
@@ -1431,7 +1425,6 @@ func (client *HTTPClient) VestingBalancesAsync(account string, vestingBalancesCh
 		return
 	}
 	if statusCode != 200 {
-		rawRespBody.Close()
 		vestingBalancesChan <- vestingBalancesEmpty
 		return
 	}
@@ -1445,6 +1438,45 @@ func (client *HTTPClient) VestingBalancesAsync(account string, vestingBalancesCh
 
 	client.httpCache.Set(cacheKey, vestingBalances, utils.TIME_CACHE_FAST)
 	vestingBalancesChan <- vestingBalances
+}
+
+func (client *HTTPClient) BlockInfo(height string) (*cosmosapp_interface.BlockInfo, error) {
+	cacheKey := fmt.Sprintf("CosmosBlockInfo_%s", height)
+
+	var blockInfoTmp cosmosapp_interface.BlockInfo
+	err := client.httpCache.Get(cacheKey, &blockInfoTmp)
+	if err == nil {
+		return &blockInfoTmp, nil
+	}
+
+	method := fmt.Sprintf(
+		"%s/%s",
+		"blocks", height,
+	)
+	rawRespBody, statusCode, err := client.rawRequest(
+		method,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	if statusCode == 404 {
+		return nil, cosmosapp_interface.ErrBlockInfoNotFound
+	}
+	if statusCode != 200 {
+		return nil, fmt.Errorf("error requesting Cosmos %s endpoint: %d", method, statusCode)
+	}
+	defer rawRespBody.Close()
+
+	var blockInfo cosmosapp_interface.BlockInfo
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&blockInfo); err != nil {
+		return nil, err
+	}
+
+	if height != "latest" {
+		client.httpCache.Set(cacheKey, &blockInfo, utils.TIME_CACHE_LONG)
+	}
+	return &blockInfo, nil
 }
 
 func ParseTxsResp(rawRespReader io.Reader) (*model.Tx, error) {
