@@ -32,6 +32,8 @@ type CLIConfig struct {
 	GithubAPIToken    string
 
 	CorsAllowedOrigins string
+
+	IndexService *bool
 }
 
 func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
@@ -78,5 +80,8 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	}
 	if cliConfig.CorsAllowedOrigins != "" {
 		config.HTTPService.CorsAllowedOrigins = []string{cliConfig.CorsAllowedOrigins}
+	}
+	if cliConfig.IndexService != nil {
+		config.IndexService.Enable = *cliConfig.IndexService
 	}
 }
