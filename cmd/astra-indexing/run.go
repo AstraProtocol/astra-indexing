@@ -97,10 +97,9 @@ func run(args []string) error {
 				EnvVars: []string{"CORS_ALLOWED_ORIGINS"},
 			},
 			&cli.BoolFlag{
-				Name:     "indexService",
-				Usage:    "Enable Index Service",
-				EnvVars:  []string{"INDEX_SERVICE"},
-				Required: true,
+				Name:    "indexService",
+				Usage:   "Enable Index Service",
+				EnvVars: []string{"INDEX_SERVICE"},
 			},
 		},
 		Action: func(ctx *cli.Context) error {
