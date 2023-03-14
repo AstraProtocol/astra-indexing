@@ -96,6 +96,12 @@ func run(args []string) error {
 				Usage:   "Cors Allowed Origins",
 				EnvVars: []string{"CORS_ALLOWED_ORIGINS"},
 			},
+			&cli.BoolFlag{
+				Name:     "indexService",
+				Usage:    "Enable Index Service",
+				EnvVars:  []string{"INDEX_SERVICE"},
+				Required: true,
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			if args := ctx.Args(); args.Len() > 0 {
@@ -142,6 +148,9 @@ func run(args []string) error {
 			}
 			if ctx.IsSet("dbPort") {
 				cliConfig.DatabasePort = primptr.Int32(int32(ctx.Int("dbPort")))
+			}
+			if ctx.IsSet("indexService") {
+				cliConfig.IndexService = primptr.Bool(ctx.Bool("indexService"))
 			}
 
 			OverrideByCLIConfig(&config, &cliConfig)
