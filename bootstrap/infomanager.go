@@ -27,8 +27,7 @@ func NewInfoManager(
 	insecureTendermintClient bool,
 	strictGenesisParsing bool,
 ) *InfoManager {
-	var tendermintClient *tendermint.HTTPClient
-	tendermintClient = tendermint.NewHTTPClient(
+	tendermintClient := tendermint.NewHTTPClient(
 		tendermintRPCUrl,
 		strictGenesisParsing,
 	)
