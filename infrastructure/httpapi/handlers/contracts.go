@@ -43,6 +43,7 @@ func (handler *Contracts) GetListTokens(ctx *fasthttp.RequestCtx) {
 	mappingParams := make(map[string]string)
 
 	if string(ctx.QueryArgs().Peek("blockscout")) != "true" {
+		handler.logger.Errorf("invalid %s blockscout param", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid blockscout param"))
 		return
@@ -51,6 +52,7 @@ func (handler *Contracts) GetListTokens(ctx *fasthttp.RequestCtx) {
 	if string(ctx.QueryArgs().Peek("page")) != "" {
 		page, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("page")), 10, 0)
 		if err != nil || page <= 0 {
+			handler.logger.Errorf("invalid %s page param", recordMethod)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, errors.New("invalid page param"))
 			return
@@ -62,6 +64,7 @@ func (handler *Contracts) GetListTokens(ctx *fasthttp.RequestCtx) {
 	if string(ctx.QueryArgs().Peek("offset")) != "" {
 		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("offset")), 10, 0)
 		if err != nil || offset <= 0 {
+			handler.logger.Errorf("invalid %s offset param", recordMethod)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, errors.New("invalid offset param"))
 			return
@@ -73,6 +76,7 @@ func (handler *Contracts) GetListTokens(ctx *fasthttp.RequestCtx) {
 
 	listTokensResp, err := handler.blockscoutClient.GetListTokens(queryParams, mappingParams)
 	if err != nil {
+		handler.logger.Errorf("error fetching list tokens from blockscout: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return
@@ -97,12 +101,14 @@ func (handler *Contracts) GetListTokenTransfersByContractAddressHash(ctx *fastht
 
 	addressHash, contractParamOk := URLValueGuard(ctx, handler.logger, "contractaddress")
 	if !contractParamOk {
+		handler.logger.Errorf("invalid %s params", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid contract param"))
 		return
 	}
 
 	if string(ctx.QueryArgs().Peek("blockscout")) != "true" {
+		handler.logger.Errorf("invalid %s blockscout param", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid blockscout param"))
 		return
@@ -111,6 +117,7 @@ func (handler *Contracts) GetListTokenTransfersByContractAddressHash(ctx *fastht
 	if string(ctx.QueryArgs().Peek("page")) != "" {
 		page, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("page")), 10, 0)
 		if err != nil || page <= 0 {
+			handler.logger.Errorf("invalid %s page param", recordMethod)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, errors.New("invalid page param"))
 			return
@@ -122,6 +129,7 @@ func (handler *Contracts) GetListTokenTransfersByContractAddressHash(ctx *fastht
 	if string(ctx.QueryArgs().Peek("offset")) != "" {
 		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("offset")), 10, 0)
 		if err != nil || offset <= 0 {
+			handler.logger.Errorf("invalid %s offset param", recordMethod)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, errors.New("invalid offset param"))
 			return
@@ -143,6 +151,7 @@ func (handler *Contracts) GetListTokenTransfersByContractAddressHash(ctx *fastht
 
 	tokensAddressResp, err := handler.blockscoutClient.GetListTokenTransfersByContractAddressHash(addressHash, queryParams, mappingParams)
 	if err != nil {
+		handler.logger.Errorf("error fetching list token transfers by contract address from blockscout: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return
@@ -167,12 +176,14 @@ func (handler *Contracts) GetListTxsByContractAddressHash(ctx *fasthttp.RequestC
 
 	addressHash, contractParamOk := URLValueGuard(ctx, handler.logger, "contractaddress")
 	if !contractParamOk {
+		handler.logger.Errorf("invalid %s params", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid contractaddress param"))
 		return
 	}
 
 	if string(ctx.QueryArgs().Peek("blockscout")) != "true" {
+		handler.logger.Errorf("invalid %s blockscout param", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid blockscout param"))
 		return
@@ -181,6 +192,7 @@ func (handler *Contracts) GetListTxsByContractAddressHash(ctx *fasthttp.RequestC
 	if string(ctx.QueryArgs().Peek("page")) != "" {
 		page, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("page")), 10, 0)
 		if err != nil || page <= 0 {
+			handler.logger.Errorf("invalid %s page param", recordMethod)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, errors.New("invalid page param"))
 			return
@@ -192,6 +204,7 @@ func (handler *Contracts) GetListTxsByContractAddressHash(ctx *fasthttp.RequestC
 	if string(ctx.QueryArgs().Peek("offset")) != "" {
 		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("offset")), 10, 0)
 		if err != nil || offset <= 0 {
+			handler.logger.Errorf("invalid %s offset param", recordMethod)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, errors.New("invalid offset param"))
 			return
@@ -213,6 +226,7 @@ func (handler *Contracts) GetListTxsByContractAddressHash(ctx *fasthttp.RequestC
 
 	tokensAddressResp, err := handler.blockscoutClient.GetListTxsByContractAddressHash(addressHash, queryParams, mappingParams)
 	if err != nil {
+		handler.logger.Errorf("error fetching list txs of contract address from blockscout: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return
@@ -237,12 +251,14 @@ func (handler *Contracts) GetListTokenHoldersOfAContractAddressHash(ctx *fasthtt
 
 	addressHash, contractParamOk := URLValueGuard(ctx, handler.logger, "contractaddress")
 	if !contractParamOk {
+		handler.logger.Errorf("invalid %s params", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid contractaddress param"))
 		return
 	}
 
 	if string(ctx.QueryArgs().Peek("blockscout")) != "true" {
+		handler.logger.Errorf("invalid %s blockscout param", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid blockscout param"))
 		return
@@ -251,6 +267,7 @@ func (handler *Contracts) GetListTokenHoldersOfAContractAddressHash(ctx *fasthtt
 	if string(ctx.QueryArgs().Peek("page")) != "" {
 		page, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("page")), 10, 0)
 		if err != nil || page <= 0 {
+			handler.logger.Errorf("invalid %s page param", recordMethod)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, errors.New("invalid page param"))
 			return
@@ -262,6 +279,7 @@ func (handler *Contracts) GetListTokenHoldersOfAContractAddressHash(ctx *fasthtt
 	if string(ctx.QueryArgs().Peek("offset")) != "" {
 		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("offset")), 10, 0)
 		if err != nil || offset <= 0 {
+			handler.logger.Errorf("invalid %s offset param", recordMethod)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, errors.New("invalid offset param"))
 			return
@@ -273,6 +291,7 @@ func (handler *Contracts) GetListTokenHoldersOfAContractAddressHash(ctx *fasthtt
 
 	tokensAddressResp, err := handler.blockscoutClient.GetTokenHoldersOfAContractAddress(addressHash, queryParams, mappingParams)
 	if err != nil {
+		handler.logger.Errorf("error fetching token holders of a contract address from blockscout: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return
@@ -297,12 +316,14 @@ func (handler *Contracts) GetTokenInventoryOfAContractAddressHash(ctx *fasthttp.
 
 	addressHash, contractParamOk := URLValueGuard(ctx, handler.logger, "contractaddress")
 	if !contractParamOk {
+		handler.logger.Errorf("invalid %s params", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid contractaddress param"))
 		return
 	}
 
 	if string(ctx.QueryArgs().Peek("blockscout")) != "true" {
+		handler.logger.Errorf("invalid %s blockscout param", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid blockscout param"))
 		return
@@ -311,6 +332,7 @@ func (handler *Contracts) GetTokenInventoryOfAContractAddressHash(ctx *fasthttp.
 	if string(ctx.QueryArgs().Peek("page")) != "" {
 		page, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("page")), 10, 0)
 		if err != nil || page <= 0 {
+			handler.logger.Errorf("invalid %s page param", recordMethod)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, errors.New("invalid page param"))
 			return
@@ -322,6 +344,7 @@ func (handler *Contracts) GetTokenInventoryOfAContractAddressHash(ctx *fasthttp.
 	if string(ctx.QueryArgs().Peek("offset")) != "" {
 		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("offset")), 10, 0)
 		if err != nil || offset <= 0 {
+			handler.logger.Errorf("invalid %s offset param", recordMethod)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, errors.New("invalid offset param"))
 			return
@@ -338,6 +361,7 @@ func (handler *Contracts) GetTokenInventoryOfAContractAddressHash(ctx *fasthttp.
 
 	tokensAddressResp, err := handler.blockscoutClient.GetTokenInventoryOfAContractAddress(addressHash, queryParams, mappingParams)
 	if err != nil {
+		handler.logger.Errorf("error fetching token inventory of a contract address from blockscout: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return
@@ -362,6 +386,7 @@ func (handler *Contracts) GetTokenTransfersByTokenId(ctx *fasthttp.RequestCtx) {
 
 	addressHash, contractParamOk := URLValueGuard(ctx, handler.logger, "contractaddress")
 	if !contractParamOk {
+		handler.logger.Errorf("invalid %s address hash param", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid contractaddress param"))
 		return
@@ -369,12 +394,14 @@ func (handler *Contracts) GetTokenTransfersByTokenId(ctx *fasthttp.RequestCtx) {
 
 	tokenId, tokenParamOk := URLValueGuard(ctx, handler.logger, "tokenid")
 	if !tokenParamOk {
+		handler.logger.Errorf("invalid %s token id param", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid tokenid param"))
 		return
 	}
 
 	if string(ctx.QueryArgs().Peek("blockscout")) != "true" {
+		handler.logger.Errorf("invalid %s blockscout param", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid blockscout param"))
 		return
@@ -383,6 +410,7 @@ func (handler *Contracts) GetTokenTransfersByTokenId(ctx *fasthttp.RequestCtx) {
 	if string(ctx.QueryArgs().Peek("page")) != "" {
 		page, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("page")), 10, 0)
 		if err != nil || page <= 0 {
+			handler.logger.Errorf("invalid %s page param", recordMethod)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, errors.New("invalid page param"))
 			return
@@ -394,6 +422,7 @@ func (handler *Contracts) GetTokenTransfersByTokenId(ctx *fasthttp.RequestCtx) {
 	if string(ctx.QueryArgs().Peek("offset")) != "" {
 		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("offset")), 10, 0)
 		if err != nil || offset <= 0 {
+			handler.logger.Errorf("invalid %s offset param", recordMethod)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, errors.New("invalid offset param"))
 			return
@@ -415,6 +444,7 @@ func (handler *Contracts) GetTokenTransfersByTokenId(ctx *fasthttp.RequestCtx) {
 
 	tokensAddressResp, err := handler.blockscoutClient.GetTokenTransfersByTokenId(addressHash, tokenId, queryParams, mappingParams)
 	if err != nil {
+		handler.logger.Errorf("error fetching token transfers by token id from blockscout: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return
@@ -432,6 +462,7 @@ func (handler *Contracts) GetSourceCodeOfAContractAddressHash(ctx *fasthttp.Requ
 
 	addressHash, contractParamOk := URLValueGuard(ctx, handler.logger, "contractaddress")
 	if !contractParamOk {
+		handler.logger.Errorf("invalid %s params", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid contractaddress param"))
 		return
@@ -440,6 +471,7 @@ func (handler *Contracts) GetSourceCodeOfAContractAddressHash(ctx *fasthttp.Requ
 
 	sourceCode, err := handler.blockscoutClient.GetSourceCodeByContractAddressHash(addressHash)
 	if err != nil {
+		handler.logger.Errorf("error fetching source code by contract address from blockscout: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return
@@ -457,6 +489,7 @@ func (handler *Contracts) GetTokenDetail(ctx *fasthttp.RequestCtx) {
 
 	addressHash, contractParamOk := URLValueGuard(ctx, handler.logger, "contractaddress")
 	if !contractParamOk {
+		handler.logger.Errorf("invalid %s params", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid contractaddress param"))
 		return
@@ -465,6 +498,7 @@ func (handler *Contracts) GetTokenDetail(ctx *fasthttp.RequestCtx) {
 
 	tokenDetail, err := handler.blockscoutClient.GetTokenDetail(addressHash)
 	if err != nil {
+		handler.logger.Errorf("error fetching token detail from blockcscout: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return
@@ -482,6 +516,7 @@ func (handler *Contracts) GetTokenMetadata(ctx *fasthttp.RequestCtx) {
 
 	addressHash, contractParamOk := URLValueGuard(ctx, handler.logger, "contractaddress")
 	if !contractParamOk {
+		handler.logger.Errorf("invalid %s address params", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid contractaddress param"))
 		return
@@ -489,6 +524,7 @@ func (handler *Contracts) GetTokenMetadata(ctx *fasthttp.RequestCtx) {
 
 	tokenId, tokenParamOk := URLValueGuard(ctx, handler.logger, "tokenid")
 	if !tokenParamOk {
+		handler.logger.Errorf("invalid %s token id param", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid tokenid param"))
 		return
@@ -497,6 +533,7 @@ func (handler *Contracts) GetTokenMetadata(ctx *fasthttp.RequestCtx) {
 
 	tokensAddressResp, err := handler.blockscoutClient.GetTokenMetadata(addressHash, tokenId)
 	if err != nil {
+		handler.logger.Errorf("error fetching token metadata from blockscout: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return

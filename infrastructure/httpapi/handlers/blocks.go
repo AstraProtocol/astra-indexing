@@ -71,6 +71,7 @@ func (handler *Blocks) FindBy(ctx *fasthttp.RequestCtx) {
 	recordMethod := "FindByBlock"
 	heightOrHashParam, heightOrHashParamOk := URLValueGuard(ctx, handler.logger, "height-or-hash")
 	if !heightOrHashParamOk {
+		handler.logger.Error("invalid height or hash params")
 		httpapi.BadRequest(ctx, errors.New("invalid block height or block hash"))
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		return
@@ -96,8 +97,9 @@ func (handler *Blocks) FindBy(ctx *fasthttp.RequestCtx) {
 	block, err := handler.blocksView.FindBy(&identity)
 	if err != nil {
 		if errors.Is(err, rdb.ErrNoRows) {
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
-			httpapi.InternalServerError(ctx)
+			handler.logger.Error("block not found")
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusNotFound), "GET", time.Since(startTime).Milliseconds())
+			httpapi.NotFound(ctx)
 			return
 		}
 		handler.logger.Errorf("error finding block by height or hash: %v", err)
@@ -125,6 +127,7 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 	recordMethod := "ListBlocks"
 	paginationInput, err := httpapi.ParsePagination(ctx)
 	if err != nil {
+		handler.logger.Errorf("invalid %s params", recordMethod)
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
@@ -207,6 +210,7 @@ func (handler *Blocks) ListTransactionsByHeight(ctx *fasthttp.RequestCtx) {
 	recordMethod := "ListTransactionsByHeight"
 	paginationInput, err := httpapi.ParsePagination(ctx)
 	if err != nil {
+		handler.logger.Errorf("invalid %s params", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return
@@ -214,12 +218,14 @@ func (handler *Blocks) ListTransactionsByHeight(ctx *fasthttp.RequestCtx) {
 
 	blockHeightParam, blockHeightParamOk := URLValueGuard(ctx, handler.logger, "height")
 	if !blockHeightParamOk {
+		handler.logger.Error("invalid block height params")
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid block height param"))
 		return
 	}
 	blockHeight, err := strconv.ParseInt(blockHeightParam, 10, 64)
 	if err != nil {
+		handler.logger.Error("error parsing block height param")
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid block height"))
 		return
@@ -274,6 +280,7 @@ func (handler *Blocks) ListRawTxsByHeight(ctx *fasthttp.RequestCtx) {
 	if blockHeightParam != "latest" {
 		_, err := strconv.ParseInt(blockHeightParam, 10, 64)
 		if err != nil {
+			handler.logger.Error("error parsing block height param")
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, errors.New("invalid block height"))
 			return

@@ -64,6 +64,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 	recordMethod := "FindTransactionByHash"
 	hashParam, hashParamOk := URLValueGuard(ctx, handler.logger, "hash")
 	if !hashParamOk {
+		handler.logger.Errorf("invalid %s params", recordMethod)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid tx hash"))
 		return
@@ -73,6 +74,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 		if evm_utils.IsHexTx(hashParam) {
 			transaction, err := handler.blockscoutClient.GetDetailEvmTxByEvmTxHash(hashParam)
 			if err != nil {
+				handler.logger.Errorf("error fetching detail tx by evm tx hash from blockscout: %v", err)
 				ctx.QueryArgs().Del("type")
 				handler.FindByHash(ctx)
 				return
@@ -83,6 +85,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 		} else {
 			transaction, err := handler.blockscoutClient.GetDetailEvmTxByCosmosTxHash(hashParam)
 			if err != nil {
+				handler.logger.Errorf("error fetching detail tx by cosmos tx hash from blockscout: %v", err)
 				ctx.QueryArgs().Del("type")
 				handler.FindByHash(ctx)
 				return
@@ -104,13 +107,14 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 			transaction, err := handler.transactionsView.FindByEvmHash(hashParam)
 			if err != nil {
 				if errors.Is(err, rdb.ErrNoRows) {
-					prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
-					httpapi.InternalServerError(ctx)
+					handler.logger.Errorf("tx not found: %s", hashParam)
+					prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusNotFound), "GET", time.Since(startTime).Milliseconds())
+					httpapi.NotFound(ctx)
 					return
 				}
 				handler.logger.Errorf("error finding transactions by hash: %v", err)
-				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
-				httpapi.InternalServerError(ctx)
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusNotFound), "GET", time.Since(startTime).Milliseconds())
+				httpapi.NotFound(ctx)
 				return
 			}
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
@@ -121,13 +125,14 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 			transaction, err := handler.transactionsView.FindByHash(hashParam)
 			if err != nil {
 				if errors.Is(err, rdb.ErrNoRows) {
-					prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
-					httpapi.InternalServerError(ctx)
+					handler.logger.Errorf("tx not found: %s", hashParam)
+					prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusNotFound), "GET", time.Since(startTime).Milliseconds())
+					httpapi.NotFound(ctx)
 					return
 				}
 				handler.logger.Errorf("error finding transactions by hash: %v", err)
-				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
-				httpapi.InternalServerError(ctx)
+				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusNotFound), "GET", time.Since(startTime).Milliseconds())
+				httpapi.NotFound(ctx)
 				return
 			}
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
