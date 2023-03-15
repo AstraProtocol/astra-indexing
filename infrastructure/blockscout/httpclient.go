@@ -521,7 +521,7 @@ func (client *HTTPClient) GetTopAddressesBalance(queryParams []string, mappingPa
 }
 
 func (client *HTTPClient) EthBlockNumber() (*EthBlockNumber, error) {
-	cacheKey := fmt.Sprintf("EthBlockNumber")
+	cacheKey := "EthBlockNumber"
 	var ethBlockNumber EthBlockNumber
 
 	err := client.httpCache.Get(cacheKey, &ethBlockNumber)
