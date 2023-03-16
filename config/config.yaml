@@ -90,7 +90,7 @@ prometheus:
   port: "8081"
 
 cronjobstats:
-  enable: true
+  #enable: true
 
 # Custom config for example
 server_github_api:
