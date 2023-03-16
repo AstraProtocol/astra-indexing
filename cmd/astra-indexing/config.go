@@ -34,6 +34,8 @@ type CLIConfig struct {
 	CorsAllowedOrigins string
 
 	IndexService *bool
+
+	CronjobStats *bool
 }
 
 func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
@@ -83,5 +85,8 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	}
 	if cliConfig.IndexService != nil {
 		config.IndexService.Enable = *cliConfig.IndexService
+	}
+	if cliConfig.CronjobStats != nil {
+		config.CronjobStats.Enable = *cliConfig.CronjobStats
 	}
 }

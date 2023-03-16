@@ -101,6 +101,11 @@ func run(args []string) error {
 				Usage:   "Enable Index Service",
 				EnvVars: []string{"INDEX_SERVICE"},
 			},
+			&cli.BoolFlag{
+				Name:    "cronjobStats",
+				Usage:   "Enable Cronjob Statistics",
+				EnvVars: []string{"STATISTICS_SERVICE"},
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			if args := ctx.Args(); args.Len() > 0 {
@@ -150,6 +155,9 @@ func run(args []string) error {
 			}
 			if ctx.IsSet("indexService") {
 				cliConfig.IndexService = primptr.Bool(ctx.Bool("indexService"))
+			}
+			if ctx.IsSet("cronjobStats") {
+				cliConfig.CronjobStats = primptr.Bool(ctx.Bool("cronjobStats"))
 			}
 
 			OverrideByCLIConfig(&config, &cliConfig)
