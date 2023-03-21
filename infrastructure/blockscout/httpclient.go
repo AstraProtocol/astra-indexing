@@ -335,7 +335,7 @@ func (client *HTTPClient) GetCommonStatsAsync(commonStatsChan chan CommonStats) 
 		client.logger.Errorf("error parsing common stats from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, commonStats, utils.TIME_CACHE_MEDIUM)
+	client.httpCache.Set(cacheKey, commonStats, utils.TIME_CACHE_LONG)
 
 	commonStatsChan <- commonStats
 }
@@ -696,7 +696,7 @@ func (client *HTTPClient) MarketHistoryChart() (*MarketHistory, error) {
 		client.logger.Errorf("error parsing market history chart from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, marketHistory, utils.TIME_CACHE_MEDIUM)
+	client.httpCache.Set(cacheKey, marketHistory, utils.TIME_CACHE_LONG)
 
 	return &marketHistory, nil
 }
@@ -727,7 +727,7 @@ func (client *HTTPClient) GasPriceOracle() (*GasPriceOracle, error) {
 		client.logger.Errorf("error parsing gas price oracle from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, gasPriceOracle, utils.TIME_CACHE_MEDIUM)
+	client.httpCache.Set(cacheKey, gasPriceOracle, utils.TIME_CACHE_LONG)
 
 	return &gasPriceOracle, nil
 }
