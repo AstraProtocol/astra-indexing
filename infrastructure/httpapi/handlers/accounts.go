@@ -218,7 +218,7 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 	addressDetail.VestingBalances = vestingBalances
 	addressDetail.LastBalanceUpdate = latestHeight
 
-	go handler.blockscoutClient.UpdateAddressBalance(addressHash, strconv.FormatInt(latestHeight, 10), addressDetail.TotalBalance)
+	go handler.blockscoutClient.UpdateAddressBalance(addressHash, strconv.FormatInt(latestHeight, 10), addressDetail.Balance)
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, addressDetail)
