@@ -222,6 +222,10 @@ func (handler *Contracts) GetListTxsByContractAddressHash(ctx *fasthttp.RequestC
 		queryParams = append(queryParams, "index")
 		mappingParams["index"] = string(ctx.QueryArgs().Peek("index"))
 	}
+	if string(ctx.QueryArgs().Peek("filter")) != "" {
+		queryParams = append(queryParams, "filter")
+		mappingParams["filter"] = string(ctx.QueryArgs().Peek("filter"))
+	}
 	//
 
 	tokensAddressResp, err := handler.blockscoutClient.GetListTxsByContractAddressHash(addressHash, queryParams, mappingParams)
