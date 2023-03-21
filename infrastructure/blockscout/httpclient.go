@@ -950,7 +950,7 @@ func (client *HTTPClient) GetListTokenTransfersByContractAddressHash(contractAdd
 }
 
 func (client *HTTPClient) GetListTxsByContractAddressHash(contractAddressHash string, queryParams []string, mappingParams map[string]string) (*CommonPaginationPathResp, error) {
-	cacheKey := fmt.Sprintf("BlockscoutGetListTxsByContractAddressHash_%s_%s_%s", contractAddressHash, mappingParams["page"], mappingParams["offset"])
+	cacheKey := fmt.Sprintf("BlockscoutGetListTxsByContractAddressHash_%s_%s_%s_%s", contractAddressHash, mappingParams["page"], mappingParams["offset"], mappingParams["filter"])
 	var commonPaginationRespTmp CommonPaginationPathResp
 
 	err := client.httpCache.Get(cacheKey, &commonPaginationRespTmp)
@@ -975,7 +975,7 @@ func (client *HTTPClient) GetListTxsByContractAddressHash(contractAddressHash st
 		client.logger.Errorf("error parsing list txs by contract address hash from blockscout: %v", err)
 	}
 
-	client.httpCache.Set(cacheKey, &commonPaginationResp, utils.TIME_CACHE_MEDIUM)
+	client.httpCache.Set(cacheKey, &commonPaginationResp, utils.TIME_CACHE_FAST)
 
 	return &commonPaginationResp, nil
 }
