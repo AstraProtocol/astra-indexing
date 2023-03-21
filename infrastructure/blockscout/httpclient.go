@@ -53,9 +53,10 @@ const GET_TOKEN_TRANSFERS_BY_TOKEN_ID = "/api/v1?module=token&action=tokentransf
 const GET_SOURCE_CODE = "/api/v1?module=contract&action=getsourcecode&address="
 const GET_TOKEN_DETAIL = "/api/v1?module=token&action=gettoken&contractaddress="
 const GET_TOKEN_METADATA = "/api/v1?module=token&action=getmetadata&contractaddress={contractaddresshash}&tokenid={tokenid}"
-const GET_ADDRESS_BALANCE = "/api/v1?module=account&action=balance&address="
+const UPDATE_ADDRESS_BALANCE = "/api/v1?module=account&action=update_balance&address={addresshash}&block={blockheight}&balance={balance}"
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
+const BALANCE_UPDATE_FAILED = "balance update failed"
 const DEFAULT_PAGE = 1
 const DEFAULT_OFFSET = 10
 
@@ -408,10 +409,6 @@ func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string,
 	var addressResp AddressResp
 	if err := json.Unmarshal(respBody.Bytes(), &addressResp); err != nil {
 		client.logger.Errorf("error parsing address detail from blockscout: %v", err)
-	}
-
-	if addressResp.Status == "1" {
-		go client.FetchAndUpdateAddressBalance(addressHash)
 	}
 
 	client.httpCache.Set(cacheKey, addressResp, utils.TIME_CACHE_FAST)
@@ -1233,18 +1230,21 @@ func (client *HTTPClient) GetTokenMetadata(contractAddressHash string, tokenId s
 	return commonResp.Result, nil
 }
 
-func (client *HTTPClient) FetchAndUpdateAddressBalance(addressHash string) (interface{}, error) {
-	cacheKey := fmt.Sprintf("FetchAndUpdateAddressBalance_%s", addressHash)
+func (client *HTTPClient) UpdateAddressBalance(addressHash string, blockHeight string, balance string) (interface{}, error) {
+	cacheKey := fmt.Sprintf("UpdateAddressBalance_%s", addressHash)
 	var commonRespTmp CommonResp
 
 	err := client.httpCache.Get(cacheKey, &commonRespTmp)
 	if err == nil {
-		return &commonRespTmp.Result, nil
+		return commonRespTmp.Result, nil
 	}
 
+	url := strings.ReplaceAll(UPDATE_ADDRESS_BALANCE, "{addresshash}", addressHash)
+	url = strings.ReplaceAll(url, "{blockheight}", blockHeight)
 	rawRespBody, err := client.request(
-		client.getUrl(GET_ADDRESS_BALANCE, addressHash), nil, nil,
+		client.getUrl(strings.ReplaceAll(url, "{balance}", balance), ""), nil, nil,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -1256,10 +1256,10 @@ func (client *HTTPClient) FetchAndUpdateAddressBalance(addressHash string) (inte
 	}
 
 	if commonResp.Status == "0" {
-		return nil, fmt.Errorf(ADDRESS_NOT_FOUND)
+		return "", fmt.Errorf("BALANCE_UPDATE_FAILED")
 	}
 
-	client.httpCache.Set(cacheKey, &commonResp, utils.TIME_CACHE_FAST)
+	client.httpCache.Set(cacheKey, commonResp, utils.TIME_CACHE_FAST)
 
-	return &commonResp.Result, nil
+	return commonResp.Result, nil
 }

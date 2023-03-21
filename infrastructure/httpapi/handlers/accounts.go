@@ -86,6 +86,26 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 	}
 	go handler.blockscoutClient.GetDetailAddressByAddressHashAsync(addressHash, addressRespChan)
 
+	rawLatestHeight, err := handler.statusView.FindBy("LatestHeight")
+	if err != nil {
+		handler.logger.Errorf("error fetching latest height: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+
+	var latestHeight int64 = 0
+	if rawLatestHeight != "" {
+		// TODO: Use big.Int
+		if n, err := strconv.ParseInt(rawLatestHeight, 10, 64); err != nil {
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, err)
+			return
+		} else {
+			latestHeight = n
+		}
+	}
+
 	info := AccountInfo{
 		Balance:             coin.NewEmptyCoins(),
 		BondedBalance:       coin.NewEmptyCoins(),
@@ -196,30 +216,9 @@ func (handler *Accounts) GetDetailAddress(ctx *fasthttp.RequestCtx) {
 	}
 
 	addressDetail.VestingBalances = vestingBalances
+	addressDetail.LastBalanceUpdate = latestHeight
 
-	if addressDetail.LastBalanceUpdate == 0 {
-		rawLatestHeight, err := handler.statusView.FindBy("LatestHeight")
-		if err != nil {
-			handler.logger.Errorf("error fetching latest height: %v", err)
-			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
-			httpapi.InternalServerError(ctx)
-			return
-		}
-
-		var latestHeight int64 = 0
-		if rawLatestHeight != "" {
-			// TODO: Use big.Int
-			if n, err := strconv.ParseInt(rawLatestHeight, 10, 64); err != nil {
-				prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
-				httpapi.BadRequest(ctx, err)
-				return
-			} else {
-				latestHeight = n
-			}
-		}
-
-		addressDetail.LastBalanceUpdate = latestHeight
-	}
+	go handler.blockscoutClient.UpdateAddressBalance(addressHash, strconv.FormatInt(latestHeight, 10), addressDetail.TotalBalance)
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, addressDetail)
