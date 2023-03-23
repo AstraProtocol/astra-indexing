@@ -117,6 +117,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 				httpapi.NotFound(ctx)
 				return
 			}
+			transaction.Status = "Indexing"
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 			handler.astraCache.Set(cacheKey, transaction, utils.TIME_CACHE_LONG)
 			httpapi.Success(ctx, transaction)
