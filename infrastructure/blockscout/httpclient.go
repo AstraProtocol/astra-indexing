@@ -191,7 +191,7 @@ func (client *HTTPClient) GetDetailEvmTxByCosmosTxHash(txHash string) (*Transact
 		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
 
-	client.httpCache.Set(cacheKey, &txResp.Result, utils.TIME_CACHE_LONG)
+	client.httpCache.Set(cacheKey, &txResp.Result, utils.TIME_CACHE_MEDIUM)
 
 	return &txResp.Result, nil
 }
@@ -222,7 +222,7 @@ func (client *HTTPClient) GetDetailEvmTxByEvmTxHash(evmTxHash string) (*Transact
 		return nil, fmt.Errorf(TX_NOT_FOUND)
 	}
 
-	client.httpCache.Set(cacheKey, &txResp.Result, utils.TIME_CACHE_LONG)
+	client.httpCache.Set(cacheKey, &txResp.Result, utils.TIME_CACHE_MEDIUM)
 
 	return &txResp.Result, nil
 }

@@ -119,7 +119,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 			}
 			transaction.Status = "Indexing"
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
-			handler.astraCache.Set(cacheKey, transaction, utils.TIME_CACHE_LONG)
+			handler.astraCache.Set(cacheKey, transaction, utils.TIME_CACHE_MEDIUM)
 			httpapi.Success(ctx, transaction)
 			return
 		} else {
@@ -137,7 +137,7 @@ func (handler *Transactions) FindByHash(ctx *fasthttp.RequestCtx) {
 				return
 			}
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
-			handler.astraCache.Set(cacheKey, transaction, utils.TIME_CACHE_LONG)
+			handler.astraCache.Set(cacheKey, transaction, utils.TIME_CACHE_MEDIUM)
 			httpapi.Success(ctx, transaction)
 			return
 		}
