@@ -687,6 +687,7 @@ type TransactionRow struct {
 	EvmHash       string                  `json:"evmHash"`
 	Index         int                     `json:"index"`
 	Success       bool                    `json:"success"`
+	Status        string                  `json:"status"`
 	Code          int                     `json:"code"`
 	Log           string                  `json:"log"`
 	Fee           coin.Coins              `json:"fee"`
