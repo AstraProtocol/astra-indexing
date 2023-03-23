@@ -47,6 +47,7 @@ const GET_LIST_INTERNAL_TXS_BY_ADDRESS_HASH = "/api/v1?module=account&action=txl
 const GET_LIST_TOKEN_TRANSFERS_BY_ADDRESS_HASH = "/api/v1?module=account&action=getlisttokentransfers&address="
 const GET_LIST_TOKEN_TRANSFERS_BY_CONTRACT_ADDRESS_HASH = "/api/v1?module=token&action=getlisttokentransfers&contractaddress="
 const GET_LIST_TXS_BY_CONTRACT_ADDRESS_HASH = "/api/v1?module=account&action=txlist&address="
+const GET_LIST_DEPOSIT_TXS_BY_CONTRACT_ADDRESS_HASH = "/api/v1?module=account&action=txlistdeposit&address="
 const GET_TOKENS_HOLDER_OF_A_CONTRACT_ADDRESS = "/api/v1?module=token&action=getTokenHolders&contractaddress="
 const GET_TOKEN_INVENTORY = "/api/v1?module=token&action=getinventory&contractaddress="
 const GET_TOKEN_TRANSFERS_BY_TOKEN_ID = "/api/v1?module=token&action=tokentransfersbytokenid&contractaddress={contractaddresshash}&tokenid={tokenid}"
@@ -973,6 +974,37 @@ func (client *HTTPClient) GetListTxsByContractAddressHash(contractAddressHash st
 	var commonPaginationResp CommonPaginationPathResp
 	if err := json.Unmarshal(respBody.Bytes(), &commonPaginationResp); err != nil {
 		client.logger.Errorf("error parsing list txs by contract address hash from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &commonPaginationResp, utils.TIME_CACHE_FAST)
+
+	return &commonPaginationResp, nil
+}
+
+func (client *HTTPClient) GetListDepositTxsByContractAddressHash(contractAddressHash string, queryParams []string, mappingParams map[string]string) (*CommonPaginationPathResp, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetListDepositTxsByContractAddressHash_%s_%s_%s", contractAddressHash, mappingParams["page"], mappingParams["offset"])
+	var commonPaginationRespTmp CommonPaginationPathResp
+
+	err := client.httpCache.Get(cacheKey, &commonPaginationRespTmp)
+	if err == nil {
+		return &commonPaginationRespTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_LIST_DEPOSIT_TXS_BY_CONTRACT_ADDRESS_HASH, contractAddressHash), queryParams, mappingParams,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting list deposit txs by contract address hash from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonPaginationResp CommonPaginationPathResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonPaginationResp); err != nil {
+		client.logger.Errorf("error parsing list deposit txs by contract address hash from blockscout: %v", err)
 	}
 
 	client.httpCache.Set(cacheKey, &commonPaginationResp, utils.TIME_CACHE_FAST)

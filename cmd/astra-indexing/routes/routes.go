@@ -140,6 +140,11 @@ func InitRouteRegistry(
 		},
 		Route{
 			Method:  GET,
+			path:    "api/v1/contract/deposit-txs/{contractaddress}",
+			handler: contractsHandler.GetListDepositTxsByContractAddressHash,
+		},
+		Route{
+			Method:  GET,
 			path:    "api/v1/contract/token-holders/{contractaddress}",
 			handler: contractsHandler.GetListTokenHoldersOfAContractAddressHash,
 		},
