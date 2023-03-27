@@ -45,6 +45,7 @@ type TransactionEvm struct {
 	FromAddressName              string          `json:"fromAddressName"`
 	To                           string          `json:"to"`
 	ToAddressName                string          `json:"toAddressName"`
+	IsInteractWithContract       bool            `json:"isInteractWithContract"`
 	Value                        string          `json:"value"`
 	CumulativeGasUsed            string          `json:"cumulativeGasUsed"`
 	GasLimit                     string          `json:"gasLimit"`
