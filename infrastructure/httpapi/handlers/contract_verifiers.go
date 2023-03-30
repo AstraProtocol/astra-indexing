@@ -94,24 +94,29 @@ func (handler *ContractVerifiers) VerifyFlattened(ctx *fasthttp.RequestCtx) {
 	recordMethod := "VerifyFlattened"
 	// handle api's params
 
-	bodyParams := make(map[string]string)
+	bodyParams := make(map[string](map[string]string))
 
-	bodyParams["smart_contract[address_hash]"] = string(ctx.PostArgs().Peek("smart_contract[address_hash]"))
-	bodyParams["smart_contract[name]"] = string(ctx.PostArgs().Peek("smart_contract[name]"))
-	bodyParams["smart_contract[nightly_builds]"] = string(ctx.PostArgs().Peek("smart_contract[nightly_builds]"))
-	bodyParams["smart_contract[compiler_version]"] = string(ctx.PostArgs().Peek("smart_contract[compiler_version]"))
-	bodyParams["smart_contract[evm_version]"] = string(ctx.PostArgs().Peek("smart_contract[evm_version]"))
-	bodyParams["smart_contract[optimization]"] = string(ctx.PostArgs().Peek("smart_contract[optimization]"))
-	bodyParams["smart_contract[contract_source_code]"] = string(ctx.PostArgs().Peek("smart_contract[contract_source_code]"))
-	bodyParams["smart_contract[autodetect_constructor_args]"] = string(ctx.PostArgs().Peek("smart_contract[autodetect_constructor_args]"))
-	bodyParams["smart_contract[constructor_arguments]"] = string(ctx.PostArgs().Peek("smart_contract[constructor_arguments]"))
+	smartContractParams := make(map[string]string)
+	smartContractParams["address_hash"] = string(ctx.PostArgs().Peek("smart_contract[address_hash]"))
+	smartContractParams["name"] = string(ctx.PostArgs().Peek("smart_contract[name]"))
+	smartContractParams["nightly_builds"] = string(ctx.PostArgs().Peek("smart_contract[nightly_builds]"))
+	smartContractParams["compiler_version"] = string(ctx.PostArgs().Peek("smart_contract[compiler_version]"))
+	smartContractParams["evm_version"] = string(ctx.PostArgs().Peek("smart_contract[evm_version]"))
+	smartContractParams["optimization"] = string(ctx.PostArgs().Peek("smart_contract[optimization]"))
+	smartContractParams["contract_source_code"] = string(ctx.PostArgs().Peek("smart_contract[contract_source_code]"))
+	smartContractParams["autodetect_constructor_args"] = string(ctx.PostArgs().Peek("smart_contract[autodetect_constructor_args]"))
+	smartContractParams["constructor_arguments"] = string(ctx.PostArgs().Peek("smart_contract[constructor_arguments]"))
 
+	externalLibrariesParams := make(map[string]string)
 	for i := 1; i <= 10; i++ {
-		libraryName := fmt.Sprintf("external_libraries[library%d_name]", i)
-		libraryAddress := fmt.Sprintf("external_libraries[library%d_address]", i)
-		bodyParams[libraryName] = string(ctx.PostArgs().Peek(libraryName))
-		bodyParams[libraryAddress] = string(ctx.PostArgs().Peek(libraryAddress))
+		libraryName := fmt.Sprintf("library%d_name", i)
+		libraryAddress := fmt.Sprintf("library%d_address", i)
+		externalLibrariesParams[libraryName] = string(ctx.PostArgs().Peek(fmt.Sprintf("external_libraries[%s]", libraryName)))
+		externalLibrariesParams[libraryAddress] = string(ctx.PostArgs().Peek(fmt.Sprintf("external_libraries[%s]", libraryAddress)))
 	}
+
+	bodyParams["smart_contract"] = smartContractParams
+	bodyParams["external_libraries"] = externalLibrariesParams
 
 	resp, err := handler.blockscoutClient.VerifyFlattened(bodyParams)
 	if err != nil {

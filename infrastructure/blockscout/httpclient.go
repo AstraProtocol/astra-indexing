@@ -1369,12 +1369,13 @@ func (client *HTTPClient) Verify(bodyParams interface{}) (interface{}, error) {
 }
 
 func (client *HTTPClient) VerifyFlattened(bodyParams interface{}) (interface{}, error) {
-	m, ok := bodyParams.(map[string]string)
+	m, ok := bodyParams.(map[string](map[string]string))
 	if !ok {
 		return nil, fmt.Errorf("VerifyFlattened: cannot convert rawBody to map")
 	}
 
-	cacheKey := fmt.Sprintf("VerifyFlattened_%s_%s", m["smart_contract[address_hash]"], m["smart_contract[name]"])
+	smartContractParams := m["smart_contract"]
+	cacheKey := fmt.Sprintf("VerifyFlattened_%s_%s", smartContractParams["address_hash"], smartContractParams["name"])
 
 	var commonRespTmp CommonResp
 	err := client.httpCache.Get(cacheKey, &commonRespTmp)
@@ -1382,30 +1383,7 @@ func (client *HTTPClient) VerifyFlattened(bodyParams interface{}) (interface{}, 
 		return commonRespTmp, nil
 	}
 
-	smartContractParams := make(map[string]string)
-	smartContractParams["address_hash"] = m["smart_contract[address_hash]"]
-	smartContractParams["name"] = m["smart_contract[name]"]
-	smartContractParams["nightly_builds"] = m["smart_contract[nightly_builds]"]
-	smartContractParams["compiler_version"] = m["smart_contract[compiler_version]"]
-	smartContractParams["evm_version"] = m["smart_contract[evm_version]"]
-	smartContractParams["optimization"] = m["smart_contract[optimization]"]
-	smartContractParams["contract_source_code"] = m["smart_contract[contract_source_code]"]
-	smartContractParams["autodetect_constructor_args"] = m["smart_contract[autodetect_constructor_args]"]
-	smartContractParams["constructor_arguments"] = m["smart_contract[constructor_arguments]"]
-
-	externalLibrariesParams := make(map[string]string)
-	for i := 1; i <= 10; i++ {
-		libraryName := fmt.Sprintf("library%d_name", i)
-		libraryAddress := fmt.Sprintf("library%d_address", i)
-		externalLibrariesParams[libraryName] = m[fmt.Sprintf("external_libraries[%s]", libraryName)]
-		externalLibrariesParams[libraryAddress] = m[fmt.Sprintf("external_libraries[%s]", libraryAddress)]
-	}
-
-	body := make(map[string](map[string]string))
-	body["smart_contract"] = smartContractParams
-	body["external_libraries"] = externalLibrariesParams
-
-	postBody, err := json.Marshal(body)
+	postBody, err := json.Marshal(bodyParams)
 	if err != nil {
 		return nil, err
 	}
