@@ -37,7 +37,7 @@ func (handler *ContractVerifiers) Verify(ctx *fasthttp.RequestCtx) {
 
 	module := string(ctx.PostArgs().Peek("module"))
 	if module != "contract" {
-		handler.logger.Errorf("invalid %s address params", recordMethod)
+		handler.logger.Errorf("%s: invalid module %s", recordMethod, module)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "POST", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid module"))
 		return
@@ -67,9 +67,9 @@ func (handler *ContractVerifiers) Verify(ctx *fasthttp.RequestCtx) {
 
 		handler.verifySourceCode(ctx, bodyParams, startTime)
 	default:
-		handler.logger.Errorf("invalid %s address params", recordMethod)
+		handler.logger.Errorf("%s: %s not implemented", recordMethod, action)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "POST", time.Since(startTime).Milliseconds())
-		httpapi.BadRequest(ctx, errors.New("not implemented"))
+		httpapi.BadRequest(ctx, fmt.Errorf("%s: %s not implemented", recordMethod, action))
 		return
 	}
 }
