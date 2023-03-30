@@ -18,6 +18,14 @@ func Success(ctx *fasthttp.RequestCtx, result interface{}) {
 	}
 }
 
+func SuccessNotWrappedResult(ctx *fasthttp.RequestCtx, result interface{}) {
+	ctx.Response.Header.Set("Content-Type", "application/json")
+	err := jsoniter.NewEncoder(ctx.Response.BodyWriter()).Encode(result)
+	if err != nil {
+		InternalServerError(ctx)
+	}
+}
+
 func SuccessWithPagination(
 	ctx *fasthttp.RequestCtx,
 	result interface{},

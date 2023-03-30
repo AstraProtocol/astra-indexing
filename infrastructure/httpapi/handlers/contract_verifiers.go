@@ -85,5 +85,5 @@ func (handler *ContractVerifiers) verifySourceCode(ctx *fasthttp.RequestCtx, raw
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "POST", time.Since(startTime).Milliseconds())
-	httpapi.Success(ctx, resp)
+	httpapi.SuccessNotWrappedResult(ctx, resp)
 }

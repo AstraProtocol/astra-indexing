@@ -1339,7 +1339,7 @@ func (client *HTTPClient) Verify(bodyParams interface{}) (interface{}, error) {
 	var commonRespTmp CommonResp
 	err := client.httpCache.Get(cacheKey, &commonRespTmp)
 	if err == nil {
-		return commonRespTmp.Result, nil
+		return commonRespTmp, nil
 	}
 
 	postBody, err := json.Marshal(bodyParams)
@@ -1364,5 +1364,5 @@ func (client *HTTPClient) Verify(bodyParams interface{}) (interface{}, error) {
 
 	client.httpCache.Set(cacheKey, commonResp, utils.TIME_CACHE_MEDIUM)
 
-	return commonResp.Result, nil
+	return commonResp, nil
 }
