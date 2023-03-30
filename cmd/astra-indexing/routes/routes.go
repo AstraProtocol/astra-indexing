@@ -175,6 +175,18 @@ func InitRouteRegistry(
 		},
 	)
 
+	contractVerifiersHandler := httpapi_handlers.NewContractVerifiers(
+		logger,
+		*blockscoutClient,
+	)
+	routes = append(routes,
+		Route{
+			Method:  POST,
+			path:    "api?module=contract&action=verifysourcecode&codeformat={solidity-standard-json-input}&contractaddress={contractaddress}&contractname={contractname}&compilerversion={compilerversion}&sourceCode={sourceCode}",
+			handler: contractVerifiersHandler.VerifySourceCode,
+		},
+	)
+
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(
 		logger, rdbConn.ToHandle(),
 		cosmosAppClient,

@@ -31,9 +31,12 @@ func registerRoute(server *httpapi.Server, routePrefix string, route Route) {
 	switch route.Method {
 	case GET:
 		server.GET(fmt.Sprintf("%s/%s", routePrefix, route.path), route.handler)
+	case POST:
+		server.POST(fmt.Sprintf("%s/%s", routePrefix, route.path), route.handler)
 	}
 }
 
 const (
-	GET = "GET"
+	GET  = "GET"
+	POST = "POST"
 )
