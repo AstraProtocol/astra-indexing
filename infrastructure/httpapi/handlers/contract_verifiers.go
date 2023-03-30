@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -79,6 +80,42 @@ func (handler *ContractVerifiers) verifySourceCode(ctx *fasthttp.RequestCtx, raw
 	resp, err := handler.blockscoutClient.Verify(rawBody)
 	if err != nil {
 		handler.logger.Errorf("error verifying source code from blockscout: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "POST", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, err)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "POST", time.Since(startTime).Milliseconds())
+	httpapi.SuccessNotWrappedResult(ctx, resp)
+}
+
+func (handler *ContractVerifiers) VerifyFlattened(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "VerifyFlattened"
+	// handle api's params
+
+	bodyParams := make(map[string]string)
+
+	bodyParams["smart_contract[address_hash]"] = string(ctx.PostArgs().Peek("smart_contract[address_hash]"))
+	bodyParams["smart_contract[name]"] = string(ctx.PostArgs().Peek("smart_contract[name]"))
+	bodyParams["smart_contract[nightly_builds]"] = string(ctx.PostArgs().Peek("smart_contract[nightly_builds]"))
+	bodyParams["smart_contract[compiler_version]"] = string(ctx.PostArgs().Peek("smart_contract[compiler_version]"))
+	bodyParams["smart_contract[evm_version]"] = string(ctx.PostArgs().Peek("smart_contract[evm_version]"))
+	bodyParams["smart_contract[optimization]"] = string(ctx.PostArgs().Peek("smart_contract[optimization]"))
+	bodyParams["smart_contract[contract_source_code]"] = string(ctx.PostArgs().Peek("smart_contract[contract_source_code]"))
+	bodyParams["smart_contract[autodetect_constructor_args]"] = string(ctx.PostArgs().Peek("smart_contract[autodetect_constructor_args]"))
+	bodyParams["smart_contract[constructor_arguments]"] = string(ctx.PostArgs().Peek("smart_contract[constructor_arguments]"))
+
+	for i := 1; i <= 10; i++ {
+		libraryName := fmt.Sprintf("external_libraries[library%d_name]", i)
+		libraryAddress := fmt.Sprintf("external_libraries[library%d_address]", i)
+		bodyParams[libraryName] = string(ctx.PostArgs().Peek(libraryName))
+		bodyParams[libraryAddress] = string(ctx.PostArgs().Peek(libraryAddress))
+	}
+
+	resp, err := handler.blockscoutClient.VerifyFlattened(bodyParams)
+	if err != nil {
+		handler.logger.Errorf("error verifying flattened source code from blockscout: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "POST", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return

@@ -185,6 +185,11 @@ func InitRouteRegistry(
 			path:    "api",
 			handler: contractVerifiersHandler.Verify,
 		},
+		Route{
+			Method:  POST,
+			path:    "verify_smart_contract/contract_verifications",
+			handler: contractVerifiersHandler.VerifyFlattened,
+		},
 	)
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(
