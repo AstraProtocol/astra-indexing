@@ -182,8 +182,8 @@ func InitRouteRegistry(
 	routes = append(routes,
 		Route{
 			Method:  POST,
-			path:    "api?module=contract&action=verifysourcecode&codeformat={solidity-standard-json-input}&contractaddress={contractaddress}&contractname={contractname}&compilerversion={compilerversion}&sourceCode={sourceCode}",
-			handler: contractVerifiersHandler.VerifySourceCode,
+			path:    "api",
+			handler: contractVerifiersHandler.Verify,
 		},
 	)
 
