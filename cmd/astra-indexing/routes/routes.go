@@ -175,6 +175,18 @@ func InitRouteRegistry(
 		},
 	)
 
+	contractVerifiersHandler := httpapi_handlers.NewContractVerifiers(
+		logger,
+		*blockscoutClient,
+	)
+	routes = append(routes,
+		Route{
+			Method:  POST,
+			path:    "api",
+			handler: contractVerifiersHandler.Verify,
+		},
+	)
+
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(
 		logger, rdbConn.ToHandle(),
 		cosmosAppClient,

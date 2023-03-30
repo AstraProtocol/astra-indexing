@@ -55,6 +55,7 @@ const GET_SOURCE_CODE = "/api/v1?module=contract&action=getsourcecode&address="
 const GET_TOKEN_DETAIL = "/api/v1?module=token&action=gettoken&contractaddress="
 const GET_TOKEN_METADATA = "/api/v1?module=token&action=getmetadata&contractaddress={contractaddresshash}&tokenid={tokenid}"
 const UPDATE_ADDRESS_BALANCE = "/api/v1?module=account&action=update_balance&address={addresshash}&block={blockheight}&balance={balance}"
+const VERIFY = "/api"
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const BALANCE_UPDATE_FAILED = "balance update failed"
@@ -144,6 +145,33 @@ func (client *HTTPClient) request(endpoint string, queryParams []string, mapping
 	if rawResp.StatusCode != 200 {
 		rawResp.Body.Close()
 		return nil, fmt.Errorf("error requesting blockscout %s endpoint: %s", queryUrl, rawResp.Status)
+	}
+
+	return rawResp.Body, nil
+}
+
+func (client *HTTPClient) requestPost(endpoint string, rawBody interface{}) (io.ReadCloser, error) {
+	startTime := time.Now()
+	var err error
+
+	req, err := retryablehttp.NewRequestWithContext(context.Background(), http.MethodPost, endpoint, rawBody)
+	if err != nil {
+		prometheus.RecordApiExecTime(endpoint, strconv.Itoa(408), "http", time.Since(startTime).Milliseconds())
+		return nil, fmt.Errorf("error creating HTTP request with context: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	rawResp, err := client.httpClient.Do(req)
+	if err != nil {
+		prometheus.RecordApiExecTime(endpoint, strconv.Itoa(400), "http", time.Since(startTime).Milliseconds())
+		return nil, fmt.Errorf("error requesting blockscout %s endpoint: %v", endpoint, err)
+	}
+
+	prometheus.RecordApiExecTime(endpoint, strconv.Itoa(rawResp.StatusCode), "http", time.Since(startTime).Milliseconds())
+
+	if rawResp.StatusCode != 200 {
+		rawResp.Body.Close()
+		return nil, fmt.Errorf("error requesting blockscout %s endpoint: %s", endpoint, rawResp.Status)
 	}
 
 	return rawResp.Body, nil
@@ -1292,6 +1320,49 @@ func (client *HTTPClient) UpdateAddressBalance(addressHash string, blockHeight s
 	}
 
 	client.httpCache.Set(cacheKey, commonResp, utils.TIME_CACHE_FAST)
+
+	return commonResp.Result, nil
+}
+
+func (client *HTTPClient) Verify(bodyParams interface{}) (interface{}, error) {
+	m, ok := bodyParams.(map[string]string)
+	if !ok {
+		return nil, fmt.Errorf("Verify: cannot convert rawBody to map")
+	}
+
+	module := m["module"]
+	action := m["action"]
+	codeFormat := m["codeformat"]
+	contractAddress := m["contractaddress"]
+	cacheKey := fmt.Sprintf("Verify_%s_%s_%s_%s", module, action, codeFormat, contractAddress)
+
+	var commonRespTmp CommonResp
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return commonRespTmp.Result, nil
+	}
+
+	postBody, err := json.Marshal(bodyParams)
+	if err != nil {
+		return nil, err
+	}
+
+	rawRespBody, err := client.requestPost(client.getUrl(VERIFY, ""), postBody)
+	if err != nil {
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var commonResp CommonResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&commonResp); err != nil {
+		return nil, err
+	}
+
+	if commonResp.Status == "0" {
+		return nil, fmt.Errorf("Verify: %s", commonResp.Message)
+	}
+
+	client.httpCache.Set(cacheKey, commonResp, utils.TIME_CACHE_MEDIUM)
 
 	return commonResp.Result, nil
 }
