@@ -181,14 +181,19 @@ func InitRouteRegistry(
 	)
 	routes = append(routes,
 		Route{
-			Method:  POST,
+			Method:  GET,
 			path:    "api",
-			handler: contractVerifiersHandler.Verify,
+			handler: contractVerifiersHandler.CheckVerifyStatus,
 		},
 		Route{
 			Method:  POST,
 			path:    "verify_smart_contract/contract_verifications",
 			handler: contractVerifiersHandler.VerifyFlattened,
+		},
+		Route{
+			Method:  POST,
+			path:    "api",
+			handler: contractVerifiersHandler.Verify,
 		},
 	)
 

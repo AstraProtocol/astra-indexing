@@ -129,3 +129,48 @@ func (handler *ContractVerifiers) VerifyFlattened(ctx *fasthttp.RequestCtx) {
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "POST", time.Since(startTime).Milliseconds())
 	httpapi.SuccessNotWrappedResult(ctx, resp)
 }
+
+//checkverifystatus
+
+func (handler *ContractVerifiers) CheckVerifyStatus(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "CheckVerifyStatus"
+	// handle api's params
+	var err error
+
+	module := string(ctx.QueryArgs().Peek("module"))
+	if module != "contract" {
+		handler.logger.Errorf("%s: invalid module %s", recordMethod, module)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "POST", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid module"))
+		return
+	}
+
+	action := string(ctx.QueryArgs().Peek("action"))
+	if action != "checkverifystatus" {
+		handler.logger.Errorf("%s: invalid action %s", recordMethod, action)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "POST", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid action"))
+		return
+	}
+
+	guid := string(ctx.QueryArgs().Peek("guid"))
+	if guid == "" {
+		handler.logger.Errorf("invalid guid param: %s", recordMethod)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid guid param"))
+		return
+	}
+	//
+
+	verifyStatus, err := handler.blockscoutClient.CheckVerifyStatus(guid)
+	if err != nil {
+		handler.logger.Errorf("error fetching verify status from blockcscout: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, err)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.SuccessNotWrappedResult(ctx, verifyStatus)
+}

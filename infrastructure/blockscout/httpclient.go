@@ -57,6 +57,7 @@ const GET_TOKEN_METADATA = "/api/v1?module=token&action=getmetadata&contractaddr
 const UPDATE_ADDRESS_BALANCE = "/api/v1?module=account&action=update_balance&address={addresshash}&block={blockheight}&balance={balance}"
 const VERIFY = "/api"
 const VERIFY_FLATTENED = "/verify_smart_contract/contract_verifications"
+const CHECK_VERIFY_STATUS = "/api/v1?module=contract&action=checkverifystatus&guid="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const BALANCE_UPDATE_FAILED = "balance update failed"
@@ -1287,7 +1288,7 @@ func (client *HTTPClient) GetTokenMetadata(contractAddressHash string, tokenId s
 }
 
 func (client *HTTPClient) UpdateAddressBalance(addressHash string, blockHeight string, balance string) (interface{}, error) {
-	cacheKey := fmt.Sprintf("UpdateAddressBalance_%s", addressHash)
+	cacheKey := fmt.Sprintf("BlockscoutUpdateAddressBalance_%s", addressHash)
 	var commonRespTmp CommonResp
 
 	err := client.httpCache.Get(cacheKey, &commonRespTmp)
@@ -1330,7 +1331,7 @@ func (client *HTTPClient) Verify(bodyParams interface{}) (interface{}, error) {
 	action := m["action"]
 	codeFormat := m["codeformat"]
 	contractAddress := m["contractaddress"]
-	cacheKey := fmt.Sprintf("Verify_%s_%s_%s_%s", module, action, codeFormat, contractAddress)
+	cacheKey := fmt.Sprintf("BlockscoutVerify_%s_%s_%s_%s", module, action, codeFormat, contractAddress)
 
 	var commonRespTmp CommonResp
 	err := client.httpCache.Get(cacheKey, &commonRespTmp)
@@ -1370,7 +1371,7 @@ func (client *HTTPClient) VerifyFlattened(bodyParams interface{}) (interface{}, 
 	}
 
 	smartContractParams := m["smart_contract"]
-	cacheKey := fmt.Sprintf("VerifyFlattened_%s_%s", smartContractParams["address_hash"], smartContractParams["name"])
+	cacheKey := fmt.Sprintf("BlockscoutVerifyFlattened_%s_%s", smartContractParams["address_hash"], smartContractParams["name"])
 
 	var respTmp interface{}
 	err := client.httpCache.Get(cacheKey, &respTmp)
@@ -1395,6 +1396,37 @@ func (client *HTTPClient) VerifyFlattened(bodyParams interface{}) (interface{}, 
 	}
 
 	client.httpCache.Set(cacheKey, resp, utils.TIME_CACHE_MEDIUM)
+
+	return resp, nil
+}
+
+func (client *HTTPClient) CheckVerifyStatus(guid string) (interface{}, error) {
+	cacheKey := fmt.Sprintf("BlockscoutCheckVerifyStatus_%s", guid)
+	var respTmp interface{}
+
+	err := client.httpCache.Get(cacheKey, &respTmp)
+	if err == nil {
+		return respTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(CHECK_VERIFY_STATUS, guid), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error checking verify status by guid from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var resp interface{}
+	if err := json.Unmarshal(respBody.Bytes(), &resp); err != nil {
+		client.logger.Errorf("error parsing verify status by guid from from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &resp, utils.TIME_CACHE_MEDIUM)
 
 	return resp, nil
 }
