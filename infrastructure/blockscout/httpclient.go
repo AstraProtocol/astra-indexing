@@ -170,11 +170,6 @@ func (client *HTTPClient) requestPost(endpoint string, rawBody interface{}) (io.
 
 	prometheus.RecordApiExecTime(endpoint, strconv.Itoa(rawResp.StatusCode), "http", time.Since(startTime).Milliseconds())
 
-	if rawResp.StatusCode != 200 {
-		rawResp.Body.Close()
-		return nil, fmt.Errorf("error requesting blockscout %s endpoint: %s", endpoint, rawResp.Status)
-	}
-
 	return rawResp.Body, nil
 }
 
@@ -1377,10 +1372,10 @@ func (client *HTTPClient) VerifyFlattened(bodyParams interface{}) (interface{}, 
 	smartContractParams := m["smart_contract"]
 	cacheKey := fmt.Sprintf("VerifyFlattened_%s_%s", smartContractParams["address_hash"], smartContractParams["name"])
 
-	var commonRespTmp CommonResp
-	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	var respTmp interface{}
+	err := client.httpCache.Get(cacheKey, &respTmp)
 	if err == nil {
-		return commonRespTmp, nil
+		return respTmp, nil
 	}
 
 	postBody, err := json.Marshal(bodyParams)
@@ -1394,16 +1389,12 @@ func (client *HTTPClient) VerifyFlattened(bodyParams interface{}) (interface{}, 
 	}
 	defer rawRespBody.Close()
 
-	var commonResp CommonResp
-	if err := jsoniter.NewDecoder(rawRespBody).Decode(&commonResp); err != nil {
+	var resp interface{}
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&resp); err != nil {
 		return nil, err
 	}
 
-	if commonResp.Status == "0" {
-		return nil, fmt.Errorf("VerifyFlattened: %s", commonResp.Message)
-	}
+	client.httpCache.Set(cacheKey, resp, utils.TIME_CACHE_MEDIUM)
 
-	client.httpCache.Set(cacheKey, commonResp, utils.TIME_CACHE_MEDIUM)
-
-	return commonResp, nil
+	return resp, nil
 }
