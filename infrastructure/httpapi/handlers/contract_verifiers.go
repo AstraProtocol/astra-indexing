@@ -50,6 +50,9 @@ func (handler *ContractVerifiers) Verify(ctx *fasthttp.RequestCtx) {
 	// required params
 	bodyParams["module"] = module
 	bodyParams["action"] = action
+	if action == "verifyproxycontract" {
+		action = "verifysourcecode"
+	}
 	//
 
 	switch action {
@@ -147,6 +150,9 @@ func (handler *ContractVerifiers) CheckVerifyStatus(ctx *fasthttp.RequestCtx) {
 	}
 
 	action := string(ctx.QueryArgs().Peek("action"))
+	if action == "checkproxyverification" {
+		action = "checkverifystatus"
+	}
 	if action != "checkverifystatus" {
 		handler.logger.Errorf("%s: invalid action %s", recordMethod, action)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "POST", time.Since(startTime).Milliseconds())
