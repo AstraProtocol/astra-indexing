@@ -135,11 +135,10 @@ func (handler *ContractVerifiers) VerifyFlattened(ctx *fasthttp.RequestCtx) {
 
 //checkverifystatus
 
-func (handler *ContractVerifiers) CheckVerifyStatus(ctx *fasthttp.RequestCtx) {
+func (handler *ContractVerifiers) ContractActions(ctx *fasthttp.RequestCtx) {
 	startTime := time.Now()
 	recordMethod := "CheckVerifyStatus"
 	// handle api's params
-	var err error
 
 	module := string(ctx.QueryArgs().Peek("module"))
 	if module != "contract" {
@@ -153,30 +152,52 @@ func (handler *ContractVerifiers) CheckVerifyStatus(ctx *fasthttp.RequestCtx) {
 	if action == "checkproxyverification" {
 		action = "checkverifystatus"
 	}
-	if action != "checkverifystatus" {
+	if action != "checkverifystatus" && action != "getsourcecode" {
 		handler.logger.Errorf("%s: invalid action %s", recordMethod, action)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "POST", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, errors.New("invalid action"))
 		return
 	}
 
-	guid := string(ctx.QueryArgs().Peek("guid"))
-	if guid == "" {
-		handler.logger.Errorf("invalid guid param: %s", recordMethod)
+	switch action {
+	case "checkverifystatus":
+		guid := string(ctx.QueryArgs().Peek("guid"))
+		if guid == "" {
+			handler.logger.Errorf("invalid guid param: %s", recordMethod)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, errors.New("invalid guid param"))
+			return
+		}
+		verifyStatus, err := handler.blockscoutClient.CheckVerifyStatus(guid)
+		if err != nil {
+			handler.logger.Errorf("error fetching verify status from blockcscout: %v", err)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, err)
+			return
+		}
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+		httpapi.SuccessNotWrappedResult(ctx, verifyStatus)
+	case "getsourcecode":
+		addressHash := string(ctx.QueryArgs().Peek("address"))
+		if addressHash == "" {
+			handler.logger.Errorf("invalid address hash param: %s", recordMethod)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, errors.New("invalid address hash param"))
+			return
+		}
+		sourceCode, err := handler.blockscoutClient.GetSourceCode(addressHash)
+		if err != nil {
+			handler.logger.Errorf("error fetching source code from blockcscout: %v", err)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, err)
+			return
+		}
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+		httpapi.SuccessNotWrappedResult(ctx, sourceCode)
+	default:
+		handler.logger.Errorf("%s: %s not implemented", recordMethod, action)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
-		httpapi.BadRequest(ctx, errors.New("invalid guid param"))
+		httpapi.BadRequest(ctx, fmt.Errorf("%s: %s not implemented", recordMethod, action))
 		return
 	}
-	//
-
-	verifyStatus, err := handler.blockscoutClient.CheckVerifyStatus(guid)
-	if err != nil {
-		handler.logger.Errorf("error fetching verify status from blockcscout: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
-		httpapi.BadRequest(ctx, err)
-		return
-	}
-
-	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
-	httpapi.SuccessNotWrappedResult(ctx, verifyStatus)
 }

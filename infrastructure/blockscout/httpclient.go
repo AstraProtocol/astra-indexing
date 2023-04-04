@@ -58,6 +58,7 @@ const UPDATE_ADDRESS_BALANCE = "/api/v1?module=account&action=update_balance&add
 const VERIFY = "/api"
 const VERIFY_FLATTENED = "/verify_smart_contract/contract_verifications"
 const CHECK_VERIFY_STATUS = "/api/v1?module=contract&action=checkverifystatus&guid="
+const GET_SOURCE_CODE_HARD_HAT_INTERFACE = "/api?module=contract&action=getsourcecode&address="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const BALANCE_UPDATE_FAILED = "balance update failed"
@@ -1429,4 +1430,35 @@ func (client *HTTPClient) CheckVerifyStatus(guid string) (interface{}, error) {
 	client.httpCache.Set(cacheKey, &resp, utils.TIME_CACHE_MEDIUM)
 
 	return resp, nil
+}
+
+func (client *HTTPClient) GetSourceCode(addressHash string) (*SourceCodeResp, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetSourceCode_%s", addressHash)
+	var respTmp SourceCodeResp
+
+	err := client.httpCache.Get(cacheKey, &respTmp)
+	if err == nil {
+		return &respTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_SOURCE_CODE_HARD_HAT_INTERFACE, addressHash), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error get source code by address hash from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var resp SourceCodeResp
+	if err := json.Unmarshal(respBody.Bytes(), &resp); err != nil {
+		client.logger.Errorf("error parsing source code by address hash from from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &resp, utils.TIME_CACHE_MEDIUM)
+
+	return &resp, nil
 }

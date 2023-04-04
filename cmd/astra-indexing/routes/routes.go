@@ -183,7 +183,7 @@ func InitRouteRegistry(
 		Route{
 			Method:  GET,
 			path:    "api",
-			handler: contractVerifiersHandler.CheckVerifyStatus,
+			handler: contractVerifiersHandler.ContractActions,
 		},
 		Route{
 			Method:  POST,
