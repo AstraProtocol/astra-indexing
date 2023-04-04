@@ -170,7 +170,7 @@ func (handler *ContractVerifiers) ContractActions(ctx *fasthttp.RequestCtx) {
 		}
 		verifyStatus, err := handler.blockscoutClient.CheckVerifyStatus(guid)
 		if err != nil {
-			handler.logger.Errorf("error fetching verify status from blockcscout: %v", err)
+			handler.logger.Errorf("error fetching verify status from blockscout: %v", err)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, err)
 			return
@@ -187,7 +187,7 @@ func (handler *ContractVerifiers) ContractActions(ctx *fasthttp.RequestCtx) {
 		}
 		sourceCode, err := handler.blockscoutClient.GetSourceCode(addressHash)
 		if err != nil {
-			handler.logger.Errorf("error fetching source code from blockcscout: %v", err)
+			handler.logger.Errorf("error fetching source code from blockscout: %v", err)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, err)
 			return
