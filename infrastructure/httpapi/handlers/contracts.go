@@ -577,7 +577,7 @@ func (handler *Contracts) GetTokenDetail(ctx *fasthttp.RequestCtx) {
 
 	tokenDetail, err := handler.blockscoutClient.GetTokenDetail(addressHash)
 	if err != nil {
-		handler.logger.Errorf("error fetching token detail from blockcscout: %v", err)
+		handler.logger.Errorf("error fetching token detail from blockscout: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return
