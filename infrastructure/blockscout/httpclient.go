@@ -55,7 +55,7 @@ const GET_SOURCE_CODE = "/api/v1?module=contract&action=getsourcecode&address="
 const GET_TOKEN_DETAIL = "/api/v1?module=token&action=gettoken&contractaddress="
 const GET_TOKEN_METADATA = "/api/v1?module=token&action=getmetadata&contractaddress={contractaddresshash}&tokenid={tokenid}"
 const UPDATE_ADDRESS_BALANCE = "/api/v1?module=account&action=update_balance&address={addresshash}&block={blockheight}&balance={balance}"
-const VERIFY = "/api"
+const HARD_HAT_POST_INTERFACE = "/api"
 const VERIFY_FLATTENED = "/verify_smart_contract/contract_verifications"
 const CHECK_VERIFY_STATUS = "/api/v1?module=contract&action=checkverifystatus&guid="
 const GET_SOURCE_CODE_HARD_HAT_INTERFACE = "/api?module=contract&action=getsourcecode&address="
@@ -1345,7 +1345,7 @@ func (client *HTTPClient) Verify(bodyParams interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	rawRespBody, err := client.requestPost(client.getUrl(VERIFY, ""), postBody)
+	rawRespBody, err := client.requestPost(client.getUrl(HARD_HAT_POST_INTERFACE, ""), postBody)
 	if err != nil {
 		return nil, err
 	}
@@ -1461,4 +1461,49 @@ func (client *HTTPClient) GetSourceCode(addressHash string) (*SourceCodeResp, er
 	client.httpCache.Set(cacheKey, &resp, utils.TIME_CACHE_MEDIUM)
 
 	return &resp, nil
+}
+
+func (client *HTTPClient) Logs(bodyParams interface{}) (interface{}, error) {
+	m, ok := bodyParams.(map[string]string)
+	if !ok {
+		return nil, fmt.Errorf("Logs: cannot convert rawBody to map")
+	}
+
+	module := m["module"]
+	action := m["action"]
+	fromBlock := m["fromBlock"]
+	toBlock := m["toBlock"]
+	address := m["address"]
+	topic0 := m["topic0"]
+	cacheKey := fmt.Sprintf("BlockscoutLogs_%s_%s_%s_%s_%s_%s", module, action, fromBlock, toBlock, address, topic0)
+
+	var commonRespTmp CommonResp
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return commonRespTmp, nil
+	}
+
+	postBody, err := json.Marshal(bodyParams)
+	if err != nil {
+		return nil, err
+	}
+
+	rawRespBody, err := client.requestPost(client.getUrl(HARD_HAT_POST_INTERFACE, ""), postBody)
+	if err != nil {
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var commonResp CommonResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&commonResp); err != nil {
+		return nil, err
+	}
+
+	if commonResp.Status == "0" {
+		return nil, fmt.Errorf("Logs: %s", commonResp.Message)
+	}
+
+	client.httpCache.Set(cacheKey, commonResp, utils.TIME_CACHE_MEDIUM)
+
+	return commonResp, nil
 }

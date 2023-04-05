@@ -33,47 +33,81 @@ func NewContractVerifiers(
 func (handler *ContractVerifiers) Verify(ctx *fasthttp.RequestCtx) {
 	startTime := time.Now()
 	recordMethod := "Verify"
-	// handle api's params
 
+	// handle api's params
 	module := string(ctx.PostArgs().Peek("module"))
-	if module != "contract" {
-		handler.logger.Errorf("%s: invalid module %s", recordMethod, module)
+	if module != "contract" && module != "logs" {
+		handler.logger.Errorf("%s: not implemented module %s", recordMethod, module)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "POST", time.Since(startTime).Milliseconds())
-		httpapi.BadRequest(ctx, errors.New("invalid module"))
+		httpapi.BadRequest(ctx, errors.New("not implemented module"))
 		return
 	}
 
-	action := string(ctx.PostArgs().Peek("action"))
-
-	bodyParams := make(map[string]string)
-
-	// required params
-	bodyParams["module"] = module
-	bodyParams["action"] = action
-	if action == "verifyproxycontract" {
-		action = "verifysourcecode"
-	}
-	//
-
-	switch action {
-	case "verifysourcecode":
+	if module == "logs" {
+		action := string(ctx.PostArgs().Peek("action"))
+		bodyParams := make(map[string]string)
 		// required params
-		bodyParams["codeformat"] = string(ctx.PostArgs().Peek("codeformat"))
-		bodyParams["contractaddress"] = string(ctx.PostArgs().Peek("contractaddress"))
-		bodyParams["contractname"] = string(ctx.PostArgs().Peek("contractname"))
-		bodyParams["compilerversion"] = string(ctx.PostArgs().Peek("compilerversion"))
-		bodyParams["sourceCode"] = string(ctx.PostArgs().Peek("sourceCode"))
+		bodyParams["module"] = module
+		bodyParams["action"] = action
+		bodyParams["fromBlock"] = string(ctx.PostArgs().Peek("fromBlock"))
+		bodyParams["toBlock"] = string(ctx.PostArgs().Peek("toBlock"))
+		bodyParams["address"] = string(ctx.PostArgs().Peek("address"))
+		bodyParams["topic0"] = string(ctx.PostArgs().Peek("topic0"))
 		//
 
-		bodyParams["constructorArguements"] = string(ctx.PostArgs().Peek("constructorArguements"))
-		bodyParams["autodetectConstructorArguments"] = string(ctx.PostArgs().Peek("autodetectConstructorArguments"))
+		for i := 1; i <= 3; i++ {
+			topic := fmt.Sprintf("topic%d", i)
+			bodyParams[topic] = string(ctx.PostArgs().Peek(topic))
+		}
+		for i := 0; i <= 2; i++ {
+			for j := i + 1; j <= 3; j++ {
+				topic_opr := fmt.Sprintf("topic%d_%d_opr", i, j)
+				bodyParams[topic_opr] = string(ctx.PostArgs().Peek(topic_opr))
+			}
+		}
 
-		handler.verifySourceCode(ctx, bodyParams, startTime)
-	default:
-		handler.logger.Errorf("%s: %s not implemented", recordMethod, action)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "POST", time.Since(startTime).Milliseconds())
-		httpapi.BadRequest(ctx, fmt.Errorf("%s: %s not implemented", recordMethod, action))
-		return
+		resp, err := handler.blockscoutClient.Logs(bodyParams)
+		if err != nil {
+			handler.logger.Errorf("error fetching logs from blockscout: %v", err)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "POST", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, err)
+			return
+		}
+
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "POST", time.Since(startTime).Milliseconds())
+		httpapi.SuccessNotWrappedResult(ctx, resp)
+	}
+
+	if module == "contract" {
+		action := string(ctx.PostArgs().Peek("action"))
+		bodyParams := make(map[string]string)
+		// required params
+		bodyParams["module"] = module
+		bodyParams["action"] = action
+		if action == "verifyproxycontract" {
+			action = "verifysourcecode"
+		}
+		//
+
+		switch action {
+		case "verifysourcecode":
+			// required params
+			bodyParams["codeformat"] = string(ctx.PostArgs().Peek("codeformat"))
+			bodyParams["contractaddress"] = string(ctx.PostArgs().Peek("contractaddress"))
+			bodyParams["contractname"] = string(ctx.PostArgs().Peek("contractname"))
+			bodyParams["compilerversion"] = string(ctx.PostArgs().Peek("compilerversion"))
+			bodyParams["sourceCode"] = string(ctx.PostArgs().Peek("sourceCode"))
+			//
+			bodyParams["constructorArguements"] = string(ctx.PostArgs().Peek("constructorArguements"))
+			bodyParams["autodetectConstructorArguments"] = string(ctx.PostArgs().Peek("autodetectConstructorArguments"))
+
+			handler.verifySourceCode(ctx, bodyParams, startTime)
+		default:
+			handler.logger.Errorf("%s: %s not implemented", recordMethod, action)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "POST", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, fmt.Errorf("%s: %s not implemented", recordMethod, action))
+			return
+		}
 	}
 }
 
@@ -142,9 +176,9 @@ func (handler *ContractVerifiers) ContractActions(ctx *fasthttp.RequestCtx) {
 
 	module := string(ctx.QueryArgs().Peek("module"))
 	if module != "contract" {
-		handler.logger.Errorf("%s: invalid module %s", recordMethod, module)
+		handler.logger.Errorf("%s: not implemented module %s", recordMethod, module)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "POST", time.Since(startTime).Milliseconds())
-		httpapi.BadRequest(ctx, errors.New("invalid module"))
+		httpapi.BadRequest(ctx, errors.New("not implemented module"))
 		return
 	}
 
