@@ -57,12 +57,16 @@ func (handler *ContractVerifiers) Verify(ctx *fasthttp.RequestCtx) {
 
 		for i := 1; i <= 3; i++ {
 			topic := fmt.Sprintf("topic%d", i)
-			bodyParams[topic] = string(ctx.PostArgs().Peek(topic))
+			if string(ctx.PostArgs().Peek(topic)) != "" {
+				bodyParams[topic] = string(ctx.PostArgs().Peek(topic))
+			}
 		}
 		for i := 0; i <= 2; i++ {
 			for j := i + 1; j <= 3; j++ {
 				topic_opr := fmt.Sprintf("topic%d_%d_opr", i, j)
-				bodyParams[topic_opr] = string(ctx.PostArgs().Peek(topic_opr))
+				if string(ctx.PostArgs().Peek(topic_opr)) != "" {
+					bodyParams[topic_opr] = string(ctx.PostArgs().Peek(topic_opr))
+				}
 			}
 		}
 
