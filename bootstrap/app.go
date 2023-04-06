@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -14,7 +15,9 @@ import (
 	astra_consumer "github.com/AstraProtocol/astra-indexing/infrastructure/kafka/consumer"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg"
+	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/jackc/pgtype"
 	"github.com/segmentio/kafka-go"
 	"gopkg.in/robfig/cron.v2"
 )
@@ -121,6 +124,8 @@ func (a *app) Run() {
 
 func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 	if a.config.Consumer.Enable {
+		rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
+
 		consumer := astra_consumer.Consumer[astra_consumer.CollectedEvmTx]{
 			TimeOut:   5 * time.Second,
 			DualStack: true,
@@ -132,7 +137,7 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 		consumer.CreateConnection()
 
 		var messages []kafka.Message
-		var colectedTxs []astra_consumer.CollectedEvmTx
+		var mapValues []map[string]interface{}
 		blockNumber := int64(0)
 		consumer.Fetch(
 			astra_consumer.CollectedEvmTx{},
@@ -140,7 +145,9 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 				if collectedEvmTx.BlockNumber != blockNumber {
 					if len(messages) > 0 {
 						// TODO: Update txs
-						fmt.Println(colectedTxs)
+						rdbTransactionView.UpdateAll(mapValues)
+
+						// Commit offset
 						if err := consumer.Commit(ctx, messages...); err != nil {
 							a.logger.Infof("Consumer failed to commit messages:", err)
 						}
@@ -148,11 +155,19 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 
 					// Reset status
 					messages = nil
-					colectedTxs = nil
+					mapValues = nil
 					blockNumber = collectedEvmTx.BlockNumber
 				}
+				var feeValue pgtype.Numeric
+				feeValue.Set(big.NewInt(0).Mul(big.NewInt(collectedEvmTx.GasUsed), big.NewInt(collectedEvmTx.GasPrice)))
+
+				mapValue := map[string]interface{}{
+					"evm_hash":  collectedEvmTx.TransactionHash,
+					"fee_value": feeValue,
+				}
+
+				mapValues = append(mapValues, mapValue)
 				messages = append(messages, message)
-				colectedTxs = append(colectedTxs, collectedEvmTx)
 			},
 		)
 	}

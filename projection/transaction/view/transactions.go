@@ -30,6 +30,7 @@ type BlockTransactions interface {
 	) ([]TransactionRow, *pagination_interface.Result, error)
 	Search(keyword string) ([]TransactionRow, error)
 	Count() (int64, error)
+	UpdateAll([]map[string]interface{}) error
 }
 
 // BlockTransactions projection view implemented by relational database
@@ -677,6 +678,30 @@ func (transactionsView *BlockTransactionsView) Count() (int64, error) {
 	}
 
 	return count, nil
+}
+
+func (transactionsView *BlockTransactionsView) UpdateAll(mapValues []map[string]interface{}) error {
+	sqBuilder := transactionsView.rdb.StmtBuilder.Update(
+		"view_transactions",
+	)
+	for _, mapValue := range mapValues {
+		evmHash := mapValue["evm_hash"].(string)
+		sqBuilder.SetMap(mapValue).Where("evm_hash = ?", evmHash)
+	}
+	sql, args, err := sqBuilder.ToSql()
+	if err != nil {
+		return fmt.Errorf("error building batch update tx by evm hash SQL: %v", err)
+	}
+
+	execResult, err := transactionsView.rdb.Exec(sql, args...)
+	if err != nil {
+		return fmt.Errorf("error executing batch update tx by evm hash SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		return errors.New("error executing batch update tx by evm hash SQL: no rows updated")
+	}
+
+	return nil
 }
 
 type TransactionRow struct {
