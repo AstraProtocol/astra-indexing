@@ -185,6 +185,8 @@ func run(args []string) error {
 
 			app.RunCronJobsStats(app.GetRDbConn().ToHandle())
 
+			app.RunConsumerWorker()
+
 			app.Run()
 
 			return nil

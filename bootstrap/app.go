@@ -1,8 +1,10 @@
 package bootstrap
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -14,6 +16,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg"
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/segmentio/kafka-go"
 	"gopkg.in/robfig/cron.v2"
 )
 
@@ -128,12 +131,17 @@ func (a *app) RunConsumerWorker() {
 			Offset:    0,
 		}
 		consumer.CreateConnection()
-		consumer.Read(astra_consumer.CollectedEvmTxs{}, func(collectedEvmTxs astra_consumer.CollectedEvmTxs, err error) {
-			fmt.Println(collectedEvmTxs)
-		})
-		if err := consumer.Close(); err != nil {
-			fmt.Print("failed to close reader:", err)
-		}
+		consumer.Fetch(
+			astra_consumer.CollectedEvmTxs{},
+			func(collectedEvmTxs astra_consumer.CollectedEvmTxs, message kafka.Message, ctx context.Context, err error) {
+				if collectedEvmTxs.BlockNumber > 0 {
+					fmt.Println(collectedEvmTxs)
+					if err := consumer.Commit(ctx, message); err != nil {
+						log.Fatal("failed to commit messages:", err)
+					}
+				}
+			},
+		)
 	}
 }
 
