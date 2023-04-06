@@ -11,29 +11,29 @@ import (
 
 type Consumer[T comparable] struct {
 	reader    *kafka.Reader
-	brokers   []string
-	topic     string
-	groupId   string
-	timeOut   time.Duration
-	dualStack bool
-	offset    int64
+	Brokers   []string
+	Topic     string
+	GroupId   string
+	TimeOut   time.Duration
+	DualStack bool
+	Offset    int64
 }
 
 func (c *Consumer[T]) CreateConnection() {
 	dialer := &kafka.Dialer{
-		Timeout:   c.timeOut,
-		DualStack: c.dualStack,
+		Timeout:   c.TimeOut,
+		DualStack: c.DualStack,
 	}
 	c.reader = kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  c.brokers,
-		Topic:    c.topic,
-		GroupID:  c.groupId,
+		Brokers:  c.Brokers,
+		Topic:    c.Topic,
+		GroupID:  c.GroupId,
 		MinBytes: 10e3, // 10KB
 		MaxBytes: 10e6, // 10MB
 		MaxWait:  time.Millisecond * 10,
 		Dialer:   dialer,
 	})
-	c.reader.SetOffset(c.offset)
+	c.reader.SetOffset(c.Offset)
 }
 
 func (c *Consumer[T]) Read(model T, callback func(T, error)) {
@@ -41,6 +41,7 @@ func (c *Consumer[T]) Read(model T, callback func(T, error)) {
 		ctx, cancelFunction := context.WithTimeout(context.Background(), time.Millisecond*80)
 		defer func() {
 			fmt.Println("doWorkContext complete")
+			c.reader.Close()
 			cancelFunction()
 		}()
 
@@ -60,4 +61,8 @@ func (c *Consumer[T]) Read(model T, callback func(T, error)) {
 
 		callback(model, nil)
 	}
+}
+
+func (c *Consumer[T]) Close() error {
+	return c.reader.Close()
 }

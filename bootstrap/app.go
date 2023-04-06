@@ -10,6 +10,7 @@ import (
 	config "github.com/AstraProtocol/astra-indexing/bootstrap/config"
 	projection_entity "github.com/AstraProtocol/astra-indexing/entity/projection"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	astra_consumer "github.com/AstraProtocol/astra-indexing/infrastructure/kafka/consumer"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg"
 	"github.com/golang-migrate/migrate/v4"
@@ -114,6 +115,26 @@ func (a *app) Run() {
 	}
 
 	select {}
+}
+
+func (a *app) RunConsumerWorker() {
+	if a.config.Consumer.Enable {
+		consumer := astra_consumer.Consumer[astra_consumer.CollectedEvmTxs]{
+			TimeOut:   5 * time.Second,
+			DualStack: true,
+			Brokers:   []string{"localhost:9092"},
+			Topic:     "evm-txs",
+			GroupId:   "chainindexing",
+			Offset:    0,
+		}
+		consumer.CreateConnection()
+		consumer.Read(astra_consumer.CollectedEvmTxs{}, func(collectedEvmTxs astra_consumer.CollectedEvmTxs, err error) {
+			fmt.Println(collectedEvmTxs)
+		})
+		if err := consumer.Close(); err != nil {
+			fmt.Print("failed to close reader:", err)
+		}
+	}
 }
 
 func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {

@@ -36,6 +36,8 @@ type CLIConfig struct {
 	IndexService *bool
 
 	CronjobStats *bool
+
+	Consumer *bool
 }
 
 func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
@@ -88,5 +90,8 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	}
 	if cliConfig.CronjobStats != nil {
 		config.CronjobStats.Enable = *cliConfig.CronjobStats
+	}
+	if cliConfig.Consumer != nil {
+		config.Consumer.Enable = *cliConfig.Consumer
 	}
 }

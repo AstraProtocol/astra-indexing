@@ -106,6 +106,11 @@ func run(args []string) error {
 				Usage:   "Enable Cronjob Statistics",
 				EnvVars: []string{"STATISTICS_SERVICE"},
 			},
+			&cli.BoolFlag{
+				Name:    "consumer",
+				Usage:   "Enable Consumer",
+				EnvVars: []string{"CONSUMER_SERVICE"},
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			if args := ctx.Args(); args.Len() > 0 {
@@ -158,6 +163,9 @@ func run(args []string) error {
 			}
 			if ctx.IsSet("cronjobStats") {
 				cliConfig.CronjobStats = primptr.Bool(ctx.Bool("cronjobStats"))
+			}
+			if ctx.IsSet("consumer") {
+				cliConfig.Consumer = primptr.Bool(ctx.Bool("consumer"))
 			}
 
 			OverrideByCLIConfig(&config, &cliConfig)
