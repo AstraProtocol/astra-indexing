@@ -10,14 +10,20 @@ import (
 )
 
 type Consumer[T comparable] struct {
-	reader  *kafka.Reader
-	dialer  *kafka.Dialer
-	brokers []string
-	topic   string
-	groupId string
+	reader    *kafka.Reader
+	brokers   []string
+	topic     string
+	groupId   string
+	timeOut   time.Duration
+	dualStack bool
+	offset    int64
 }
 
 func (c *Consumer[T]) CreateConnection() {
+	dialer := &kafka.Dialer{
+		Timeout:   c.timeOut,
+		DualStack: c.dualStack,
+	}
 	c.reader = kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  c.brokers,
 		Topic:    c.topic,
@@ -25,10 +31,9 @@ func (c *Consumer[T]) CreateConnection() {
 		MinBytes: 10e3, // 10KB
 		MaxBytes: 10e6, // 10MB
 		MaxWait:  time.Millisecond * 10,
-		Dialer:   c.dialer,
+		Dialer:   dialer,
 	})
-
-	c.reader.SetOffset(0)
+	c.reader.SetOffset(c.offset)
 }
 
 func (c *Consumer[T]) Read(model T, callback func(T, error)) {
