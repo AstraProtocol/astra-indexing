@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -29,7 +30,7 @@ func (c *Consumer[T]) CreateConnection() {
 		GroupID:  c.GroupId,
 		MinBytes: 10e3, // 10KB
 		MaxBytes: 10e6, // 10MB
-		MaxWait:  time.Millisecond * 50,
+		MaxWait:  utils.KAFKA_NEW_DATA_MAX_WAIT,
 		Dialer:   dialer,
 	})
 	c.reader.SetOffset(c.Offset)
@@ -38,7 +39,7 @@ func (c *Consumer[T]) CreateConnection() {
 // Auto commit offset
 func (c *Consumer[T]) Read(model T, callback func(T, error)) {
 	for {
-		ctx, cancelFunction := context.WithTimeout(context.Background(), time.Millisecond*100)
+		ctx, cancelFunction := context.WithTimeout(context.Background(), utils.KAFKA_NEW_DATA_MAX_WAIT*5)
 		defer func() {
 			// Do nothing
 			cancelFunction()

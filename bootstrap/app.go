@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -120,9 +119,9 @@ func (a *app) Run() {
 	select {}
 }
 
-func (a *app) RunConsumerWorker() {
+func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 	if a.config.Consumer.Enable {
-		consumer := astra_consumer.Consumer[astra_consumer.CollectedEvmTxs]{
+		consumer := astra_consumer.Consumer[astra_consumer.CollectedEvmTx]{
 			TimeOut:   5 * time.Second,
 			DualStack: true,
 			Brokers:   []string{"localhost:9092"},
@@ -131,15 +130,29 @@ func (a *app) RunConsumerWorker() {
 			Offset:    0,
 		}
 		consumer.CreateConnection()
+
+		var messages []kafka.Message
+		var colectedTxs []astra_consumer.CollectedEvmTx
+		blockNumber := int64(0)
 		consumer.Fetch(
-			astra_consumer.CollectedEvmTxs{},
-			func(collectedEvmTxs astra_consumer.CollectedEvmTxs, message kafka.Message, ctx context.Context, err error) {
-				if collectedEvmTxs.BlockNumber > 0 {
-					fmt.Println(collectedEvmTxs)
-					if err := consumer.Commit(ctx, message); err != nil {
-						log.Fatal("failed to commit messages:", err)
+			astra_consumer.CollectedEvmTx{},
+			func(collectedEvmTx astra_consumer.CollectedEvmTx, message kafka.Message, ctx context.Context, err error) {
+				if collectedEvmTx.BlockNumber != blockNumber {
+					if len(messages) > 0 {
+						// TODO: Update txs
+						fmt.Println(colectedTxs)
+						if err := consumer.Commit(ctx, messages...); err != nil {
+							a.logger.Infof("Consumer failed to commit messages:", err)
+						}
 					}
+
+					// Reset status
+					messages = nil
+					colectedTxs = nil
+					blockNumber = collectedEvmTx.BlockNumber
 				}
+				messages = append(messages, message)
+				colectedTxs = append(colectedTxs, collectedEvmTx)
 			},
 		)
 	}
