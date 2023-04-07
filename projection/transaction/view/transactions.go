@@ -681,20 +681,24 @@ func (transactionsView *BlockTransactionsView) Count() (int64, error) {
 }
 
 func (transactionsView *BlockTransactionsView) UpdateAll(mapValues []map[string]interface{}) error {
-	var stmtBuilder sq.UpdateBuilder
-	stmtBuilder = transactionsView.rdb.StmtBuilder.Update(
-		"view_transactions",
-	)
-	for _, mapValue := range mapValues {
-		evmHash := mapValue["evm_hash"].(string)
-		stmtBuilder = stmtBuilder.SetMap(mapValue).Where("evm_hash = ?", evmHash)
-	}
-	sql, args, err := stmtBuilder.ToSql()
-	if err != nil {
-		return fmt.Errorf("error building batch update tx by evm hash SQL: %v", err)
-	}
+	bulkUpdate := `UPDATE view_transactions SET fee_value=tmp.fee_value,success=tmp.success ` +
+		`FROM (values {UPDATE_VALUES}) AS tmp (evm_hash,fee_value,success) ` +
+		`WHERE view_transactions.evm_hash=tmp.evm_hash;`
 
-	execResult, err := transactionsView.rdb.Exec(sql, args...)
+	var updateValues string
+	for index, mapValue := range mapValues {
+		evmHash := mapValue["evm_hash"].(string)
+		feeValue := mapValue["fee_value"].(string)
+		success := mapValue["success"].(bool)
+		if index == 0 {
+			updateValues = fmt.Sprintf("('%s','%s'::DECIMAL,%v)", evmHash, feeValue, success)
+		} else {
+			updateValues = updateValues + fmt.Sprintf(",('%s','%s'::DECIMAL,%v)", evmHash, feeValue, success)
+		}
+	}
+	bulkUpdate = strings.ReplaceAll(bulkUpdate, "{UPDATE_VALUES}", updateValues)
+
+	execResult, err := transactionsView.rdb.Exec(bulkUpdate)
 	if err != nil {
 		return fmt.Errorf("error executing batch update tx by evm hash SQL: %v", err)
 	}

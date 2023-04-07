@@ -18,7 +18,6 @@ import (
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg"
 	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/jackc/pgtype"
 	"github.com/segmentio/kafka-go"
 	"gopkg.in/robfig/cron.v2"
 )
@@ -161,8 +160,7 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 					mapValues = nil
 					blockNumber = collectedEvmTx.BlockNumber
 				}
-				var feeValue pgtype.Numeric
-				feeValue.Set(big.NewInt(0).Mul(big.NewInt(collectedEvmTx.GasUsed), big.NewInt(collectedEvmTx.GasPrice)).String())
+				feeValue := big.NewInt(0).Mul(big.NewInt(collectedEvmTx.GasUsed), big.NewInt(collectedEvmTx.GasPrice)).String()
 
 				isSuccess := true
 				if collectedEvmTx.Status == "error" {
