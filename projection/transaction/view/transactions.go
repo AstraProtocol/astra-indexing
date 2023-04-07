@@ -681,9 +681,7 @@ func (transactionsView *BlockTransactionsView) Count() (int64, error) {
 }
 
 func (transactionsView *BlockTransactionsView) UpdateAll(mapValues []map[string]interface{}) error {
-	bulkUpdate := `UPDATE view_transactions SET fee_value=tmp.fee_value,success=tmp.success ` +
-		`FROM (values {UPDATE_VALUES}) AS tmp (evm_hash,fee_value,success) ` +
-		`WHERE view_transactions.evm_hash=tmp.evm_hash;`
+	tableName := "view_transactions"
 
 	var updateValues string
 	for index, mapValue := range mapValues {
@@ -696,14 +694,16 @@ func (transactionsView *BlockTransactionsView) UpdateAll(mapValues []map[string]
 			updateValues = updateValues + fmt.Sprintf(",('%s','%s'::DECIMAL,%v)", evmHash, feeValue, success)
 		}
 	}
-	bulkUpdate = strings.ReplaceAll(bulkUpdate, "{UPDATE_VALUES}", updateValues)
+	bulkUpdate := fmt.Sprintf(`UPDATE %s SET fee_value=tmp.fee_value,success=tmp.success `+
+		`FROM (values %s) AS tmp (evm_hash,fee_value,success) `+
+		`WHERE %s.evm_hash=tmp.evm_hash;`, tableName, updateValues, tableName)
 
 	execResult, err := transactionsView.rdb.Exec(bulkUpdate)
 	if err != nil {
-		return fmt.Errorf("error executing batch update tx by evm hash SQL: %v", err)
+		return fmt.Errorf("error executing bulk update tx by evm hash SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
-		return errors.New("error executing batch update tx by evm hash SQL: no rows updated")
+		return errors.New("error executing bulk update tx by evm hash SQL: no rows updated")
 	}
 
 	return nil
