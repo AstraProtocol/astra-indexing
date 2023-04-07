@@ -145,14 +145,14 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 			func(collectedEvmTx astra_consumer.CollectedEvmTx, message kafka.Message, ctx context.Context, err error) {
 				if collectedEvmTx.BlockNumber != blockNumber {
 					if len(messages) > 0 {
-						err := rdbTransactionView.UpdateAll(mapValues)
-						if err == nil {
+						errUpdate := rdbTransactionView.UpdateAll(mapValues)
+						if errUpdate == nil {
 							// Commit offset
-							if err = consumer.Commit(ctx, messages...); err != nil {
-								a.logger.Infof("Consumer partition %d failed to commit messages: %v", message.Partition, err)
+							if errCommit := consumer.Commit(ctx, messages...); errCommit != nil {
+								a.logger.Infof("Consumer partition %d failed to commit messages: %v", message.Partition, errCommit)
 							}
 						} else {
-							a.logger.Infof("failed to update txs from Consumer partition %d: %v", message.Partition, err)
+							a.logger.Infof("failed to update txs from Consumer partition %d: %v", message.Partition, errUpdate)
 						}
 					}
 
@@ -162,11 +162,17 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 					blockNumber = collectedEvmTx.BlockNumber
 				}
 				var feeValue pgtype.Numeric
-				feeValue.Set(big.NewInt(0).Mul(big.NewInt(collectedEvmTx.GasUsed), big.NewInt(collectedEvmTx.GasPrice)))
+				feeValue.Set(big.NewInt(0).Mul(big.NewInt(collectedEvmTx.GasUsed), big.NewInt(collectedEvmTx.GasPrice)).String())
+
+				isSuccess := true
+				if collectedEvmTx.Status == "error" {
+					isSuccess = false
+				}
 
 				mapValue := map[string]interface{}{
 					"evm_hash":  collectedEvmTx.TransactionHash,
 					"fee_value": feeValue,
+					"success":   isSuccess,
 				}
 
 				mapValues = append(mapValues, mapValue)

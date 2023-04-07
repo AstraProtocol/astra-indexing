@@ -681,14 +681,15 @@ func (transactionsView *BlockTransactionsView) Count() (int64, error) {
 }
 
 func (transactionsView *BlockTransactionsView) UpdateAll(mapValues []map[string]interface{}) error {
-	sqBuilder := transactionsView.rdb.StmtBuilder.Update(
+	var stmtBuilder sq.UpdateBuilder
+	stmtBuilder = transactionsView.rdb.StmtBuilder.Update(
 		"view_transactions",
 	)
 	for _, mapValue := range mapValues {
 		evmHash := mapValue["evm_hash"].(string)
-		sqBuilder.SetMap(mapValue).Where("evm_hash = ?", evmHash)
+		stmtBuilder = stmtBuilder.SetMap(mapValue).Where("evm_hash = ?", evmHash)
 	}
-	sql, args, err := sqBuilder.ToSql()
+	sql, args, err := stmtBuilder.ToSql()
 	if err != nil {
 		return fmt.Errorf("error building batch update tx by evm hash SQL: %v", err)
 	}
