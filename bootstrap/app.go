@@ -12,6 +12,7 @@ import (
 	config "github.com/AstraProtocol/astra-indexing/bootstrap/config"
 	projection_entity "github.com/AstraProtocol/astra-indexing/entity/projection"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
 	astra_consumer "github.com/AstraProtocol/astra-indexing/infrastructure/kafka/consumer"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg"
@@ -127,12 +128,12 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 		rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
 
 		consumer := astra_consumer.Consumer[astra_consumer.CollectedEvmTx]{
-			TimeOut:   5 * time.Second,
+			TimeOut:   utils.KAFKA_TIME_OUT,
 			DualStack: true,
 			Brokers:   []string{"localhost:9092"},
 			Topic:     "evm-txs",
 			GroupId:   "chainindexing",
-			Offset:    0,
+			Offset:    utils.KAFKA_FIRST_OFFSET,
 		}
 		consumer.CreateConnection()
 
@@ -144,12 +145,14 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 			func(collectedEvmTx astra_consumer.CollectedEvmTx, message kafka.Message, ctx context.Context, err error) {
 				if collectedEvmTx.BlockNumber != blockNumber {
 					if len(messages) > 0 {
-						// TODO: Update txs
-						rdbTransactionView.UpdateAll(mapValues)
-
-						// Commit offset
-						if err := consumer.Commit(ctx, messages...); err != nil {
-							a.logger.Infof("Consumer failed to commit messages:", err)
+						err := rdbTransactionView.UpdateAll(mapValues)
+						if err == nil {
+							// Commit offset
+							if err = consumer.Commit(ctx, messages...); err != nil {
+								a.logger.Infof("Consumer partition %d failed to commit messages: %v", message.Partition, err)
+							}
+						} else {
+							a.logger.Infof("failed to update txs from Consumer partition %d: %v", message.Partition, err)
 						}
 					}
 
