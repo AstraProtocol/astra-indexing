@@ -161,7 +161,7 @@ func (handler *Transactions) ListInternalTransactionsByHash(ctx *fasthttp.Reques
 	if evm_utils.IsHexTx(hashParam) {
 		internalTransactions, err := handler.blockscoutClient.GetListInternalTxs(hashParam)
 		if err != nil {
-			handler.logger.Errorf("error finding list internal transactions by hash from blockcscout: %v", err)
+			handler.logger.Errorf("error finding list internal transactions by hash from blockscout: %v", err)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, err)
 			return

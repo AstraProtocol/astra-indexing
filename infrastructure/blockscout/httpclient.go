@@ -55,6 +55,10 @@ const GET_SOURCE_CODE = "/api/v1?module=contract&action=getsourcecode&address="
 const GET_TOKEN_DETAIL = "/api/v1?module=token&action=gettoken&contractaddress="
 const GET_TOKEN_METADATA = "/api/v1?module=token&action=getmetadata&contractaddress={contractaddresshash}&tokenid={tokenid}"
 const UPDATE_ADDRESS_BALANCE = "/api/v1?module=account&action=update_balance&address={addresshash}&block={blockheight}&balance={balance}"
+const HARD_HAT_POST_INTERFACE = "/api"
+const VERIFY_FLATTENED = "/verify_smart_contract/contract_verifications"
+const CHECK_VERIFY_STATUS = "/api/v1?module=contract&action=checkverifystatus&guid="
+const GET_SOURCE_CODE_HARD_HAT_INTERFACE = "/api?module=contract&action=getsourcecode&address="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const BALANCE_UPDATE_FAILED = "balance update failed"
@@ -145,6 +149,28 @@ func (client *HTTPClient) request(endpoint string, queryParams []string, mapping
 		rawResp.Body.Close()
 		return nil, fmt.Errorf("error requesting blockscout %s endpoint: %s", queryUrl, rawResp.Status)
 	}
+
+	return rawResp.Body, nil
+}
+
+func (client *HTTPClient) requestPost(endpoint string, rawBody interface{}) (io.ReadCloser, error) {
+	startTime := time.Now()
+	var err error
+
+	req, err := retryablehttp.NewRequestWithContext(context.Background(), http.MethodPost, endpoint, rawBody)
+	if err != nil {
+		prometheus.RecordApiExecTime(endpoint, strconv.Itoa(408), "http", time.Since(startTime).Milliseconds())
+		return nil, fmt.Errorf("error creating HTTP request with context: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	rawResp, err := client.httpClient.Do(req)
+	if err != nil {
+		prometheus.RecordApiExecTime(endpoint, strconv.Itoa(400), "http", time.Since(startTime).Milliseconds())
+		return nil, fmt.Errorf("error requesting blockscout %s endpoint: %v", endpoint, err)
+	}
+
+	prometheus.RecordApiExecTime(endpoint, strconv.Itoa(rawResp.StatusCode), "http", time.Since(startTime).Milliseconds())
 
 	return rawResp.Body, nil
 }
@@ -1263,7 +1289,7 @@ func (client *HTTPClient) GetTokenMetadata(contractAddressHash string, tokenId s
 }
 
 func (client *HTTPClient) UpdateAddressBalance(addressHash string, blockHeight string, balance string) (interface{}, error) {
-	cacheKey := fmt.Sprintf("UpdateAddressBalance_%s", addressHash)
+	cacheKey := fmt.Sprintf("BlockscoutUpdateAddressBalance_%s", addressHash)
 	var commonRespTmp CommonResp
 
 	err := client.httpCache.Get(cacheKey, &commonRespTmp)
@@ -1294,4 +1320,190 @@ func (client *HTTPClient) UpdateAddressBalance(addressHash string, blockHeight s
 	client.httpCache.Set(cacheKey, commonResp, utils.TIME_CACHE_FAST)
 
 	return commonResp.Result, nil
+}
+
+func (client *HTTPClient) Verify(bodyParams interface{}) (interface{}, error) {
+	m, ok := bodyParams.(map[string]string)
+	if !ok {
+		return nil, fmt.Errorf("Verify: cannot convert rawBody to map")
+	}
+
+	module := m["module"]
+	action := m["action"]
+	codeFormat := m["codeformat"]
+	contractAddress := m["contractaddress"]
+	cacheKey := fmt.Sprintf("BlockscoutVerify_%s_%s_%s_%s", module, action, codeFormat, contractAddress)
+
+	var commonRespTmp CommonResp
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return commonRespTmp, nil
+	}
+
+	postBody, err := json.Marshal(bodyParams)
+	if err != nil {
+		return nil, err
+	}
+
+	rawRespBody, err := client.requestPost(client.getUrl(HARD_HAT_POST_INTERFACE, ""), postBody)
+	if err != nil {
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var commonResp CommonResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&commonResp); err != nil {
+		return nil, err
+	}
+
+	if commonResp.Status == "0" {
+		return nil, fmt.Errorf("Verify: %s", commonResp.Message)
+	}
+
+	client.httpCache.Set(cacheKey, commonResp, utils.TIME_CACHE_MEDIUM)
+
+	return commonResp, nil
+}
+
+func (client *HTTPClient) VerifyFlattened(bodyParams interface{}) (interface{}, error) {
+	m, ok := bodyParams.(map[string](map[string]string))
+	if !ok {
+		return nil, fmt.Errorf("VerifyFlattened: cannot convert rawBody to map")
+	}
+
+	smartContractParams := m["smart_contract"]
+	cacheKey := fmt.Sprintf("BlockscoutVerifyFlattened_%s_%s", smartContractParams["address_hash"], smartContractParams["name"])
+
+	var respTmp interface{}
+	err := client.httpCache.Get(cacheKey, &respTmp)
+	if err == nil {
+		return respTmp, nil
+	}
+
+	postBody, err := json.Marshal(bodyParams)
+	if err != nil {
+		return nil, err
+	}
+
+	rawRespBody, err := client.requestPost(client.getUrl(VERIFY_FLATTENED, ""), postBody)
+	if err != nil {
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var resp interface{}
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&resp); err != nil {
+		return nil, err
+	}
+
+	client.httpCache.Set(cacheKey, resp, utils.TIME_CACHE_MEDIUM)
+
+	return resp, nil
+}
+
+func (client *HTTPClient) CheckVerifyStatus(guid string) (interface{}, error) {
+	cacheKey := fmt.Sprintf("BlockscoutCheckVerifyStatus_%s", guid)
+	var respTmp interface{}
+
+	err := client.httpCache.Get(cacheKey, &respTmp)
+	if err == nil {
+		return respTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(CHECK_VERIFY_STATUS, guid), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error checking verify status by guid from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var resp interface{}
+	if err := json.Unmarshal(respBody.Bytes(), &resp); err != nil {
+		client.logger.Errorf("error parsing verify status by guid from from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &resp, utils.TIME_CACHE_MEDIUM)
+
+	return resp, nil
+}
+
+func (client *HTTPClient) GetSourceCode(addressHash string) (*SourceCodeResp, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetSourceCode_%s", addressHash)
+	var respTmp SourceCodeResp
+
+	err := client.httpCache.Get(cacheKey, &respTmp)
+	if err == nil {
+		return &respTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_SOURCE_CODE_HARD_HAT_INTERFACE, addressHash), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error get source code by address hash from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var resp SourceCodeResp
+	if err := json.Unmarshal(respBody.Bytes(), &resp); err != nil {
+		client.logger.Errorf("error parsing source code by address hash from from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &resp, utils.TIME_CACHE_MEDIUM)
+
+	return &resp, nil
+}
+
+func (client *HTTPClient) Logs(bodyParams interface{}) (interface{}, error) {
+	m, ok := bodyParams.(map[string]string)
+	if !ok {
+		return nil, fmt.Errorf("Logs: cannot convert rawBody to map")
+	}
+
+	module := m["module"]
+	action := m["action"]
+	fromBlock := m["fromBlock"]
+	toBlock := m["toBlock"]
+	address := m["address"]
+	topic0 := m["topic0"]
+	cacheKey := fmt.Sprintf("BlockscoutLogs_%s_%s_%s_%s_%s_%s", module, action, fromBlock, toBlock, address, topic0)
+
+	var commonRespTmp CommonResp
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return commonRespTmp, nil
+	}
+
+	postBody, err := json.Marshal(bodyParams)
+	if err != nil {
+		return nil, err
+	}
+
+	rawRespBody, err := client.requestPost(client.getUrl(HARD_HAT_POST_INTERFACE, ""), postBody)
+	if err != nil {
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var commonResp CommonResp
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&commonResp); err != nil {
+		return nil, err
+	}
+
+	if commonResp.Status == "0" {
+		return nil, fmt.Errorf("Logs: %s", commonResp.Message)
+	}
+
+	client.httpCache.Set(cacheKey, commonResp, utils.TIME_CACHE_MEDIUM)
+
+	return commonResp, nil
 }

@@ -5,22 +5,24 @@ import (
 )
 
 type Address struct {
-	Balance             string                    `json:"balance"`
-	DelegationBalance   string                    `json:"delegationBalance"`
-	RedelegatingBalance string                    `json:"redelegatingBalance"`
-	UnbondingBalance    string                    `json:"unbondingBalance"`
-	TotalRewards        string                    `json:"totalRewards"`
-	Commissions         string                    `json:"commissions"`
-	TotalBalance        string                    `json:"totalBalance"`
-	ContractName        string                    `json:"contractName"`
-	CreationTransaction string                    `json:"creationTransaction"`
-	Creator             string                    `json:"creator"`
-	LastBalanceUpdate   int64                     `json:"lastBalanceUpdate"`
-	TokenName           string                    `json:"tokenName"`
-	TokenSymbol         string                    `json:"tokenSymbol"`
-	Type                string                    `json:"type"`
-	Verified            bool                      `json:"verified"`
-	VestingBalances     cosmosapp.VestingBalances `json:"vestingBalances"`
+	Balance                   string                    `json:"balance"`
+	DelegationBalance         string                    `json:"delegationBalance"`
+	RedelegatingBalance       string                    `json:"redelegatingBalance"`
+	UnbondingBalance          string                    `json:"unbondingBalance"`
+	TotalRewards              string                    `json:"totalRewards"`
+	Commissions               string                    `json:"commissions"`
+	TotalBalance              string                    `json:"totalBalance"`
+	ContractName              string                    `json:"contractName"`
+	CreationTransaction       string                    `json:"creationTransaction"`
+	Creator                   string                    `json:"creator"`
+	ImplementationAddressName string                    `json:"implementationAddressName"`
+	ImplementationAddressHash string                    `json:"implementationAddressHash"`
+	LastBalanceUpdate         int64                     `json:"lastBalanceUpdate"`
+	TokenName                 string                    `json:"tokenName"`
+	TokenSymbol               string                    `json:"tokenSymbol"`
+	Type                      string                    `json:"type"`
+	Verified                  bool                      `json:"verified"`
+	VestingBalances           cosmosapp.VestingBalances `json:"vestingBalances"`
 }
 
 type AddressResp struct {
