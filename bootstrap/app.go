@@ -129,9 +129,9 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 		consumer := astra_consumer.Consumer[astra_consumer.CollectedEvmTx]{
 			TimeOut:   utils.KAFKA_TIME_OUT,
 			DualStack: true,
-			Brokers:   []string{"localhost:9092"},
-			Topic:     "evm-txs",
-			GroupId:   "chainindexing",
+			Brokers:   a.config.Consumer.Brokers,
+			Topic:     a.config.Consumer.Topic,
+			GroupId:   a.config.Consumer.GroupID,
 			Offset:    utils.KAFKA_FIRST_OFFSET,
 		}
 		consumer.CreateConnection()
@@ -142,39 +142,43 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 		consumer.Fetch(
 			astra_consumer.CollectedEvmTx{},
 			func(collectedEvmTx astra_consumer.CollectedEvmTx, message kafka.Message, ctx context.Context, err error) {
-				if collectedEvmTx.BlockNumber != blockNumber {
-					if len(messages) > 0 {
-						errUpdate := rdbTransactionView.UpdateAll(mapValues)
-						if errUpdate == nil {
-							// Commit offset
-							if errCommit := consumer.Commit(ctx, messages...); errCommit != nil {
-								a.logger.Infof("Consumer partition %d failed to commit messages: %v", message.Partition, errCommit)
+				if err != nil {
+					a.logger.Infof("Kafka Consumer error: %v", err)
+				} else {
+					if collectedEvmTx.BlockNumber != blockNumber {
+						if len(messages) > 0 {
+							errUpdate := rdbTransactionView.UpdateAll(mapValues)
+							if errUpdate == nil {
+								// Commit offset
+								if errCommit := consumer.Commit(ctx, messages...); errCommit != nil {
+									a.logger.Infof("Consumer partition %d failed to commit messages: %v", message.Partition, errCommit)
+								}
+							} else {
+								a.logger.Infof("failed to update txs from Consumer partition %d: %v", message.Partition, errUpdate)
 							}
-						} else {
-							a.logger.Infof("failed to update txs from Consumer partition %d: %v", message.Partition, errUpdate)
 						}
+
+						// Reset status
+						messages = nil
+						mapValues = nil
+						blockNumber = collectedEvmTx.BlockNumber
+					}
+					feeValue := big.NewInt(0).Mul(big.NewInt(collectedEvmTx.GasUsed), big.NewInt(collectedEvmTx.GasPrice)).String()
+
+					isSuccess := true
+					if collectedEvmTx.Status == "error" {
+						isSuccess = false
 					}
 
-					// Reset status
-					messages = nil
-					mapValues = nil
-					blockNumber = collectedEvmTx.BlockNumber
-				}
-				feeValue := big.NewInt(0).Mul(big.NewInt(collectedEvmTx.GasUsed), big.NewInt(collectedEvmTx.GasPrice)).String()
+					mapValue := map[string]interface{}{
+						"evm_hash":  collectedEvmTx.TransactionHash,
+						"fee_value": feeValue,
+						"success":   isSuccess,
+					}
 
-				isSuccess := true
-				if collectedEvmTx.Status == "error" {
-					isSuccess = false
+					mapValues = append(mapValues, mapValue)
+					messages = append(messages, message)
 				}
-
-				mapValue := map[string]interface{}{
-					"evm_hash":  collectedEvmTx.TransactionHash,
-					"fee_value": feeValue,
-					"success":   isSuccess,
-				}
-
-				mapValues = append(mapValues, mapValue)
-				messages = append(messages, message)
 			},
 		)
 	}

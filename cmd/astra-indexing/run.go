@@ -111,6 +111,21 @@ func run(args []string) error {
 				Usage:   "Enable Consumer",
 				EnvVars: []string{"CONSUMER_SERVICE"},
 			},
+			&cli.StringFlag{
+				Name:    "kafkaTopic",
+				Usage:   "Kafka Topic",
+				EnvVars: []string{"KAFKA_TOPIC"},
+			},
+			&cli.StringFlag{
+				Name:    "consumerGroupId",
+				Usage:   "Kafka Consumer Group Id",
+				EnvVars: []string{"CONSUMER_GROUP_ID"},
+			},
+			&cli.StringFlag{
+				Name:    "kafkaBrokers",
+				Usage:   "Kafka Brokers List",
+				EnvVars: []string{"KAFKA_BROKERS"},
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			if args := ctx.Args(); args.Len() > 0 {
@@ -166,6 +181,15 @@ func run(args []string) error {
 			}
 			if ctx.IsSet("consumer") {
 				cliConfig.Consumer = primptr.Bool(ctx.Bool("consumer"))
+			}
+			if ctx.IsSet("kafkaTopic") {
+				cliConfig.KafkaTopic = ctx.String("kafkaTopic")
+			}
+			if ctx.IsSet("consumerGroupId") {
+				cliConfig.ConsumerGroupId = ctx.String("consumerGroupId")
+			}
+			if ctx.IsSet("kafkaBrokers") {
+				cliConfig.KafkaBrokers = ctx.String("kafkaBrokers")
 			}
 
 			OverrideByCLIConfig(&config, &cliConfig)

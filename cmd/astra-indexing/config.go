@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/AstraProtocol/astra-indexing/bootstrap/config"
 )
 
@@ -37,7 +39,10 @@ type CLIConfig struct {
 
 	CronjobStats *bool
 
-	Consumer *bool
+	Consumer        *bool
+	KafkaTopic      string
+	ConsumerGroupId string
+	KafkaBrokers    string
 }
 
 func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
@@ -93,5 +98,14 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	}
 	if cliConfig.Consumer != nil {
 		config.Consumer.Enable = *cliConfig.Consumer
+	}
+	if cliConfig.KafkaTopic != "" {
+		config.Consumer.Topic = cliConfig.KafkaTopic
+	}
+	if cliConfig.ConsumerGroupId != "" {
+		config.Consumer.GroupID = cliConfig.ConsumerGroupId
+	}
+	if cliConfig.KafkaBrokers != "" {
+		config.Consumer.Brokers = strings.Split(cliConfig.KafkaBrokers, ",")
 	}
 }
