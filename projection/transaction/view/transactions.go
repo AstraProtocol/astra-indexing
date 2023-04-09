@@ -685,17 +685,28 @@ func (transactionsView *BlockTransactionsView) UpdateAll(mapValues []map[string]
 
 	var updateValues string
 	for index, mapValue := range mapValues {
-		evmHash := mapValue["evm_hash"].(string)
 		feeValue := mapValue["fee_value"].(string)
+
+		var fee []map[string]string
+		fee = append(fee, map[string]string{"denom": "aastra", "amount": feeValue})
+		var feeJSON string
+		var marshalErr error
+		if feeJSON, marshalErr = json.MarshalToString(fee); marshalErr != nil {
+			return fmt.Errorf(
+				"error JSON marshalling evm tx fee for update: %v: %w", marshalErr, rdb.ErrBuildSQLStmt,
+			)
+		}
+
+		evmHash := mapValue["evm_hash"].(string)
 		success := mapValue["success"].(bool)
 		if index == 0 {
-			updateValues = fmt.Sprintf("('%s','%s'::DECIMAL,%v)", evmHash, feeValue, success)
+			updateValues = fmt.Sprintf("('%s','%s'::DECIMAL,'%s',%v)", evmHash, feeValue, feeJSON, success)
 		} else {
-			updateValues = updateValues + fmt.Sprintf(",('%s','%s'::DECIMAL,%v)", evmHash, feeValue, success)
+			updateValues = updateValues + fmt.Sprintf(",('%s','%s'::DECIMAL,'%s',%v)", evmHash, feeValue, feeJSON, success)
 		}
 	}
-	bulkUpdate := fmt.Sprintf(`UPDATE %s SET fee_value=tmp.fee_value,success=tmp.success `+
-		`FROM (values %s) AS tmp (evm_hash,fee_value,success) `+
+	bulkUpdate := fmt.Sprintf(`UPDATE %s SET fee_value=tmp.fee_value,fee=CAST(tmp.fee AS json),success=tmp.success `+
+		`FROM (values %s) AS tmp (evm_hash,fee_value,fee,success) `+
 		`WHERE %s.evm_hash=tmp.evm_hash;`, tableName, updateValues, tableName)
 
 	execResult, err := transactionsView.rdb.Exec(bulkUpdate)
