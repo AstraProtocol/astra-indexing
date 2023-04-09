@@ -39,7 +39,7 @@ type CLIConfig struct {
 
 	CronjobStats *bool
 
-	Consumer        *bool
+	EnableConsumer  *bool
 	KafkaTopic      string
 	ConsumerGroupId string
 	KafkaBrokers    string
@@ -96,16 +96,16 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	if cliConfig.CronjobStats != nil {
 		config.CronjobStats.Enable = *cliConfig.CronjobStats
 	}
-	if cliConfig.Consumer != nil {
-		config.Consumer.Enable = *cliConfig.Consumer
+	if cliConfig.EnableConsumer != nil {
+		config.KafkaService.EnableConsumer = *cliConfig.EnableConsumer
 	}
 	if cliConfig.KafkaTopic != "" {
-		config.Consumer.Topic = cliConfig.KafkaTopic
+		config.KafkaService.Topic = cliConfig.KafkaTopic
 	}
 	if cliConfig.ConsumerGroupId != "" {
-		config.Consumer.GroupID = cliConfig.ConsumerGroupId
+		config.KafkaService.GroupID = cliConfig.ConsumerGroupId
 	}
 	if cliConfig.KafkaBrokers != "" {
-		config.Consumer.Brokers = strings.Split(cliConfig.KafkaBrokers, ",")
+		config.KafkaService.Brokers = strings.Split(cliConfig.KafkaBrokers, ",")
 	}
 }

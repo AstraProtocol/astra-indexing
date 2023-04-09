@@ -107,9 +107,9 @@ func run(args []string) error {
 				EnvVars: []string{"STATISTICS_SERVICE"},
 			},
 			&cli.BoolFlag{
-				Name:    "consumer",
+				Name:    "enableConsumer",
 				Usage:   "Enable Consumer",
-				EnvVars: []string{"CONSUMER_SERVICE"},
+				EnvVars: []string{"ENABLE_CONSUMER"},
 			},
 			&cli.StringFlag{
 				Name:    "kafkaTopic",
@@ -179,8 +179,8 @@ func run(args []string) error {
 			if ctx.IsSet("cronjobStats") {
 				cliConfig.CronjobStats = primptr.Bool(ctx.Bool("cronjobStats"))
 			}
-			if ctx.IsSet("consumer") {
-				cliConfig.Consumer = primptr.Bool(ctx.Bool("consumer"))
+			if ctx.IsSet("enableConsumer") {
+				cliConfig.EnableConsumer = primptr.Bool(ctx.Bool("enableConsumer"))
 			}
 			if ctx.IsSet("kafkaTopic") {
 				cliConfig.KafkaTopic = ctx.String("kafkaTopic")

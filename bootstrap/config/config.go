@@ -15,7 +15,7 @@ type Config struct {
 	Logger        Logger        `yaml:"logger" toml:"logger" xml:"logger" json:"logger"`
 	Prometheus    Prometheus    `yaml:"prometheus" toml:"prometheus" xml:"prometheus" json:"prometheus"`
 	CronjobStats  CronjobStats  `yaml:"cronjobstats" toml:"cronjobstats" xml:"cronjobstats" json:"cronjobstats"`
-	Consumer      Consumer      `yaml:"consumer" toml:"consumer" xml:"consumer" json:"consumer"`
+	KafkaService  KafkaService  `yaml:"kafka_service" toml:"kafka_service" xml:"kafka_service" json:"kafka_service"`
 }
 
 type IndexService struct {
@@ -39,11 +39,11 @@ type HTTPService struct {
 	CorsAllowedHeaders []string `yaml:"cors_allowed_headers" toml:"cors_allowed_headers" xml:"cors_allowed_headers" json:"cors_allowed_headers,omitempty"`
 }
 
-type Consumer struct {
-	Enable  bool     `yaml:"enable" toml:"enable" xml:"enable" json:"enable,omitempty"`
-	Brokers []string `yaml:"brokers" toml:"brokers" xml:"brokers" json:"brokers,omitempty"`
-	Topic   string   `yaml:"topic" toml:"topic" xml:"topic" json:"topic,omitempty"`
-	GroupID string   `yaml:"group_id" toml:"group_id" xml:"group_id" json:"group_id,omitempty"`
+type KafkaService struct {
+	EnableConsumer bool     `yaml:"enable_consumer" toml:"enable_consumer" xml:"enable_consumer" json:"enable_consumer,omitempty"`
+	Brokers        []string `yaml:"brokers" toml:"brokers" xml:"brokers" json:"brokers,omitempty"`
+	Topic          string   `yaml:"topic" toml:"topic" xml:"topic" json:"topic,omitempty"`
+	GroupID        string   `yaml:"group_id" toml:"group_id" xml:"group_id" json:"group_id,omitempty"`
 }
 
 type Blockchain struct {
