@@ -2,7 +2,11 @@ package consumer
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"fmt"
+	"os"
 	"time"
 
 	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
@@ -21,14 +25,28 @@ type Consumer[T comparable] struct {
 	Password string
 }
 
-func (c *Consumer[T]) CreateConnection() {
+func (c *Consumer[T]) CreateConnection() error {
+	caCert, err := os.ReadFile("ca.crt")
+	if err != nil {
+		return fmt.Errorf("error reading ca cert file: %v", err)
+	}
+	caCertPool := x509.NewCertPool()
+	ok := caCertPool.AppendCertsFromPEM(caCert)
+	if !ok {
+		return fmt.Errorf("error appending ca cert")
+	}
+	tlsConfig := &tls.Config{
+		RootCAs: caCertPool,
+	}
+
 	mechanism, err := scram.Mechanism(scram.SHA256, c.User, c.Password)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("error setup scram mechanism: %v", err)
 	}
 	dialer := &kafka.Dialer{
 		Timeout:       c.TimeOut,
 		DualStack:     true,
+		TLS:           tlsConfig,
 		SASLMechanism: mechanism,
 	}
 	c.reader = kafka.NewReader(kafka.ReaderConfig{
@@ -41,6 +59,7 @@ func (c *Consumer[T]) CreateConnection() {
 		Dialer:   dialer,
 	})
 	c.reader.SetOffset(c.Offset)
+	return nil
 }
 
 // Auto commit offset

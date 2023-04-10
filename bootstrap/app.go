@@ -135,7 +135,10 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 			Password: a.config.KafkaService.Password,
 			Offset:   utils.KAFKA_FIRST_OFFSET,
 		}
-		consumer.CreateConnection()
+		errConn := consumer.CreateConnection()
+		if errConn != nil {
+			a.logger.Panicf("%v", errConn)
+		}
 
 		var messages []kafka.Message
 		var mapValues []map[string]interface{}
@@ -144,8 +147,10 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 			astra_consumer.CollectedEvmTx{},
 			func(collectedEvmTx astra_consumer.CollectedEvmTx, message kafka.Message, ctx context.Context, err error) {
 				if err != nil {
+					fmt.Println(err)
 					a.logger.Infof("Kafka Consumer error: %v", err)
 				} else {
+					fmt.Println(collectedEvmTx)
 					if collectedEvmTx.BlockNumber != blockNumber {
 						if len(messages) > 0 {
 							errUpdate := rdbTransactionView.UpdateAll(mapValues)
