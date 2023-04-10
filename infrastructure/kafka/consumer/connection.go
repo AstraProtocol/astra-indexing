@@ -11,15 +11,14 @@ import (
 )
 
 type Consumer[T comparable] struct {
-	reader    *kafka.Reader
-	Brokers   []string
-	Topic     string
-	GroupId   string
-	TimeOut   time.Duration
-	DualStack bool
-	Offset    int64
-	User      string
-	Password  string
+	reader   *kafka.Reader
+	Brokers  []string
+	Topic    string
+	GroupId  string
+	TimeOut  time.Duration
+	Offset   int64
+	User     string
+	Password string
 }
 
 func (c *Consumer[T]) CreateConnection() {
@@ -29,7 +28,7 @@ func (c *Consumer[T]) CreateConnection() {
 	}
 	dialer := &kafka.Dialer{
 		Timeout:       c.TimeOut,
-		DualStack:     c.DualStack,
+		DualStack:     true,
 		SASLMechanism: mechanism,
 	}
 	c.reader = kafka.NewReader(kafka.ReaderConfig{
@@ -73,7 +72,7 @@ func (c *Consumer[T]) Read(model T, callback func(T, error)) {
 
 func (c *Consumer[T]) Fetch(model T, callback func(T, kafka.Message, context.Context, error)) {
 	for {
-		ctx, cancelFunction := context.WithTimeout(context.Background(), time.Millisecond*100)
+		ctx, cancelFunction := context.WithTimeout(context.Background(), utils.KAFKA_NEW_DATA_MAX_WAIT*5)
 		defer func() {
 			// do nothing
 			cancelFunction()

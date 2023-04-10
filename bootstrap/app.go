@@ -127,14 +127,13 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 		rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
 
 		consumer := astra_consumer.Consumer[astra_consumer.CollectedEvmTx]{
-			TimeOut:   utils.KAFKA_TIME_OUT,
-			DualStack: true,
-			Brokers:   a.config.KafkaService.Brokers,
-			Topic:     a.config.KafkaService.Topic,
-			GroupId:   a.config.KafkaService.GroupID,
-			User:      a.config.KafkaService.User,
-			Password:  a.config.KafkaService.Password,
-			Offset:    utils.KAFKA_FIRST_OFFSET,
+			TimeOut:  utils.KAFKA_TIME_OUT,
+			Brokers:  a.config.KafkaService.Brokers,
+			Topic:    a.config.KafkaService.Topic,
+			GroupId:  a.config.KafkaService.GroupID,
+			User:     a.config.KafkaService.User,
+			Password: a.config.KafkaService.Password,
+			Offset:   utils.KAFKA_FIRST_OFFSET,
 		}
 		consumer.CreateConnection()
 
