@@ -132,6 +132,8 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 			Brokers:   a.config.KafkaService.Brokers,
 			Topic:     a.config.KafkaService.Topic,
 			GroupId:   a.config.KafkaService.GroupID,
+			User:      a.config.KafkaService.User,
+			Password:  a.config.KafkaService.Password,
 			Offset:    utils.KAFKA_FIRST_OFFSET,
 		}
 		consumer.CreateConnection()

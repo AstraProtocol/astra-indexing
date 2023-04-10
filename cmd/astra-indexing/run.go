@@ -126,6 +126,16 @@ func run(args []string) error {
 				Usage:   "Kafka Brokers List",
 				EnvVars: []string{"KAFKA_BROKERS"},
 			},
+			&cli.StringFlag{
+				Name:    "kafkaUser",
+				Usage:   "Kafka Username",
+				EnvVars: []string{"KAFKA_USER"},
+			},
+			&cli.StringFlag{
+				Name:    "kafkaPassword",
+				Usage:   "Kafka Password",
+				EnvVars: []string{"KAFKA_PASSWORD"},
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			if args := ctx.Args(); args.Len() > 0 {
@@ -190,6 +200,12 @@ func run(args []string) error {
 			}
 			if ctx.IsSet("kafkaBrokers") {
 				cliConfig.KafkaBrokers = ctx.String("kafkaBrokers")
+			}
+			if ctx.IsSet("kafkaUser") {
+				cliConfig.KafkaUser = ctx.String("kafkaUser")
+			}
+			if ctx.IsSet("kafkaPassword") {
+				cliConfig.KafkaPassword = ctx.String("kafkaPassword")
 			}
 
 			OverrideByCLIConfig(&config, &cliConfig)

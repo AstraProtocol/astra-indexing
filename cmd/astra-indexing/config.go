@@ -43,6 +43,8 @@ type CLIConfig struct {
 	KafkaTopic      string
 	ConsumerGroupId string
 	KafkaBrokers    string
+	KafkaUser       string
+	KafkaPassword   string
 }
 
 func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
@@ -107,5 +109,11 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	}
 	if cliConfig.KafkaBrokers != "" {
 		config.KafkaService.Brokers = strings.Split(cliConfig.KafkaBrokers, ",")
+	}
+	if cliConfig.KafkaUser != "" {
+		config.KafkaService.User = cliConfig.KafkaUser
+	}
+	if cliConfig.KafkaPassword != "" {
+		config.KafkaService.Password = cliConfig.KafkaPassword
 	}
 }

@@ -7,6 +7,7 @@ import (
 
 	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl/scram"
 )
 
 type Consumer[T comparable] struct {
@@ -17,12 +18,19 @@ type Consumer[T comparable] struct {
 	TimeOut   time.Duration
 	DualStack bool
 	Offset    int64
+	User      string
+	Password  string
 }
 
 func (c *Consumer[T]) CreateConnection() {
+	mechanism, err := scram.Mechanism(scram.SHA256, c.User, c.Password)
+	if err != nil {
+		panic(err)
+	}
 	dialer := &kafka.Dialer{
-		Timeout:   c.TimeOut,
-		DualStack: c.DualStack,
+		Timeout:       c.TimeOut,
+		DualStack:     c.DualStack,
+		SASLMechanism: mechanism,
 	}
 	c.reader = kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  c.Brokers,

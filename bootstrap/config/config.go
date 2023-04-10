@@ -44,6 +44,8 @@ type KafkaService struct {
 	Brokers        []string `yaml:"brokers" toml:"brokers" xml:"brokers" json:"brokers,omitempty"`
 	Topic          string   `yaml:"topic" toml:"topic" xml:"topic" json:"topic,omitempty"`
 	GroupID        string   `yaml:"group_id" toml:"group_id" xml:"group_id" json:"group_id,omitempty"`
+	User           string   `yaml:"user" toml:"user" xml:"user" json:"user,omitempty"`
+	Password       string   `yaml:"password" toml:"password" xml:"password" json:"password,omitempty"`
 }
 
 type Blockchain struct {
