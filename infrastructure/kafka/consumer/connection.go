@@ -26,7 +26,7 @@ type Consumer[T comparable] struct {
 }
 
 func (c *Consumer[T]) CreateConnection() error {
-	caCert, err := os.ReadFile("ca.crt")
+	caCert, err := os.ReadFile("infrastructure/kafka/ca-dev.crt")
 	if err != nil {
 		return fmt.Errorf("error reading ca cert file: %v", err)
 	}
