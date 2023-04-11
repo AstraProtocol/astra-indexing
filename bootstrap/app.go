@@ -124,70 +124,75 @@ func (a *app) Run() {
 
 func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 	if a.config.KafkaService.EnableConsumer {
-		rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
+		go func() {
+			rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
 
-		consumer := astra_consumer.Consumer[astra_consumer.CollectedEvmTx]{
-			TimeOut:  utils.KAFKA_TIME_OUT,
-			Brokers:  a.config.KafkaService.Brokers,
-			Topic:    a.config.KafkaService.Topic,
-			GroupId:  a.config.KafkaService.GroupID,
-			User:     a.config.KafkaService.User,
-			Password: a.config.KafkaService.Password,
-			Offset:   utils.KAFKA_FIRST_OFFSET,
-		}
-		errConn := consumer.CreateConnection()
-		if errConn != nil {
-			a.logger.Panicf("%v", errConn)
-		}
+			consumer := astra_consumer.Consumer[astra_consumer.CollectedEvmTx]{
+				TimeOut:  utils.KAFKA_TIME_OUT,
+				Brokers:  a.config.KafkaService.Brokers,
+				Topic:    a.config.KafkaService.Topic,
+				GroupId:  a.config.KafkaService.GroupID,
+				User:     a.config.KafkaService.User,
+				Password: a.config.KafkaService.Password,
+			}
+			errConn := consumer.CreateConnection()
+			if errConn != nil {
+				a.logger.Panicf("%v", errConn)
+			}
 
-		var messages []kafka.Message
-		var mapValues []map[string]interface{}
-		blockNumber := int64(0)
-		consumer.Fetch(
-			astra_consumer.CollectedEvmTx{},
-			func(collectedEvmTx astra_consumer.CollectedEvmTx, message kafka.Message, ctx context.Context, err error) {
-				if err != nil {
-					fmt.Println(err)
-					a.logger.Infof("Kafka Consumer error: %v", err)
-				} else {
-					fmt.Println(collectedEvmTx)
-					if collectedEvmTx.BlockNumber != blockNumber {
-						if len(messages) > 0 {
-							errUpdate := rdbTransactionView.UpdateAll(mapValues)
-							if errUpdate == nil {
-								// Commit offset
-								if errCommit := consumer.Commit(ctx, messages...); errCommit != nil {
-									a.logger.Infof("Consumer partition %d failed to commit messages: %v", message.Partition, errCommit)
+			var messages []kafka.Message
+			var mapValues []map[string]interface{}
+			blockNumber := int64(0)
+			consumer.Fetch(
+				astra_consumer.CollectedEvmTx{},
+				func(collectedEvmTx astra_consumer.CollectedEvmTx, message kafka.Message, ctx context.Context, err error) {
+					if err != nil {
+						a.logger.Infof("Kafka Consumer error: %v", err)
+					} else {
+						fmt.Println(collectedEvmTx)
+						if collectedEvmTx.BlockNumber != blockNumber {
+							if len(mapValues) > 0 {
+								errUpdate := rdbTransactionView.UpdateAll(mapValues)
+								if errUpdate == nil {
+									// Commit offset
+									if errCommit := consumer.Commit(ctx, messages...); errCommit != nil {
+										a.logger.Infof("Consumer partition %d failed to commit messages: %v", message.Partition, errCommit)
+									}
+								} else {
+									a.logger.Infof("failed to update txs from Consumer partition %d: %v", message.Partition, errUpdate)
 								}
-							} else {
-								a.logger.Infof("failed to update txs from Consumer partition %d: %v", message.Partition, errUpdate)
 							}
+
+							// Reset status
+							messages = nil
+							mapValues = nil
+							blockNumber = collectedEvmTx.BlockNumber
+						}
+						feeValue := big.NewInt(0).Mul(big.NewInt(collectedEvmTx.GasUsed), big.NewInt(collectedEvmTx.GasPrice)).String()
+
+						isSuccess := true
+						if collectedEvmTx.Status == "error" {
+							isSuccess = false
 						}
 
-						// Reset status
-						messages = nil
-						mapValues = nil
-						blockNumber = collectedEvmTx.BlockNumber
-					}
-					feeValue := big.NewInt(0).Mul(big.NewInt(collectedEvmTx.GasUsed), big.NewInt(collectedEvmTx.GasPrice)).String()
+						mapValue := map[string]interface{}{
+							"evm_hash":  collectedEvmTx.TransactionHash,
+							"fee_value": feeValue,
+							"success":   isSuccess,
+						}
 
-					isSuccess := true
-					if collectedEvmTx.Status == "error" {
-						isSuccess = false
+						mapValues = append(mapValues, mapValue)
+						messages = append(messages, message)
 					}
+				},
+			)
 
-					mapValue := map[string]interface{}{
-						"evm_hash":  collectedEvmTx.TransactionHash,
-						"fee_value": feeValue,
-						"success":   isSuccess,
-					}
-
-					mapValues = append(mapValues, mapValue)
-					messages = append(messages, message)
-				}
-			},
-		)
+			if err := consumer.Close(); err != nil {
+				a.logger.Panicf("Failed to close consumer reader:", err)
+			}
+		}()
 	}
+
 }
 
 func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {

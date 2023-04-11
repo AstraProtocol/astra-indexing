@@ -20,7 +20,6 @@ type Consumer[T comparable] struct {
 	Topic    string
 	GroupId  string
 	TimeOut  time.Duration
-	Offset   int64
 	User     string
 	Password string
 }
@@ -36,7 +35,8 @@ func (c *Consumer[T]) CreateConnection() error {
 		return fmt.Errorf("error appending ca cert")
 	}
 	tlsConfig := &tls.Config{
-		RootCAs: caCertPool,
+		InsecureSkipVerify: true,
+		RootCAs:            caCertPool,
 	}
 
 	mechanism, err := scram.Mechanism(scram.SHA256, c.User, c.Password)
@@ -49,23 +49,27 @@ func (c *Consumer[T]) CreateConnection() error {
 		TLS:           tlsConfig,
 		SASLMechanism: mechanism,
 	}
+
 	c.reader = kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  c.Brokers,
-		Topic:    c.Topic,
-		GroupID:  c.GroupId,
-		MinBytes: 10e3, // 10KB
-		MaxBytes: 10e6, // 10MB
-		MaxWait:  utils.KAFKA_NEW_DATA_MAX_WAIT,
-		Dialer:   dialer,
+		Brokers:          c.Brokers,
+		Topic:            c.Topic,
+		GroupID:          c.GroupId,
+		MinBytes:         1,        // same value of Shopify/sarama
+		MaxBytes:         57671680, // java client default
+		MaxWait:          utils.KAFKA_NEW_DATA_MAX_WAIT,
+		StartOffset:      kafka.FirstOffset,
+		ReadBatchTimeout: utils.KAFKA_READ_BATCH_TIME_OUT,
+		Dialer:           dialer,
+		Logger:           kafka.LoggerFunc(logf),
+		ErrorLogger:      kafka.LoggerFunc(logf),
 	})
-	c.reader.SetOffset(c.Offset)
 	return nil
 }
 
 // Auto commit offset
 func (c *Consumer[T]) Read(model T, callback func(T, error)) {
 	for {
-		ctx, cancelFunction := context.WithTimeout(context.Background(), utils.KAFKA_NEW_DATA_MAX_WAIT*5)
+		ctx, cancelFunction := context.WithTimeout(context.Background(), utils.KAFKA_NEW_DATA_MAX_WAIT*3)
 		defer func() {
 			// Do nothing
 			cancelFunction()
@@ -91,7 +95,7 @@ func (c *Consumer[T]) Read(model T, callback func(T, error)) {
 
 func (c *Consumer[T]) Fetch(model T, callback func(T, kafka.Message, context.Context, error)) {
 	for {
-		ctx, cancelFunction := context.WithTimeout(context.Background(), utils.KAFKA_NEW_DATA_MAX_WAIT*5)
+		ctx, cancelFunction := context.WithTimeout(context.Background(), utils.KAFKA_NEW_DATA_MAX_WAIT*3)
 		defer func() {
 			// do nothing
 			cancelFunction()
@@ -122,4 +126,9 @@ func (c *Consumer[T]) Commit(ctx context.Context, msgs ...kafka.Message) error {
 
 func (c *Consumer[T]) Close() error {
 	return c.reader.Close()
+}
+
+func logf(msg string, a ...interface{}) {
+	fmt.Printf(msg, a...)
+	fmt.Println()
 }
