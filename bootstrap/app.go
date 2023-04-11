@@ -10,6 +10,7 @@ import (
 	config "github.com/AstraProtocol/astra-indexing/bootstrap/config"
 	projection_entity "github.com/AstraProtocol/astra-indexing/entity/projection"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	astra_consumer "github.com/AstraProtocol/astra-indexing/infrastructure/kafka/consumer"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg"
 	"github.com/golang-migrate/migrate/v4"
@@ -108,6 +109,14 @@ func (a *app) Run() {
 	if a.config.Prometheus.Enable {
 		go func() {
 			if runErr := prometheus.Run(a.config.Prometheus.ExportPath, a.config.Prometheus.Port); runErr != nil {
+				a.logger.Panicf("%v", runErr)
+			}
+		}()
+	}
+
+	if a.config.KafkaService.EnableConsumer {
+		go func() {
+			if runErr := astra_consumer.RunConsumerEvmTxs(a.rdbConn.ToHandle(), a.config, a.logger); runErr != nil {
 				a.logger.Panicf("%v", runErr)
 			}
 		}()

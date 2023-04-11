@@ -106,6 +106,36 @@ func run(args []string) error {
 				Usage:   "Enable Cronjob Statistics",
 				EnvVars: []string{"STATISTICS_SERVICE"},
 			},
+			&cli.BoolFlag{
+				Name:    "enableConsumer",
+				Usage:   "Enable Consumer",
+				EnvVars: []string{"ENABLE_CONSUMER"},
+			},
+			&cli.StringFlag{
+				Name:    "kafkaTopic",
+				Usage:   "Kafka Topic",
+				EnvVars: []string{"KAFKA_TOPIC"},
+			},
+			&cli.StringFlag{
+				Name:    "consumerGroupId",
+				Usage:   "Kafka Consumer Group Id",
+				EnvVars: []string{"CONSUMER_GROUP_ID"},
+			},
+			&cli.StringFlag{
+				Name:    "kafkaBrokers",
+				Usage:   "Kafka Brokers List",
+				EnvVars: []string{"KAFKA_BROKERS"},
+			},
+			&cli.StringFlag{
+				Name:    "kafkaUser",
+				Usage:   "Kafka Username",
+				EnvVars: []string{"KAFKA_USER"},
+			},
+			&cli.StringFlag{
+				Name:    "kafkaPassword",
+				Usage:   "Kafka Password",
+				EnvVars: []string{"KAFKA_PASSWORD"},
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			if args := ctx.Args(); args.Len() > 0 {
@@ -158,6 +188,24 @@ func run(args []string) error {
 			}
 			if ctx.IsSet("cronjobStats") {
 				cliConfig.CronjobStats = primptr.Bool(ctx.Bool("cronjobStats"))
+			}
+			if ctx.IsSet("enableConsumer") {
+				cliConfig.EnableConsumer = primptr.Bool(ctx.Bool("enableConsumer"))
+			}
+			if ctx.IsSet("kafkaTopic") {
+				cliConfig.KafkaTopic = ctx.String("kafkaTopic")
+			}
+			if ctx.IsSet("consumerGroupId") {
+				cliConfig.ConsumerGroupId = ctx.String("consumerGroupId")
+			}
+			if ctx.IsSet("kafkaBrokers") {
+				cliConfig.KafkaBrokers = ctx.String("kafkaBrokers")
+			}
+			if ctx.IsSet("kafkaUser") {
+				cliConfig.KafkaUser = ctx.String("kafkaUser")
+			}
+			if ctx.IsSet("kafkaPassword") {
+				cliConfig.KafkaPassword = ctx.String("kafkaPassword")
 			}
 
 			OverrideByCLIConfig(&config, &cliConfig)
