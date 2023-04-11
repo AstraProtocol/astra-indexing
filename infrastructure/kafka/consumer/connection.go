@@ -6,10 +6,15 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"time"
 
+	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	config "github.com/AstraProtocol/astra-indexing/bootstrap/config"
+	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
+	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/scram"
 )
@@ -120,4 +125,69 @@ func (c *Consumer[T]) Close() error {
 func logf(msg string, a ...interface{}) {
 	fmt.Printf(msg, a...)
 	fmt.Println()
+}
+
+func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger) error {
+	rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
+
+	consumer := Consumer[CollectedEvmTx]{
+		TimeOut:  utils.KAFKA_TIME_OUT,
+		Brokers:  config.KafkaService.Brokers,
+		Topic:    config.KafkaService.Topic,
+		GroupId:  config.KafkaService.GroupID,
+		User:     config.KafkaService.User,
+		Password: config.KafkaService.Password,
+	}
+	errConn := consumer.CreateConnection()
+	if errConn != nil {
+		return errConn
+	}
+
+	var messages []kafka.Message
+	var mapValues []map[string]interface{}
+	blockNumber := int64(0)
+	consumer.Fetch(
+		CollectedEvmTx{},
+		func(collectedEvmTx CollectedEvmTx, message kafka.Message, ctx context.Context, err error) {
+			if err != nil {
+				logger.Infof("Kafka Consumer error: %v", err)
+			} else {
+				if collectedEvmTx.BlockNumber != blockNumber {
+					if len(mapValues) > 0 {
+						errUpdate := rdbTransactionView.UpdateAll(mapValues)
+						if errUpdate == nil {
+							// Commit offset
+							if errCommit := consumer.Commit(ctx, messages...); errCommit != nil {
+								logger.Infof("Consumer partition %d failed to commit messages: %v", message.Partition, errCommit)
+							}
+						} else {
+							logger.Infof("failed to update txs from Consumer partition %d: %v", message.Partition, errUpdate)
+						}
+					}
+
+					// Reset status
+					messages = nil
+					mapValues = nil
+					blockNumber = collectedEvmTx.BlockNumber
+				}
+				feeValue := big.NewInt(0).Mul(big.NewInt(collectedEvmTx.GasUsed), big.NewInt(collectedEvmTx.GasPrice)).String()
+
+				isSuccess := true
+				if collectedEvmTx.Status == "error" {
+					isSuccess = false
+				}
+
+				mapValue := map[string]interface{}{
+					"evm_hash":  collectedEvmTx.TransactionHash,
+					"fee_value": feeValue,
+					"success":   isSuccess,
+				}
+
+				mapValues = append(mapValues, mapValue)
+				messages = append(messages, message)
+			}
+		},
+	)
+
+	return nil
 }
