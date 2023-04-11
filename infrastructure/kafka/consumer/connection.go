@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -27,6 +28,7 @@ type Consumer[T comparable] struct {
 	TimeOut  time.Duration
 	User     string
 	Password string
+	Sigchan  chan os.Signal
 }
 
 func (c *Consumer[T]) CreateConnection() error {
@@ -72,45 +74,59 @@ func (c *Consumer[T]) CreateConnection() error {
 
 // Auto commit offset
 func (c *Consumer[T]) Read(model T, callback func(T, error)) {
-	for {
-		ctx := context.Background()
-		message, err := c.reader.ReadMessage(ctx)
+	run := true
+	for run {
+		select {
+		case <-c.Sigchan:
+			run = false
+		default:
+			ctx := context.Background()
+			message, err := c.reader.ReadMessage(ctx)
 
-		if err != nil {
-			callback(model, err)
-			return
+			if err != nil {
+				callback(model, err)
+				return
+			}
+
+			err = json.Unmarshal(message.Value, &model)
+
+			if err != nil {
+				callback(model, err)
+				continue
+			}
+
+			callback(model, nil)
 		}
-
-		err = json.Unmarshal(message.Value, &model)
-
-		if err != nil {
-			callback(model, err)
-			continue
-		}
-
-		callback(model, nil)
 	}
+	c.Close()
 }
 
 func (c *Consumer[T]) Fetch(model T, callback func(T, kafka.Message, context.Context, error)) {
-	for {
-		ctx := context.Background()
-		message, err := c.reader.FetchMessage(ctx)
+	run := true
+	for run {
+		select {
+		case <-c.Sigchan:
+			run = false
+		default:
+			ctx := context.Background()
+			message, err := c.reader.FetchMessage(ctx)
 
-		if err != nil {
-			callback(model, message, ctx, err)
-			return
+			if err != nil {
+				callback(model, message, ctx, err)
+				return
+			}
+
+			err = json.Unmarshal(message.Value, &model)
+
+			if err != nil {
+				callback(model, message, ctx, err)
+				continue
+			}
+
+			callback(model, message, ctx, nil)
 		}
-
-		err = json.Unmarshal(message.Value, &model)
-
-		if err != nil {
-			callback(model, message, ctx, err)
-			continue
-		}
-
-		callback(model, message, ctx, nil)
 	}
+	c.Close()
 }
 
 // Commit offset manual
@@ -128,6 +144,9 @@ func logf(msg string, a ...interface{}) {
 }
 
 func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger) error {
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, os.Interrupt)
+
 	rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
 
 	consumer := Consumer[CollectedEvmTx]{
@@ -137,6 +156,7 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 		GroupId:  config.KafkaService.GroupID,
 		User:     config.KafkaService.User,
 		Password: config.KafkaService.Password,
+		Sigchan:  sigchan,
 	}
 	errConn := consumer.CreateConnection()
 	if errConn != nil {
