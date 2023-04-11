@@ -20,7 +20,7 @@ import (
 	"github.com/segmentio/kafka-go/sasl/scram"
 )
 
-type Consumer[T comparable] struct {
+type Consumer[T any] struct {
 	reader   *kafka.Reader
 	Brokers  []string
 	Topic    string
@@ -142,7 +142,7 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 
 	rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
 
-	consumer := Consumer[CollectedEvmTx]{
+	consumer := Consumer[[]CollectedEvmTx]{
 		TimeOut:  utils.KAFKA_TIME_OUT,
 		Brokers:  config.KafkaService.Brokers,
 		Topic:    config.KafkaService.Topic,
@@ -156,48 +156,39 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 		return errConn
 	}
 
-	var messages []kafka.Message
 	var mapValues []map[string]interface{}
-	blockNumber := int64(0)
 	consumer.Fetch(
-		CollectedEvmTx{},
-		func(collectedEvmTx CollectedEvmTx, message kafka.Message, ctx context.Context, err error) {
+		[]CollectedEvmTx{},
+		func(collectedEvmTxs []CollectedEvmTx, message kafka.Message, ctx context.Context, err error) {
 			if err != nil {
 				logger.Infof("Kafka Consumer error: %v", err)
 			} else {
-				if collectedEvmTx.BlockNumber != blockNumber {
-					if len(mapValues) > 0 {
-						errUpdate := rdbTransactionView.UpdateAll(mapValues)
-						if errUpdate == nil {
-							// Commit offset
-							if errCommit := consumer.Commit(ctx, messages...); errCommit != nil {
-								logger.Infof("Consumer partition %d failed to commit messages: %v", message.Partition, errCommit)
-							}
-						} else {
-							logger.Infof("failed to update txs from Consumer partition %d: %v", message.Partition, errUpdate)
-						}
+				mapValues = nil
+				for _, evmTx := range collectedEvmTxs {
+					feeValue := big.NewInt(0).Mul(big.NewInt(evmTx.GasUsed), big.NewInt(evmTx.GasPrice)).String()
+					isSuccess := true
+					if evmTx.Status == "error" {
+						isSuccess = false
 					}
-
-					// Reset status
-					messages = nil
-					mapValues = nil
-					blockNumber = collectedEvmTx.BlockNumber
-				}
-				feeValue := big.NewInt(0).Mul(big.NewInt(collectedEvmTx.GasUsed), big.NewInt(collectedEvmTx.GasPrice)).String()
-
-				isSuccess := true
-				if collectedEvmTx.Status == "error" {
-					isSuccess = false
+					mapValue := map[string]interface{}{
+						"evm_hash":  evmTx.TransactionHash,
+						"fee_value": feeValue,
+						"success":   isSuccess,
+					}
+					mapValues = append(mapValues, mapValue)
 				}
 
-				mapValue := map[string]interface{}{
-					"evm_hash":  collectedEvmTx.TransactionHash,
-					"fee_value": feeValue,
-					"success":   isSuccess,
+				if len(mapValues) > 0 {
+					errUpdate := rdbTransactionView.UpdateAll(mapValues)
+					if errUpdate == nil {
+						// Commit offset
+						if errCommit := consumer.Commit(ctx, message); errCommit != nil {
+							logger.Infof("Consumer partition %d failed to commit messages: %v", message.Partition, errCommit)
+						}
+					} else {
+						logger.Infof("failed to update txs from Consumer partition %d: %v", message.Partition, errUpdate)
+					}
 				}
-
-				mapValues = append(mapValues, mapValue)
-				messages = append(messages, message)
 			}
 		},
 	)
