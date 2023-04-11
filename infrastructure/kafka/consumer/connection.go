@@ -68,12 +68,7 @@ func (c *Consumer[T]) CreateConnection() error {
 // Auto commit offset
 func (c *Consumer[T]) Read(model T, callback func(T, error)) {
 	for {
-		ctx, cancelFunction := context.WithTimeout(context.Background(), utils.KAFKA_NEW_DATA_MAX_WAIT*3)
-		defer func() {
-			// Do nothing
-			cancelFunction()
-		}()
-
+		ctx := context.Background()
 		message, err := c.reader.ReadMessage(ctx)
 
 		if err != nil {
@@ -94,12 +89,7 @@ func (c *Consumer[T]) Read(model T, callback func(T, error)) {
 
 func (c *Consumer[T]) Fetch(model T, callback func(T, kafka.Message, context.Context, error)) {
 	for {
-		ctx, cancelFunction := context.WithTimeout(context.Background(), utils.KAFKA_NEW_DATA_MAX_WAIT*3)
-		defer func() {
-			// do nothing
-			cancelFunction()
-		}()
-
+		ctx := context.Background()
 		message, err := c.reader.FetchMessage(ctx)
 
 		if err != nil {
