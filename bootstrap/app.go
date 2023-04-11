@@ -149,6 +149,7 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 					if err != nil {
 						a.logger.Infof("Kafka Consumer error: %v", err)
 					} else {
+						// display collected msgs
 						fmt.Println(collectedEvmTx)
 						if collectedEvmTx.BlockNumber != blockNumber {
 							if len(mapValues) > 0 {
@@ -186,10 +187,6 @@ func (a *app) RunConsumer(rdbHandle *rdb.Handle) {
 					}
 				},
 			)
-
-			if err := consumer.Close(); err != nil {
-				a.logger.Panicf("Failed to close consumer reader:", err)
-			}
 		}()
 	}
 
