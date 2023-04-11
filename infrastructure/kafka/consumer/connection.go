@@ -57,7 +57,7 @@ func (c *Consumer[T]) CreateConnection() error {
 		MinBytes:         1,        // same value of Shopify/sarama
 		MaxBytes:         57671680, // java client default
 		MaxWait:          utils.KAFKA_NEW_DATA_MAX_WAIT,
-		StartOffset:      0,
+		StartOffset:      kafka.FirstOffset,
 		ReadBatchTimeout: utils.KAFKA_READ_BATCH_TIME_OUT,
 		Dialer:           dialer,
 		Logger:           kafka.LoggerFunc(logf),
