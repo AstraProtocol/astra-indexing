@@ -66,6 +66,8 @@ func (c *Consumer[T]) CreateConnection() error {
 		MaxWait:          utils.KAFKA_NEW_DATA_MAX_WAIT,
 		ReadBatchTimeout: utils.KAFKA_READ_BATCH_TIME_OUT,
 		Dialer:           dialer,
+		ErrorLogger:      kafka.LoggerFunc(logf),
+		//Logger:           kafka.LoggerFunc(logf),
 	})
 	return nil
 }
@@ -134,6 +136,11 @@ func (c *Consumer[T]) Commit(ctx context.Context, msgs ...kafka.Message) error {
 
 func (c *Consumer[T]) Close() error {
 	return c.reader.Close()
+}
+
+func logf(msg string, a ...interface{}) {
+	fmt.Printf(msg, a...)
+	fmt.Println()
 }
 
 func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger) error {
