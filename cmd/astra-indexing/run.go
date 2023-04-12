@@ -250,6 +250,6 @@ func parseLogLevel(level string) applogger.LogLevel {
 	case "debug":
 		return applogger.LOG_LEVEL_DEBUG
 	default:
-		panic("Unsupported log level: " + level)
+		return applogger.LOG_LEVEL_INFO
 	}
 }
