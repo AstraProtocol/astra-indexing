@@ -97,7 +97,7 @@ func (accountMessagesView *AccountTransactions) List(
 		"view_account_transactions.block_hash",
 		"view_account_transactions.block_time",
 		"view_account_transactions.transaction_hash",
-		"view_account_transactions.success",
+		"view_account_transaction_data.success",
 		"view_account_transaction_data.code",
 		"view_account_transaction_data.log",
 		"view_account_transaction_data.fee",
