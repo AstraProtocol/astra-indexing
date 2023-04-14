@@ -15,6 +15,7 @@ import (
 	config "github.com/AstraProtocol/astra-indexing/bootstrap/config"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
+	accountTransactionView "github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
 	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/scram"
@@ -148,6 +149,7 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 	signal.Notify(sigchan, os.Interrupt)
 
 	rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
+	rdbAccountTransactionDataView := accountTransactionView.NewAccountTransactionData(rdbHandle)
 
 	consumer := Consumer[[]CollectedEvmTx]{
 		TimeOut:  utils.KAFKA_TIME_OUT,
@@ -188,9 +190,14 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 				if len(mapValues) > 0 {
 					errUpdate := rdbTransactionView.UpdateAll(mapValues)
 					if errUpdate == nil {
+						errUpdateTxData := rdbAccountTransactionDataView.UpdateAll(mapValues)
 						// Commit offset
-						if errCommit := consumer.Commit(ctx, message); errCommit != nil {
-							logger.Infof("Consumer partition %d failed to commit messages: %v", message.Partition, errCommit)
+						if errUpdateTxData == nil {
+							if errCommit := consumer.Commit(ctx, message); errCommit != nil {
+								logger.Infof("Consumer partition %d failed to commit messages: %v", message.Partition, errCommit)
+							}
+						} else {
+							logger.Infof("failed to update account txs data from Consumer partition %d: %v", message.Partition, errUpdate)
 						}
 					} else {
 						logger.Infof("failed to update txs from Consumer partition %d: %v", message.Partition, errUpdate)

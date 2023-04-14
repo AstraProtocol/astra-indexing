@@ -1,6 +1,7 @@
 package view
 
 import (
+	"errors"
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
@@ -164,6 +165,46 @@ func (transactionsView *AccountTransactionData) Insert(transaction *TransactionR
 	}
 	if result.RowsAffected() != 1 {
 		return fmt.Errorf("error inserting block transaction into the table: no rows inserted: %w", rdb.ErrWrite)
+	}
+
+	return nil
+}
+
+func (transactionsView *AccountTransactionData) UpdateAll(mapValues []map[string]interface{}) error {
+	tableName := "view_account_transaction_data"
+
+	var updateValues string
+	for index, mapValue := range mapValues {
+		feeValue := mapValue["fee_value"].(string)
+
+		var fee []map[string]string
+		fee = append(fee, map[string]string{"denom": "aastra", "amount": feeValue})
+		var feeJSON string
+		var marshalErr error
+		if feeJSON, marshalErr = json.MarshalToString(fee); marshalErr != nil {
+			return fmt.Errorf(
+				"error JSON marshalling account evm tx fee data for update: %v: %w", marshalErr, rdb.ErrBuildSQLStmt,
+			)
+		}
+
+		evmHash := mapValue["evm_hash"].(string)
+		success := mapValue["success"].(bool)
+		if index == 0 {
+			updateValues = fmt.Sprintf("('%s','%s',%v)", evmHash, feeJSON, success)
+		} else {
+			updateValues = updateValues + fmt.Sprintf(",('%s','%s',%v)", evmHash, feeJSON, success)
+		}
+	}
+	bulkUpdate := fmt.Sprintf(`UPDATE %s SET fee_value=tmp.fee_value,fee=CAST(tmp.fee AS json),success=tmp.success `+
+		`FROM (values %s) AS tmp (evm_hash,fee,success) `+
+		`WHERE %s.evm_hash=tmp.evm_hash;`, tableName, updateValues, tableName)
+
+	execResult, err := transactionsView.rdb.Exec(bulkUpdate)
+	if err != nil {
+		return fmt.Errorf("error executing bulk update account tx data by evm hash SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		return errors.New("error executing bulk update account tx data by evm hash SQL: no rows updated")
 	}
 
 	return nil
