@@ -215,6 +215,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 	}
 
 	txEvmType := make(map[string]string)
+	txEvmHashes := make(map[string]string)
 
 	// Handle transaction messages
 	for _, event := range events {
@@ -427,12 +428,14 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			}
 			evmType := projection.evmUtil.GetSignatureFromData(typedEvent.Params.Data.Data)
 			txEvmType[typedEvent.TxHash()] = evmType
+			txEvmHashes[typedEvent.TxHash()] = typedEvent.Params.Hash
 		}
 	}
 
 	for i, tx := range txs {
 		txs[i].BlockTime = blockTime
 		txs[i].BlockHash = blockHash
+		txs[i].EvmHash = txEvmHashes[tx.Hash]
 		transactionInfos[tx.Hash].FillBlockInfo(blockHash, blockTime)
 
 		for _, msg := range txMsgs[tx.Hash] {

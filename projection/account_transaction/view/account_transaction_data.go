@@ -37,6 +37,7 @@ func (transactionsView *AccountTransactionData) InsertAll(transactions []Transac
 				"block_hash",
 				"block_time",
 				"hash",
+				"evm_hash",
 				"index",
 				"success",
 				"code",
@@ -66,6 +67,7 @@ func (transactionsView *AccountTransactionData) InsertAll(transactions []Transac
 			transaction.BlockHash,
 			transactionsView.rdb.Tton(&transaction.BlockTime),
 			transaction.Hash,
+			transaction.EvmHash,
 			transaction.Index,
 			transaction.Success,
 			transaction.Code,
@@ -172,6 +174,7 @@ type TransactionRow struct {
 	BlockHash     string                  `json:"blockHash"`
 	BlockTime     utctime.UTCTime         `json:"blockTime"`
 	Hash          string                  `json:"hash"`
+	EvmHash       string                  `json:"evmHash"`
 	Index         int                     `json:"index"`
 	Success       bool                    `json:"success"`
 	Code          int                     `json:"code"`
