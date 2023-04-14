@@ -434,6 +434,17 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 		txs[i].BlockTime = blockTime
 		txs[i].BlockHash = blockHash
 		transactionInfos[tx.Hash].FillBlockInfo(blockHash, blockTime)
+
+		for _, msg := range txMsgs[tx.Hash] {
+			tmpMessage := view.TransactionRowMessage{
+				Type:    msg.MsgType(),
+				Content: msg,
+			}
+			if val, ok := txEvmType[tx.Hash]; ok {
+				tmpMessage.EvmType = val
+			}
+			txs[i].Messages = append(txs[i].Messages, tmpMessage)
+		}
 	}
 	if insertErr := accountTransactionDataView.InsertAll(txs); insertErr != nil {
 		return fmt.Errorf("error inserting account transaction data into view: %v", insertErr)
@@ -447,20 +458,9 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 		return fmt.Errorf("error inserting account message: %w", err)
 	}
 
-	for i, tx := range txs {
+	for _, tx := range txs {
 		txInfo := transactionInfos[tx.Hash]
 		rows := txInfo.ToRows()
-
-		for _, msg := range txMsgs[tx.Hash] {
-			tmpMessage := view.TransactionRowMessage{
-				Type:    msg.MsgType(),
-				Content: msg,
-			}
-			if val, ok := txEvmType[tx.Hash]; ok {
-				tmpMessage.EvmType = val
-			}
-			txs[i].Messages = append(txs[i].Messages, tmpMessage)
-		}
 
 		var msgEvent event_usecase.MsgEvent
 		senderAddress := ""
