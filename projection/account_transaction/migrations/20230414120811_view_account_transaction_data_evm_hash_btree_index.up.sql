@@ -1,0 +1,1 @@
+CREATE INDEX view_account_transaction_data_evm_hash_btree_index ON view_account_transaction_data USING btree (evm_hash);
