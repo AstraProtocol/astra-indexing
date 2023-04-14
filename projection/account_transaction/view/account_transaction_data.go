@@ -195,7 +195,7 @@ func (transactionsView *AccountTransactionData) UpdateAll(mapValues []map[string
 			updateValues = updateValues + fmt.Sprintf(",('%s','%s',%v)", evmHash, feeJSON, success)
 		}
 	}
-	bulkUpdate := fmt.Sprintf(`UPDATE %s SET fee_value=fee=CAST(tmp.fee AS json),success=tmp.success `+
+	bulkUpdate := fmt.Sprintf(`UPDATE %s SET fee=CAST(tmp.fee AS json),success=tmp.success `+
 		`FROM (values %s) AS tmp (evm_hash,fee,success) `+
 		`WHERE %s.evm_hash=tmp.evm_hash;`, tableName, updateValues, tableName)
 
