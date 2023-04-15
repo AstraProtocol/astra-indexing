@@ -3,7 +3,6 @@ package account_transaction
 import (
 	"encoding/hex"
 	"fmt"
-	"strings"
 
 	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 
@@ -416,13 +415,13 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.FromAddress)
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.ToAddress)
 		} else if typedEvent, ok := event.(*event_usecase.MsgEthereumTx); ok {
-			if isHexString(typedEvent.Params.From) {
+			if evmUtil.IsHexTx(typedEvent.Params.From) {
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.From[2:])
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
 			} else if len(typedEvent.Params.From) > 2 {
 				transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.From)
 			}
-			if isHexString(typedEvent.Params.Data.To) {
+			if evmUtil.IsHexTx(typedEvent.Params.Data.To) {
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.Data.To[2:])
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
 			}
@@ -554,17 +553,6 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 	}
 	committed = true
 	return nil
-}
-
-func isHexString(s string) bool {
-	if len(s) < 3 {
-		return false
-	}
-	if !strings.HasPrefix(s, "0x") {
-		return false
-	}
-	_, err := hex.DecodeString(s[2:])
-	return err == nil
 }
 
 func (projection *AccountTransaction) ParseSenderAddresses(senders []model.TransactionSigner) []string {
