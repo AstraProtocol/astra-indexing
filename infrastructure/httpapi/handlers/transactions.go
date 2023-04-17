@@ -184,7 +184,7 @@ func (handler *Transactions) ListInternalTransactionsByHashv2(ctx *fasthttp.Requ
 	var page int64
 	var offset int64
 	page = blockscout_infrastructure.DEFAULT_PAGE
-	offset = blockscout_infrastructure.DEFAULT_OFFSET
+	offset = blockscout_infrastructure.DEFAULT_OFFSET * 5
 
 	queryParams := make([]string, 0)
 	mappingParams := make(map[string]string)
