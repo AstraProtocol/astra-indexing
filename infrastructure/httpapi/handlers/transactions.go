@@ -253,7 +253,7 @@ func (handler *Transactions) ListInternalTransactionsByHashv2(ctx *fasthttp.Requ
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
-	httpapi.Success(ctx, tokensAddressResp)
+	httpapi.SuccessNotWrappedResult(ctx, tokensAddressResp)
 }
 
 func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
