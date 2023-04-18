@@ -462,6 +462,11 @@ func (handler *Accounts) GetTokensOfAnAddress(ctx *fasthttp.RequestCtx) {
 	queryParams = append(queryParams, "offset")
 	mappingParams["offset"] = strconv.FormatInt(offset, 10)
 
+	if string(ctx.QueryArgs().Peek("type")) != "" {
+		queryParams = append(queryParams, "type")
+		mappingParams["type"] = string(ctx.QueryArgs().Peek("type"))
+	}
+
 	if string(ctx.QueryArgs().Peek("token_name")) != "" {
 		queryParams = append(queryParams, "token_name")
 		mappingParams["token_name"] = string(ctx.QueryArgs().Peek("token_name"))
