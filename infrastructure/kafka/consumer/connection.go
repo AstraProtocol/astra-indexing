@@ -59,15 +59,16 @@ func (c *Consumer[T]) CreateConnection() error {
 	}
 
 	c.reader = kafka.NewReader(kafka.ReaderConfig{
-		Brokers:          c.Brokers,
-		Topic:            c.Topic,
-		GroupID:          c.GroupId,
-		MinBytes:         1,        // same value of Shopify/sarama
-		MaxBytes:         57671680, // java client default
-		MaxWait:          utils.KAFKA_NEW_DATA_MAX_WAIT,
-		ReadBatchTimeout: utils.KAFKA_READ_BATCH_TIME_OUT,
-		Dialer:           dialer,
-		ErrorLogger:      kafka.LoggerFunc(logf),
+		Brokers:               c.Brokers,
+		Topic:                 c.Topic,
+		GroupID:               c.GroupId,
+		MinBytes:              1,        // same value of Shopify/sarama
+		MaxBytes:              57671680, // java client default
+		MaxWait:               utils.KAFKA_NEW_DATA_MAX_WAIT,
+		ReadBatchTimeout:      utils.KAFKA_READ_BATCH_TIME_OUT,
+		Dialer:                dialer,
+		WatchPartitionChanges: true,
+		ErrorLogger:           kafka.LoggerFunc(logf),
 		//Logger:           kafka.LoggerFunc(logf),
 	})
 	return nil
