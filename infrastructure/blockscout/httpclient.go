@@ -820,7 +820,7 @@ func (client *HTTPClient) GetRawTraceByTxHash(evmTxHash string) (interface{}, er
 }
 
 func (client *HTTPClient) GetListTokensOfAnAddress(addressHash string, queryParams []string, mappingParams map[string]string) (*TokensAddressResp, error) {
-	cacheKey := fmt.Sprintf("BlockscoutGetListTokensOfAnAddress_%s_%s_%s_%s", addressHash, mappingParams["type"], mappingParams["page"], mappingParams["offset"])
+	cacheKey := fmt.Sprintf("BlockscoutGetListTokensOfAnAddress_%s_%s_%s_%s", addressHash, mappingParams["type"], mappingParams["page"], mappingParams["limit"])
 	var tokensAddressRespTmp TokensAddressResp
 
 	err := client.httpCache.Get(cacheKey, &tokensAddressRespTmp)
