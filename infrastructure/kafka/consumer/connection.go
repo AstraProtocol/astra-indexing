@@ -53,6 +53,7 @@ func (c *Consumer[T]) CreateConnection() error {
 	}
 	dialer := &kafka.Dialer{
 		Timeout:       c.TimeOut,
+		KeepAlive:     time.Hour,
 		DualStack:     true,
 		TLS:           tlsConfig,
 		SASLMechanism: mechanism,
