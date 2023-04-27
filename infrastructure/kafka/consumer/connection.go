@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -22,43 +23,22 @@ import (
 )
 
 type Consumer[T any] struct {
-	reader   *kafka.Reader
-	Brokers  []string
-	Topic    string
-	GroupId  string
-	TimeOut  time.Duration
-	User     string
-	Password string
-	Sigchan  chan os.Signal
+	reader             *kafka.Reader
+	Brokers            []string
+	Topic              string
+	GroupId            string
+	TimeOut            time.Duration
+	User               string
+	Password           string
+	AuthenticationType string
+	Sigchan            chan os.Signal
 }
 
 func (c *Consumer[T]) CreateConnection() error {
-	caCert, err := os.ReadFile("ca.crt")
+	dialer, err := c.getDialer()
 	if err != nil {
-		return fmt.Errorf("error reading ca cert file: %v", err)
+		return fmt.Errorf("error setup dialer: %v", err)
 	}
-	caCertPool := x509.NewCertPool()
-	ok := caCertPool.AppendCertsFromPEM(caCert)
-	if !ok {
-		return fmt.Errorf("error appending ca cert")
-	}
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: true,
-		RootCAs:            caCertPool,
-	}
-
-	mechanism, err := scram.Mechanism(scram.SHA256, c.User, c.Password)
-	if err != nil {
-		return fmt.Errorf("error setup scram mechanism: %v", err)
-	}
-	dialer := &kafka.Dialer{
-		Timeout:       c.TimeOut,
-		KeepAlive:     time.Hour,
-		DualStack:     true,
-		TLS:           tlsConfig,
-		SASLMechanism: mechanism,
-	}
-
 	c.reader = kafka.NewReader(kafka.ReaderConfig{
 		Brokers:               c.Brokers,
 		Topic:                 c.Topic,
@@ -141,6 +121,38 @@ func (c *Consumer[T]) Close() error {
 	return c.reader.Close()
 }
 
+func (c *Consumer[T]) getDialer() (*kafka.Dialer, error) {
+	switch c.AuthenticationType {
+	case "SASL":
+		caCert, err := os.ReadFile("ca.crt")
+		if err != nil {
+			return nil, err
+		}
+		caCertPool := x509.NewCertPool()
+		ok := caCertPool.AppendCertsFromPEM(caCert)
+		if !ok {
+			return nil, errors.New("error appending ca cert")
+		}
+		tlsConfig := &tls.Config{
+			RootCAs: caCertPool,
+		}
+		mechanism, err := scram.Mechanism(scram.SHA256, c.User, c.Password)
+		if err != nil {
+			return nil, err
+		}
+		dialer := &kafka.Dialer{
+			Timeout:       c.TimeOut,
+			KeepAlive:     time.Hour,
+			DualStack:     true,
+			TLS:           tlsConfig,
+			SASLMechanism: mechanism,
+		}
+		return dialer, nil
+	default:
+		return nil, errors.New(c.AuthenticationType + ": kafka authentication type is not supported")
+	}
+}
+
 func logf(msg string, a ...interface{}) {
 	fmt.Printf(msg, a...)
 	fmt.Println()
@@ -154,13 +166,14 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 	rdbAccountTransactionDataView := accountTransactionView.NewAccountTransactionData(rdbHandle)
 
 	consumer := Consumer[[]CollectedEvmTx]{
-		TimeOut:  utils.KAFKA_TIME_OUT,
-		Brokers:  config.KafkaService.Brokers,
-		Topic:    config.KafkaService.Topic,
-		GroupId:  config.KafkaService.GroupID,
-		User:     config.KafkaService.User,
-		Password: config.KafkaService.Password,
-		Sigchan:  sigchan,
+		TimeOut:            utils.KAFKA_TIME_OUT,
+		Brokers:            config.KafkaService.Brokers,
+		Topic:              config.KafkaService.Topic,
+		GroupId:            config.KafkaService.GroupID,
+		User:               config.KafkaService.User,
+		Password:           config.KafkaService.Password,
+		AuthenticationType: config.KafkaService.AuthenticationType,
+		Sigchan:            sigchan,
 	}
 	errConn := consumer.CreateConnection()
 	if errConn != nil {

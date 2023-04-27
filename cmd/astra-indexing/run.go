@@ -136,6 +136,11 @@ func run(args []string) error {
 				Usage:   "Kafka Password",
 				EnvVars: []string{"KAFKA_PASSWORD"},
 			},
+			&cli.StringFlag{
+				Name:    "kafkaAuthenticationType",
+				Usage:   "Kafka Authentication Type",
+				EnvVars: []string{"KAFKA_AUTHEN_TYPE"},
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			if args := ctx.Args(); args.Len() > 0 {
@@ -206,6 +211,9 @@ func run(args []string) error {
 			}
 			if ctx.IsSet("kafkaPassword") {
 				cliConfig.KafkaPassword = ctx.String("kafkaPassword")
+			}
+			if ctx.IsSet("kafkaAuthenticationType") {
+				cliConfig.KafkaAuthenticationType = ctx.String("kafkaAuthenticationType")
 			}
 
 			OverrideByCLIConfig(&config, &cliConfig)

@@ -39,12 +39,13 @@ type CLIConfig struct {
 
 	CronjobStats *bool
 
-	EnableConsumer  *bool
-	KafkaTopic      string
-	ConsumerGroupId string
-	KafkaBrokers    string
-	KafkaUser       string
-	KafkaPassword   string
+	EnableConsumer          *bool
+	KafkaTopic              string
+	ConsumerGroupId         string
+	KafkaBrokers            string
+	KafkaUser               string
+	KafkaPassword           string
+	KafkaAuthenticationType string
 }
 
 func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
@@ -115,5 +116,8 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	}
 	if cliConfig.KafkaPassword != "" {
 		config.KafkaService.Password = cliConfig.KafkaPassword
+	}
+	if cliConfig.KafkaAuthenticationType != "" {
+		config.KafkaService.AuthenticationType = cliConfig.KafkaAuthenticationType
 	}
 }
