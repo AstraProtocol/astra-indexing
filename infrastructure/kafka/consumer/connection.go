@@ -33,7 +33,7 @@ type Consumer[T any] struct {
 }
 
 func (c *Consumer[T]) CreateConnection() error {
-	caCert, err := os.ReadFile("infrastructure/kafka/ca-dev.crt")
+	caCert, err := os.ReadFile("ca.crt")
 	if err != nil {
 		return fmt.Errorf("error reading ca cert file: %v", err)
 	}
