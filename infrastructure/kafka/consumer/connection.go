@@ -125,7 +125,7 @@ func (c *Consumer[T]) getDialer() (*kafka.Dialer, error) {
 		caCertPool := x509.NewCertPool()
 		ok := caCertPool.AppendCertsFromPEM(caCert)
 		if !ok {
-			return nil, errors.New("error appending ca cert")
+			return nil, errors.New("failed to parse CA Certificate file")
 		}
 		tlsConfig := &tls.Config{
 			RootCAs: caCertPool,
@@ -140,6 +140,31 @@ func (c *Consumer[T]) getDialer() (*kafka.Dialer, error) {
 			DualStack:     true,
 			TLS:           tlsConfig,
 			SASLMechanism: mechanism,
+		}
+		return dialer, nil
+	case "SSL":
+		keypair, err := tls.LoadX509KeyPair("tls.crt", "tls.key")
+		if err != nil {
+			return nil, err
+		}
+		caCert, err := os.ReadFile("ca.crt")
+		if err != nil {
+			return nil, err
+		}
+		caCertPool := x509.NewCertPool()
+		ok := caCertPool.AppendCertsFromPEM(caCert)
+		if !ok {
+			return nil, errors.New("failed to parse CA Certificate file")
+		}
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{keypair},
+			RootCAs:      caCertPool,
+		}
+		dialer := &kafka.Dialer{
+			Timeout:   c.TimeOut,
+			KeepAlive: time.Hour,
+			DualStack: true,
+			TLS:       tlsConfig,
 		}
 		return dialer, nil
 	default:
