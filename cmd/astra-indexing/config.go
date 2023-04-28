@@ -109,7 +109,7 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 		config.KafkaService.GroupID = cliConfig.ConsumerGroupId
 	}
 	if cliConfig.KafkaBrokers != "" {
-		config.KafkaService.Brokers = strings.Split(cliConfig.KafkaBrokers, ",")
+		config.KafkaService.Brokers = strings.Split(strings.ReplaceAll(cliConfig.KafkaBrokers, " ", ""), ",")
 	}
 	if cliConfig.KafkaUser != "" {
 		config.KafkaService.User = cliConfig.KafkaUser
