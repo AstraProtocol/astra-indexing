@@ -603,33 +603,31 @@ func (client *HTTPClient) GetListTokens(queryParams []string, mappingParams map[
 	return &commonPaginationResp, nil
 }
 
-func (client *HTTPClient) GetListInternalTxs(evmTxHash string) ([]InternalTransaction, error) {
+func (client *HTTPClient) GetListInternalTxs(evmTxHash string) (interface{}, error) {
 	cacheKey := fmt.Sprintf("BlockscoutGetListInternalTxs_%s", evmTxHash)
-	var internalTxsTmp []InternalTransaction
+	var internalTxsTmp *CommonPaginationPathResp
 
 	err := client.httpCache.Get(cacheKey, &internalTxsTmp)
 	if err == nil {
-		return internalTxsTmp, nil
+		return internalTxsTmp.Result, nil
 	}
 
 	rawRespBody, err := client.request(
 		client.getUrl(GET_LIST_INTERNAL_TXS_BY_EVM_TX_HASH, evmTxHash), nil, nil,
 	)
 	if err != nil {
+		client.logger.Errorf("error getting list internal txs by tx hash from blockscout: %v", err)
 		return nil, err
 	}
 	defer rawRespBody.Close()
 
-	var internalTxsResp InternalTxsResp
+	var internalTxsResp *CommonPaginationPathResp
 	if err := jsoniter.NewDecoder(rawRespBody).Decode(&internalTxsResp); err != nil {
+		client.logger.Errorf("error parsing list internal txs by address hash from blockscout: %v", err)
 		return nil, err
 	}
 
-	if internalTxsResp.Status == "0" {
-		return nil, fmt.Errorf(TX_NOT_FOUND)
-	}
-
-	client.httpCache.Set(cacheKey, internalTxsResp.Result, utils.TIME_CACHE_MEDIUM)
+	client.httpCache.Set(cacheKey, internalTxsResp, utils.TIME_CACHE_MEDIUM)
 
 	return internalTxsResp.Result, nil
 }
@@ -822,7 +820,7 @@ func (client *HTTPClient) GetRawTraceByTxHash(evmTxHash string) (interface{}, er
 }
 
 func (client *HTTPClient) GetListTokensOfAnAddress(addressHash string, queryParams []string, mappingParams map[string]string) (*TokensAddressResp, error) {
-	cacheKey := fmt.Sprintf("BlockscoutGetListTokensOfAnAddress_%s_%s_%s", addressHash, mappingParams["page"], mappingParams["offset"])
+	cacheKey := fmt.Sprintf("BlockscoutGetListTokensOfAnAddress_%s_%s_%s_%s", addressHash, mappingParams["type"], mappingParams["page"], mappingParams["limit"])
 	var tokensAddressRespTmp TokensAddressResp
 
 	err := client.httpCache.Get(cacheKey, &tokensAddressRespTmp)
@@ -907,6 +905,37 @@ func (client *HTTPClient) GetListInternalTxsByAddressHash(addressHash string, qu
 	var commonResp CommonPaginationPathResp
 	if err := json.Unmarshal(respBody.Bytes(), &commonResp); err != nil {
 		client.logger.Errorf("error parsing list internal txs by address hash from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &commonResp, utils.TIME_CACHE_MEDIUM)
+
+	return &commonResp, nil
+}
+
+func (client *HTTPClient) GetListInternalTxsByTxHash(txHash string, queryParams []string, mappingParams map[string]string) (*CommonPaginationPathResp, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetListInternalTxsByTxHash_%s_%s_%s", txHash, mappingParams["page"], mappingParams["offset"])
+	var commonRespTmp CommonPaginationPathResp
+
+	err := client.httpCache.Get(cacheKey, &commonRespTmp)
+	if err == nil {
+		return &commonRespTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_LIST_INTERNAL_TXS_BY_EVM_TX_HASH, txHash), queryParams, mappingParams,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting list internal txs by tx hash from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var commonResp CommonPaginationPathResp
+	if err := json.Unmarshal(respBody.Bytes(), &commonResp); err != nil {
+		client.logger.Errorf("error parsing list internal txs by tx hash from blockscout: %v", err)
 	}
 
 	client.httpCache.Set(cacheKey, &commonResp, utils.TIME_CACHE_MEDIUM)

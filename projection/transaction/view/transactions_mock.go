@@ -59,3 +59,8 @@ func (transactionsView *MockTransactionsView) Count() (int64, error) {
 	result, _ := mockArgs.Get(0).(int64)
 	return result, mockArgs.Error(1)
 }
+
+func (transactionsView *MockTransactionsView) UpdateAll(mapValues []map[string]interface{}) error {
+	mockArgs := transactionsView.Called(mapValues)
+	return mockArgs.Error(0)
+}

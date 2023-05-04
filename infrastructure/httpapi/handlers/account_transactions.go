@@ -325,8 +325,8 @@ func (handler *AccountTransactions) GetInternalTxsByAddressHash(ctx *fasthttp.Re
 		mappingParams["index"] = string(ctx.QueryArgs().Peek("index"))
 	}
 
-	if string(ctx.QueryArgs().Peek("value")) != "" {
-		queryParams = append(queryParams, "value")
+	if string(ctx.QueryArgs().Peek("transaction_index")) != "" {
+		queryParams = append(queryParams, "transaction_index")
 		mappingParams["transaction_index"] = string(ctx.QueryArgs().Peek("transaction_index"))
 	}
 	//

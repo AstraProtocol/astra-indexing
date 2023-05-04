@@ -215,6 +215,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 	}
 
 	txEvmType := make(map[string]string)
+	txEvmHashes := make(map[string]string)
 
 	// Handle transaction messages
 	for _, event := range events {
@@ -427,13 +428,14 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			}
 			evmType := projection.evmUtil.GetSignatureFromData(typedEvent.Params.Data.Data)
 			txEvmType[typedEvent.TxHash()] = evmType
+			txEvmHashes[typedEvent.TxHash()] = typedEvent.Params.Hash
 		}
 	}
 
 	for i, tx := range txs {
 		txs[i].BlockTime = blockTime
 		txs[i].BlockHash = blockHash
-
+		txs[i].EvmHash = txEvmHashes[tx.Hash]
 		transactionInfos[tx.Hash].FillBlockInfo(blockHash, blockTime)
 
 		for _, msg := range txMsgs[tx.Hash] {
@@ -446,6 +448,22 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			}
 			txs[i].Messages = append(txs[i].Messages, tmpMessage)
 		}
+	}
+	if insertErr := accountTransactionDataView.InsertAll(txs); insertErr != nil {
+		return fmt.Errorf("error inserting account transaction data into view: %v", insertErr)
+	}
+
+	accountTransactionRows := make([]view.AccountTransactionBaseRow, 0)
+	for _, info := range transactionInfos {
+		accountTransactionRows = append(accountTransactionRows, info.ToRows()...)
+	}
+	if err := accountTransactionsView.InsertAll(accountTransactionRows); err != nil {
+		return fmt.Errorf("error inserting account message: %w", err)
+	}
+
+	for _, tx := range txs {
+		txInfo := transactionInfos[tx.Hash]
+		rows := txInfo.ToRows()
 
 		var msgEvent event_usecase.MsgEvent
 		senderAddress := ""
@@ -453,7 +471,6 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			msgEvent = txMsgs[tx.Hash][0]
 			senderAddress = tmcosmosutils.ParseSenderAddressFromMsgEvent(msgEvent)
 		}
-
 		// Convert fees unit from aastra to microAstra
 		/*
 			divisor := big.NewFloat(0).SetInt(big.NewInt(0).Exp(big.NewInt(10), big.NewInt(12), nil))
@@ -470,7 +487,6 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			if err := accountGasUsedTotalView.Increment(address, int64(tx.GasUsed)); err != nil {
 				return fmt.Errorf("error incrementing total gas used of account: %w", err)
 			}
-
 			/*
 				if err := accountFeesTotalView.Increment(address, int64(math.Round(fees))); err != nil {
 					return fmt.Errorf("error incrementing total fees of account: %w", err)
@@ -481,7 +497,6 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 				if err := accountGasUsedTotalView.Increment(senderAddress, int64(tx.GasUsed)); err != nil {
 					return fmt.Errorf("error incrementing total gas used of account: %w", err)
 				}
-
 				/*
 					if err := accountFeesTotalView.Increment(senderAddress, int64(math.Round(fees))); err != nil {
 						return fmt.Errorf("error incrementing total fees of account: %w", err)
@@ -496,19 +511,6 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 				projection.logger.Debugf("error preparing total gas used and total fees of account: %v", senderAddress)
 			}
 		}
-	}
-	if insertErr := accountTransactionDataView.InsertAll(txs); insertErr != nil {
-		return fmt.Errorf("error inserting account transaction data into view: %v", insertErr)
-	}
-
-	accountTransactionRows := make([]view.AccountTransactionBaseRow, 0)
-	for _, info := range transactionInfos {
-		accountTransactionRows = append(accountTransactionRows, info.ToRows()...)
-	}
-
-	for _, tx := range txs {
-		txInfo := transactionInfos[tx.Hash]
-		rows := txInfo.ToRows()
 
 		for _, row := range rows {
 
@@ -541,10 +543,6 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			}
 
 		}
-	}
-
-	if err := accountTransactionsView.InsertAll(accountTransactionRows); err != nil {
-		return fmt.Errorf("error inserting account message: %w", err)
 	}
 
 	if err := projection.UpdateLastHandledEventHeight(rdbTxHandle, height); err != nil {

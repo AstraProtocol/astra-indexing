@@ -331,6 +331,11 @@ func InitRouteRegistry(
 		},
 		Route{
 			Method:  GET,
+			path:    "api/v2/transactions/internal-transactions/{hash}",
+			handler: transactionHandler.ListInternalTransactionsByHashv2,
+		},
+		Route{
+			Method:  GET,
 			path:    "api/v1/transactions/getabi/{hash}",
 			handler: transactionHandler.GetAbiByTransactionHash,
 		},
@@ -366,11 +371,6 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/proposals/{id}/depositors",
 			handler: proposalsHandler.ListDepositorsById,
-		},
-		Route{
-			Method:  GET,
-			path:    "api/v1/proposals/update_to/{id}",
-			handler: proposalsHandler.UpdateTally,
 		},
 	)
 

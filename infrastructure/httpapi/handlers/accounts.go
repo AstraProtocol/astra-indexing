@@ -450,17 +450,22 @@ func (handler *Accounts) GetTokensOfAnAddress(ctx *fasthttp.RequestCtx) {
 	queryParams = append(queryParams, "page")
 	mappingParams["page"] = strconv.FormatInt(page, 10)
 
-	if string(ctx.QueryArgs().Peek("offset")) != "" {
-		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("offset")), 10, 0)
+	if string(ctx.QueryArgs().Peek("limit")) != "" {
+		offset, err = strconv.ParseInt(string(ctx.QueryArgs().Peek("limit")), 10, 0)
 		if err != nil || offset <= 0 {
-			handler.logger.Errorf("invalid %s offset param", recordMethod)
+			handler.logger.Errorf("invalid %s limit param", recordMethod)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
-			httpapi.BadRequest(ctx, errors.New("invalid offset param"))
+			httpapi.BadRequest(ctx, errors.New("invalid limit param"))
 			return
 		}
 	}
-	queryParams = append(queryParams, "offset")
-	mappingParams["offset"] = strconv.FormatInt(offset, 10)
+	queryParams = append(queryParams, "limit")
+	mappingParams["limit"] = strconv.FormatInt(offset, 10)
+
+	if string(ctx.QueryArgs().Peek("type")) != "" {
+		queryParams = append(queryParams, "type")
+		mappingParams["type"] = string(ctx.QueryArgs().Peek("type"))
+	}
 
 	if string(ctx.QueryArgs().Peek("token_name")) != "" {
 		queryParams = append(queryParams, "token_name")

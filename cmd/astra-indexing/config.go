@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/AstraProtocol/astra-indexing/bootstrap/config"
 )
 
@@ -36,6 +38,14 @@ type CLIConfig struct {
 	IndexService *bool
 
 	CronjobStats *bool
+
+	EnableConsumer          *bool
+	KafkaTopic              string
+	ConsumerGroupId         string
+	KafkaBrokers            string
+	KafkaUser               string
+	KafkaPassword           string
+	KafkaAuthenticationType string
 }
 
 func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
@@ -88,5 +98,26 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	}
 	if cliConfig.CronjobStats != nil {
 		config.CronjobStats.Enable = *cliConfig.CronjobStats
+	}
+	if cliConfig.EnableConsumer != nil {
+		config.KafkaService.EnableConsumer = *cliConfig.EnableConsumer
+	}
+	if cliConfig.KafkaTopic != "" {
+		config.KafkaService.Topic = cliConfig.KafkaTopic
+	}
+	if cliConfig.ConsumerGroupId != "" {
+		config.KafkaService.GroupID = cliConfig.ConsumerGroupId
+	}
+	if cliConfig.KafkaBrokers != "" {
+		config.KafkaService.Brokers = strings.Split(strings.ReplaceAll(cliConfig.KafkaBrokers, " ", ""), ",")
+	}
+	if cliConfig.KafkaUser != "" {
+		config.KafkaService.User = cliConfig.KafkaUser
+	}
+	if cliConfig.KafkaPassword != "" {
+		config.KafkaService.Password = cliConfig.KafkaPassword
+	}
+	if cliConfig.KafkaAuthenticationType != "" {
+		config.KafkaService.AuthenticationType = cliConfig.KafkaAuthenticationType
 	}
 }

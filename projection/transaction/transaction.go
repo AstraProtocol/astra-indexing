@@ -98,8 +98,8 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 	var blockHash string
 	txs := make([]transaction_view.TransactionRow, 0)
 	txMsgs := make(map[string][]event_usecase.MsgEvent)
-	txEvmType := make(map[string]string)
-	txEvmHash := make(map[string]string)
+	txEvmTypes := make(map[string]string)
+	txEvmHashes := make(map[string]string)
 	for _, event := range events {
 		if blockCreatedEvent, ok := event.(*event_usecase.BlockCreated); ok {
 			blockTime = blockCreatedEvent.Block.Time
@@ -188,10 +188,10 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 	}
 
 	for _, event := range events {
-		if typedEvent, ok := event.(*event_usecase.MsgEthereumTx); ok {
-			evmType := projection.evmUtil.GetSignatureFromData(typedEvent.Params.Data.Data)
-			txEvmType[typedEvent.TxHash()] = evmType
-			txEvmHash[typedEvent.TxHash()] = typedEvent.Params.Hash
+		if txEvmEvent, ok := event.(*event_usecase.MsgEthereumTx); ok {
+			evmType := projection.evmUtil.GetSignatureFromData(txEvmEvent.Params.Data.Data)
+			txEvmTypes[txEvmEvent.TxHash()] = evmType
+			txEvmHashes[txEvmEvent.TxHash()] = txEvmEvent.Params.Hash
 		}
 	}
 
@@ -217,11 +217,11 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 				Content: msg,
 			}
 
-			if val, ok := txEvmType[tx.Hash]; ok {
+			if val, ok := txEvmTypes[tx.Hash]; ok {
 				tmpMessage.EvmType = val
 			}
 			txs[i].Messages = append(txs[i].Messages, tmpMessage)
-			txs[i].EvmHash = txEvmHash[tx.Hash]
+			txs[i].EvmHash = txEvmHashes[tx.Hash]
 		}
 
 		fromAddress := ""
