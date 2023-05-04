@@ -170,7 +170,7 @@ func (c *Consumer[T]) getDialer() (*kafka.Dialer, error) {
 		}
 		return dialer, nil
 	default:
-		return nil, errors.New(c.AuthenticationType + ": kafka authentication type is not supported")
+		return nil, errors.New(c.AuthenticationType + ": Kafka authentication type is not supported")
 	}
 }
 
