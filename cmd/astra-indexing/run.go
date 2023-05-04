@@ -114,7 +114,7 @@ func run(args []string) error {
 			&cli.StringFlag{
 				Name:    "kafkaTopic",
 				Usage:   "Kafka Topic",
-				EnvVars: []string{"KAFKA_TOPIC"},
+				EnvVars: []string{"KAFKA_TOPICS"},
 			},
 			&cli.StringFlag{
 				Name:    "consumerGroupId",
