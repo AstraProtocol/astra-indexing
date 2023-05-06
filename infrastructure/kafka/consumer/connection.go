@@ -131,7 +131,8 @@ func (c *Consumer[T]) getDialer() (*kafka.Dialer, error) {
 			return nil, errors.New("failed to parse CA Certificate file")
 		}
 		tlsConfig := &tls.Config{
-			RootCAs: caCertPool,
+			RootCAs:            caCertPool,
+			InsecureSkipVerify: true,
 		}
 		mechanism, err := scram.Mechanism(scram.SHA256, c.User, c.Password)
 		if err != nil {
@@ -162,8 +163,9 @@ func (c *Consumer[T]) getDialer() (*kafka.Dialer, error) {
 			return nil, errors.New("failed to parse CA Certificate file")
 		}
 		tlsConfig := &tls.Config{
-			Certificates: []tls.Certificate{keypair},
-			RootCAs:      caCertPool,
+			Certificates:       []tls.Certificate{keypair},
+			RootCAs:            caCertPool,
+			InsecureSkipVerify: true,
 		}
 		dialer := &kafka.Dialer{
 			Timeout:   c.TimeOut,
