@@ -118,9 +118,9 @@ func (c *Consumer[T]) Close() error {
 func (c *Consumer[T]) getDialer() (*kafka.Dialer, error) {
 	switch c.AuthenticationType {
 	case "SASL":
-		caCert, err := os.ReadFile("/certs/chainindexing.kafka.prod/ca.crt")
+		caCert, err := os.ReadFile(utils.CA_CERT_PATH)
 		if err != nil {
-			caCert, err = os.ReadFile("./certs/chainindexing.kafka.prod/ca.crt")
+			caCert, err = os.ReadFile(utils.CA_CERT_LOCAL_PATH)
 		}
 		if err != nil {
 			return nil, err
@@ -148,12 +148,12 @@ func (c *Consumer[T]) getDialer() (*kafka.Dialer, error) {
 		return dialer, nil
 	case "SSL":
 		keypair, err := tls.LoadX509KeyPair(
-			"/certs/chainindexing.kafka.prod/tls.crt", "/certs/chainindexing.kafka.prod/tls.key",
+			utils.TLS_CERT_PATH, utils.TLS_KEY_PATH,
 		)
 		if err != nil {
 			return nil, err
 		}
-		caCert, err := os.ReadFile("/certs/chainindexing.kafka.prod/ca.crt")
+		caCert, err := os.ReadFile(utils.CA_CERT_PATH)
 		if err != nil {
 			return nil, err
 		}
