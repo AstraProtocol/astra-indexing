@@ -22,9 +22,11 @@ func NewParsedTxsResultLogEvent(rawEvent *model.BlockResultsEvent) *ParsedTxsRes
 	}
 
 	for i, attribute := range rawEvent.Attributes {
-		if event.HasAttribute(attribute.Key) {
-			panic(fmt.Sprintf("duplciated attribute key `%s`", attribute.Key))
-		}
+		/*
+			if event.HasAttribute(attribute.Key) {
+				panic(fmt.Sprintf("duplciated attribute key `%s`", attribute.Key))
+			}
+		*/
 		event.keyIndex[attribute.Key] = i
 	}
 
