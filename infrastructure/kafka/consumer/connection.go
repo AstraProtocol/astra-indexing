@@ -44,7 +44,7 @@ func (c *Consumer[T]) CreateConnection() error {
 		Dialer:                dialer,
 		WatchPartitionChanges: true,
 		ErrorLogger:           kafka.LoggerFunc(logf),
-		//Logger:           kafka.LoggerFunc(logf),
+		Logger:                kafka.LoggerFunc(logf),
 	})
 	return nil
 }
