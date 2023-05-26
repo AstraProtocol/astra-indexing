@@ -29,7 +29,6 @@ func TestUpdate4Bytes(t *testing.T) {
 		panic(err)
 	}
 
-	util.UpdateSignature("0xbe739356", "sendReward(address[],uint256[])")
 	util.UpdateSignature("0xd2aed2d6", "exchange(uint256[],uint256,bytes)")
 	util.UpdateSignature("0x1482dcda", "mintCoupons(address,uint256[])")
 	util.UpdateSignature("0xc4237db1", "createRewardProg(address,bytes)")
