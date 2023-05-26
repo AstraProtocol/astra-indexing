@@ -49,3 +49,16 @@ func TestUpdate4Bytes(t *testing.T) {
 	}
 	assert.Equal(res, "sendReward(address[],uint256[])")
 }
+
+func Test4GetSignatureFromData(t *testing.T) {
+	assert := assert.New(t)
+
+	util, err := NewEvmUtils()
+	if err != nil {
+		panic(err)
+	}
+	data := "0q7S1gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGSWzhIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQVbZvQpCuU8VUVDSeyAd243bdr5ljiPA3bK7aUm/VuQVdhajtudaHAI7ltLe1GHQeZchiXxaXAq2Ez+6ErCpJRscAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+	signature := util.GetSignatureFromData(data)
+
+	assert.Equal(signature, "exchange")
+}
