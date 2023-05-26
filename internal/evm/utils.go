@@ -44,6 +44,9 @@ func (utils *EvmUtils) GetSignature(signature string) (string, error) {
 }
 
 func (utils *EvmUtils) GetSignatureFromData(base64Data string) string {
+	if base64Data == "" {
+		return "transfer"
+	}
 	p, err := base64.StdEncoding.DecodeString(base64Data)
 	if err != nil {
 		fmt.Println(err)
@@ -60,6 +63,10 @@ func (utils *EvmUtils) GetSignatureFromData(base64Data string) string {
 			return ""
 		}
 	}
+}
+
+func (utils *EvmUtils) UpdateSignature(methodId string, signature string) {
+	utils.db.Put([]byte(methodId), []byte(signature))
 }
 
 func IsHexTx(hexTx string) bool {
