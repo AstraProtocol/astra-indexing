@@ -66,6 +66,12 @@ func (utils *EvmUtils) GetSignatureFromData(base64Data string) string {
 }
 
 func (utils *EvmUtils) UpdateSignature(methodId string, signature string) {
+	data := strings.Split(methodId, "x")
+	if len(data) > 1 {
+		methodId = data[1]
+	} else {
+		methodId = data[0]
+	}
 	utils.db.Put([]byte(methodId), []byte(signature))
 }
 
