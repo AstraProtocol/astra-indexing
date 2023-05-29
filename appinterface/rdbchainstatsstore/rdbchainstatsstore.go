@@ -150,7 +150,7 @@ func (impl *RDbChainStatsStore) UpdateTotalGasUsedWithRDbHandle(currentDate int6
 	}
 
 	gasUsedCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(
-		"SUM(gas_used)",
+		"COALESCE(SUM(gas_used), 0)",
 	).From(
 		"view_transactions",
 	).Where("block_time >= ?", currentDate)
