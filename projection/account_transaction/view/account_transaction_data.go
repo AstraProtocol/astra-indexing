@@ -228,6 +228,7 @@ type TransactionRow struct {
 	Memo          string                  `json:"memo"`
 	TimeoutHeight int64                   `json:"timeoutHeight"`
 	Messages      []TransactionRowMessage `json:"messages"`
+	RewardTxType  string                  `json:"rewardTxType"`
 }
 
 type TransactionRowMessage struct {
