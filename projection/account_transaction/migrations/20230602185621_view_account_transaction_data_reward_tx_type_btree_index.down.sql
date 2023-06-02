@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS view_account_transaction_data_reward_tx_type_btree_index;
