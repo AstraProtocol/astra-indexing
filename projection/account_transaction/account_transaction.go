@@ -229,6 +229,17 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 		if typedEvent, ok := event.(*event_usecase.MsgSend); ok {
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.FromAddress)
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.ToAddress)
+
+			_, converted, err := tmcosmosutils.DecodeAddressToHex(typedEvent.FromAddress)
+			if err == nil {
+				transactionInfos[typedEvent.TxHash()].row.From = "0x" + hex.EncodeToString(converted)
+			}
+
+			_, converted, err = tmcosmosutils.DecodeAddressToHex(typedEvent.ToAddress)
+			if err == nil {
+				transactionInfos[typedEvent.TxHash()].row.To = "0x" + hex.EncodeToString(converted)
+			}
+
 			rewardTxType[typedEvent.TxHash()] = SEND
 
 		} else if typedEvent, ok := event.(*event_usecase.MsgMultiSend); ok {
@@ -429,12 +440,15 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			if evmUtil.IsHexAddress(typedEvent.Params.From) {
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.From[2:])
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
+				transactionInfos[typedEvent.TxHash()].row.From = typedEvent.Params.From
 			} else if len(typedEvent.Params.From) > 2 {
 				transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.From)
+				transactionInfos[typedEvent.TxHash()].row.From = typedEvent.Params.From
 			}
 			if evmUtil.IsHexAddress(typedEvent.Params.Data.To) {
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.Data.To[2:])
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
+				transactionInfos[typedEvent.TxHash()].row.To = typedEvent.Params.Data.To
 			}
 			evmType := projection.evmUtil.GetSignatureFromData(typedEvent.Params.Data.Data)
 			txEvmType[typedEvent.TxHash()] = evmType
