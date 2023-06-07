@@ -51,6 +51,7 @@ func (transactionsView *AccountTransactionData) InsertAll(transactions []Transac
 				"memo",
 				"timeout_height",
 				"messages",
+				"reward_tx_type",
 			)
 		}
 		transactionMessagesJSON, err := json.MarshalToString(transaction.Messages)
@@ -81,6 +82,7 @@ func (transactionsView *AccountTransactionData) InsertAll(transactions []Transac
 			transaction.Memo,
 			transaction.TimeoutHeight,
 			transactionMessagesJSON,
+			transaction.RewardTxType,
 		)
 		pendingRowCount += 1
 
@@ -228,6 +230,7 @@ type TransactionRow struct {
 	Memo          string                  `json:"memo"`
 	TimeoutHeight int64                   `json:"timeoutHeight"`
 	Messages      []TransactionRowMessage `json:"messages"`
+	RewardTxType  string                  `json:"rewardTxType"`
 }
 
 type TransactionRowMessage struct {

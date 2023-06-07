@@ -3,7 +3,6 @@ package account_transaction
 import (
 	"encoding/hex"
 	"fmt"
-	"strings"
 
 	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 
@@ -24,6 +23,13 @@ import (
 var (
 	_ projection_entity.Projection = &AccountTransaction{}
 )
+
+const DELEGATE = "delegate"
+const WITHDRAW_DELEGATOR_REWARD = "withdrawDelegatorReward"
+const SEND = "send"
+const TRANSFER = "transfer"
+const EXCHANGE = "exchange"
+const SEND_REWARD = "sendReward"
 
 type AccountTransaction struct {
 	*rdbprojectionbase.Base
@@ -216,12 +222,25 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 
 	txEvmType := make(map[string]string)
 	txEvmHashes := make(map[string]string)
+	rewardTxType := make(map[string]string)
 
 	// Handle transaction messages
 	for _, event := range events {
 		if typedEvent, ok := event.(*event_usecase.MsgSend); ok {
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.FromAddress)
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.ToAddress)
+
+			_, converted, err := tmcosmosutils.DecodeAddressToHex(typedEvent.FromAddress)
+			if err == nil {
+				transactionInfos[typedEvent.TxHash()].row.FromAddress = "0x" + hex.EncodeToString(converted)
+			}
+
+			_, converted, err = tmcosmosutils.DecodeAddressToHex(typedEvent.ToAddress)
+			if err == nil {
+				transactionInfos[typedEvent.TxHash()].row.ToAddress = "0x" + hex.EncodeToString(converted)
+			}
+
+			rewardTxType[typedEvent.TxHash()] = SEND
 
 		} else if typedEvent, ok := event.(*event_usecase.MsgMultiSend); ok {
 			for _, input := range typedEvent.Inputs {
@@ -237,6 +256,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 
 		} else if typedEvent, ok := event.(*event_usecase.MsgWithdrawDelegatorReward); ok {
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.DelegatorAddress)
+			rewardTxType[typedEvent.TxHash()] = WITHDRAW_DELEGATOR_REWARD
 
 		} else if typedEvent, ok := event.(*event_usecase.MsgWithdrawValidatorCommission); ok {
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.RecipientAddress)
@@ -283,6 +303,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 
 		} else if typedEvent, ok := event.(*event_usecase.MsgDelegate); ok {
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.DelegatorAddress)
+			rewardTxType[typedEvent.TxHash()] = DELEGATE
 
 		} else if typedEvent, ok := event.(*event_usecase.MsgUndelegate); ok {
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.DelegatorAddress)
@@ -416,19 +437,25 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.FromAddress)
 			transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.ToAddress)
 		} else if typedEvent, ok := event.(*event_usecase.MsgEthereumTx); ok {
-			if isHexString(typedEvent.Params.From) {
+			if evmUtil.IsHexAddress(typedEvent.Params.From) {
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.From[2:])
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
+				transactionInfos[typedEvent.TxHash()].row.FromAddress = typedEvent.Params.From
 			} else if len(typedEvent.Params.From) > 2 {
 				transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.From)
+				transactionInfos[typedEvent.TxHash()].row.FromAddress = typedEvent.Params.From
 			}
-			if isHexString(typedEvent.Params.Data.To) {
+			if evmUtil.IsHexAddress(typedEvent.Params.Data.To) {
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.Data.To[2:])
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
+				transactionInfos[typedEvent.TxHash()].row.ToAddress = typedEvent.Params.Data.To
 			}
 			evmType := projection.evmUtil.GetSignatureFromData(typedEvent.Params.Data.Data)
 			txEvmType[typedEvent.TxHash()] = evmType
 			txEvmHashes[typedEvent.TxHash()] = typedEvent.Params.Hash
+			if evmType == TRANSFER || evmType == SEND_REWARD || evmType == EXCHANGE {
+				rewardTxType[typedEvent.TxHash()] = evmType
+			}
 		}
 	}
 
@@ -436,6 +463,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 		txs[i].BlockTime = blockTime
 		txs[i].BlockHash = blockHash
 		txs[i].EvmHash = txEvmHashes[tx.Hash]
+		txs[i].RewardTxType = rewardTxType[tx.Hash]
 		transactionInfos[tx.Hash].FillBlockInfo(blockHash, blockTime)
 
 		for _, msg := range txMsgs[tx.Hash] {
@@ -554,17 +582,6 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 	}
 	committed = true
 	return nil
-}
-
-func isHexString(s string) bool {
-	if len(s) < 3 {
-		return false
-	}
-	if !strings.HasPrefix(s, "0x") {
-		return false
-	}
-	_, err := hex.DecodeString(s[2:])
-	return err == nil
 }
 
 func (projection *AccountTransaction) ParseSenderAddresses(senders []model.TransactionSigner) []string {
