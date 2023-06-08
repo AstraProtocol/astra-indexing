@@ -27,9 +27,6 @@ var (
 const DELEGATE = "delegate"
 const WITHDRAW_DELEGATOR_REWARD = "withdrawDelegatorReward"
 const SEND = "send"
-const TRANSFER = "transfer"
-const EXCHANGE = "exchange"
-const SEND_REWARD = "sendReward"
 
 type AccountTransaction struct {
 	*rdbprojectionbase.Base
@@ -453,9 +450,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			evmType := projection.evmUtil.GetSignatureFromData(typedEvent.Params.Data.Data)
 			txEvmType[typedEvent.TxHash()] = evmType
 			txEvmHashes[typedEvent.TxHash()] = typedEvent.Params.Hash
-			if evmType == TRANSFER || evmType == SEND_REWARD || evmType == EXCHANGE {
-				rewardTxType[typedEvent.TxHash()] = evmType
-			}
+			rewardTxType[typedEvent.TxHash()] = evmType
 		}
 	}
 
