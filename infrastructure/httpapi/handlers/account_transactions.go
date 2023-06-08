@@ -227,8 +227,20 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 	}
 
 	if evm_utils.IsHexAddress(account) {
-		converted, _ := hex.DecodeString(account[2:])
-		account, _ = tmcosmosutils.EncodeHexToAddress("astra", converted)
+		converted, err := hex.DecodeString(account[2:])
+		if err != nil {
+			handler.logger.Errorf("%s: error convert %s to bytes", recordMethod, account)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			ctx.SetStatusCode(fasthttp.StatusBadRequest)
+			return
+		}
+		account, err = tmcosmosutils.EncodeHexToAddress("astra", converted)
+		if err != nil {
+			handler.logger.Errorf("%s: error encode hex address %s to astra address", recordMethod, account)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			ctx.SetStatusCode(fasthttp.StatusBadRequest)
+			return
+		}
 	}
 
 	queryArgs := ctx.QueryArgs()
