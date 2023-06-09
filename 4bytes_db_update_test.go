@@ -15,9 +15,7 @@ func TestUpdate4Bytes(t *testing.T) {
 		panic(err)
 	}
 
-	util.UpdateSignature("0xde76c394", "addDiscountOperators(address[])")
-	util.UpdateSignature("0x110f3814", "addRewardOperators(address[])")
-	util.UpdateSignature("0x448e8250", "setProgramName(string)")
+	util.UpdateSignature("0x743cec2d", "exchangeWithValue(uint256[], uint256, uint256, bytes)")
 
 	res, err := util.GetSignature("0xa07aea1c")
 	if err != nil {
@@ -29,7 +27,7 @@ func TestUpdate4Bytes(t *testing.T) {
 	signature := util.GetSignatureFromData(data)
 	assert.Equal(signature, "exchange")
 
-	data = "RI6CUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABdlVm91Y2hlciBHcmFiIDMwLjAwMCDEkQAAAAAAAAAAAA=="
+	data = "dDzsLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGTEB/EAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3gtrOnZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABB/dVhop2u7EJPGDDbEUpNbTY4eI4Wr932AATbuG+lk0sBtEXv6FsIn1g1ZP9D3/E/0Ne0ktW5lqb5N2cIcX7fgRsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 	signature = util.GetSignatureFromData(data)
-	assert.Equal(signature, "setProgramName")
+	assert.Equal(signature, "exchangeWithValue")
 }
