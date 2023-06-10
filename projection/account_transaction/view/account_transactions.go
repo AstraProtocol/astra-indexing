@@ -48,6 +48,8 @@ func (accountMessagesView *AccountTransactions) InsertAll(
 				"transaction_hash",
 				"success",
 				"message_types",
+				"from_address",
+				"to_address",
 			)
 		}
 
@@ -60,6 +62,8 @@ func (accountMessagesView *AccountTransactions) InsertAll(
 			row.Hash,
 			row.Success,
 			json.MustMarshalToString(row.MessageTypes),
+			row.FromAddress,
+			row.ToAddress,
 		)
 		pendingRowCount += 1
 
@@ -248,6 +252,8 @@ type AccountTransactionBaseRow struct {
 	Hash         string          `json:"hash"`
 	MessageTypes []string        `json:"messageTypes"`
 	Success      bool            `json:"success"`
+	FromAddress  string          `json:"from_address"`
+	ToAddress    string          `json:"to_address"`
 }
 
 type AccountTransactionReadRow struct {
