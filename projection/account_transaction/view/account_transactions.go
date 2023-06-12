@@ -1,10 +1,13 @@
 package view
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/AstraProtocol/astra-indexing/external/json"
+	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 
 	sq "github.com/Masterminds/squirrel"
@@ -17,6 +20,10 @@ import (
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 )
+
+const EXCHANGE = "exchange"
+const SEND = "send"
+const RECEIVE = "receive"
 
 // BlockTransactions projection view implemented by relational database
 type AccountTransactions struct {
@@ -119,14 +126,95 @@ func (accountMessagesView *AccountTransactions) List(
 		"view_account_transaction_data ON view_account_transactions.block_height = view_account_transaction_data.block_height AND view_account_transactions.transaction_hash = view_account_transaction_data.hash",
 	)
 
+	if filter.Memo == "" && filter.RewardTxType == "" && filter.Direction == "" {
+		stmtBuilder = stmtBuilder.Where(
+			"view_account_transactions.account = ?", filter.Account,
+		)
+	}
+
 	if filter.Memo != "" {
 		stmtBuilder = stmtBuilder.Where(
 			"view_account_transactions.account = ? AND view_account_transaction_data.memo = ?", filter.Account, filter.Memo,
 		)
-	} else {
-		stmtBuilder = stmtBuilder.Where(
-			"view_account_transactions.account = ?", filter.Account,
+	}
+
+	if filter.RewardTxType != "" && filter.Direction == "" {
+		if filter.RewardTxType == EXCHANGE {
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.account = ? AND (view_account_transaction_data.reward_tx_type = ? OR view_account_transaction_data.reward_tx_type = ?)",
+				filter.Account,
+				"exchange",
+				"exchangeWithValue",
+			)
+		} else {
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.account = ? AND view_account_transaction_data.reward_tx_type = ?",
+				filter.Account,
+				filter.RewardTxType,
+			)
+		}
+	}
+
+	_, converted, err := tmcosmosutils.DecodeAddressToHex(filter.Account)
+	if err != nil {
+		return nil, nil, fmt.Errorf(
+			"error decode astra address to hex address: %v", err,
 		)
+	}
+	evmAddressHash := strings.ToLower("0x" + hex.EncodeToString(converted))
+
+	if filter.Direction != "" && filter.RewardTxType == "" {
+		if filter.Direction == SEND {
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.account = ? AND view_account_transactions.from_address = ?",
+				filter.Account,
+				evmAddressHash,
+			)
+		} else if filter.Direction == RECEIVE {
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.account = ? AND view_account_transactions.to_address = ?",
+				filter.Account,
+				evmAddressHash,
+			)
+		}
+	}
+
+	if filter.Direction != "" && filter.RewardTxType != "" {
+		if filter.RewardTxType == EXCHANGE {
+			if filter.Direction == SEND {
+				stmtBuilder = stmtBuilder.Where(
+					"view_account_transactions.account = ? AND view_account_transactions.from_address = ? AND (view_account_transaction_data.reward_tx_type = ? OR view_account_transaction_data.reward_tx_type = ?)",
+					filter.Account,
+					evmAddressHash,
+					"exchange",
+					"exchangeWithValue",
+				)
+			} else if filter.Direction == RECEIVE {
+				stmtBuilder = stmtBuilder.Where(
+					"view_account_transactions.account = ? AND view_account_transactions.to_address = ? AND (view_account_transaction_data.reward_tx_type = ? OR view_account_transaction_data.reward_tx_type = ?)",
+					filter.Account,
+					evmAddressHash,
+					"exchange",
+					"exchangeWithValue",
+				)
+			}
+		} else {
+			if filter.Direction == SEND {
+				stmtBuilder = stmtBuilder.Where(
+					"view_account_transactions.account = ? AND view_account_transactions.from_address = ? AND view_account_transaction_data.reward_tx_type = ?",
+					filter.Account,
+					evmAddressHash,
+					filter.RewardTxType,
+				)
+			} else if filter.Direction == RECEIVE {
+				stmtBuilder = stmtBuilder.Where(
+					"view_account_transactions.account = ? AND view_account_transactions.to_address = ? AND view_account_transaction_data.reward_tx_type = ?",
+					filter.Account,
+					evmAddressHash,
+					filter.RewardTxType,
+				)
+			}
+		}
 	}
 
 	if order.Id == view.ORDER_DESC {
@@ -277,6 +365,10 @@ type AccountTransactionsListFilter struct {
 	Account string
 	// Optional memo filter
 	Memo string
+	// Optional reward tx type filter
+	RewardTxType string
+	// Optional direction filter
+	Direction string
 }
 
 type AccountTransactionsListOrder struct {

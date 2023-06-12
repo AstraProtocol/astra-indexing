@@ -227,8 +227,20 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 	}
 
 	if evm_utils.IsHexAddress(account) {
-		converted, _ := hex.DecodeString(account[2:])
-		account, _ = tmcosmosutils.EncodeHexToAddress("astra", converted)
+		converted, err := hex.DecodeString(account[2:])
+		if err != nil {
+			handler.logger.Errorf("%s: error convert %s to bytes", recordMethod, account)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			ctx.SetStatusCode(fasthttp.StatusBadRequest)
+			return
+		}
+		account, err = tmcosmosutils.EncodeHexToAddress("astra", converted)
+		if err != nil {
+			handler.logger.Errorf("%s: error encode hex address %s to astra address", recordMethod, account)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			ctx.SetStatusCode(fasthttp.StatusBadRequest)
+			return
+		}
 	}
 
 	queryArgs := ctx.QueryArgs()
@@ -239,18 +251,35 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 			idOrder = view.ORDER_DESC
 		}
 	}
+
 	memo := ""
 	if queryArgs.Has("memo") {
 		memo = string(queryArgs.Peek("memo"))
 	}
 
+	rewardTxType := ""
+	if queryArgs.Has("type") {
+		rewardTxType = string(queryArgs.Peek("type"))
+	}
+
+	direction := ""
+	if queryArgs.Has("direction") {
+		direction = string(queryArgs.Peek("direction"))
+	}
+
 	filter := account_transaction_view.AccountTransactionsListFilter{
-		Account: account,
-		Memo:    memo,
+		Account:      account,
+		Memo:         memo,
+		RewardTxType: rewardTxType,
+		Direction:    direction,
+	}
+
+	order := account_transaction_view.AccountTransactionsListOrder{
+		Id: idOrder,
 	}
 
 	blocks, paginationResult, err := handler.accountTransactionsView.List(
-		filter, account_transaction_view.AccountTransactionsListOrder{Id: idOrder}, pagination,
+		filter, order, pagination,
 	)
 	if err != nil {
 		handler.logger.Errorf("error listing account transactions: %v", err)
