@@ -251,18 +251,35 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 			idOrder = view.ORDER_DESC
 		}
 	}
+
 	memo := ""
 	if queryArgs.Has("memo") {
 		memo = string(queryArgs.Peek("memo"))
 	}
 
+	rewardTxType := ""
+	if queryArgs.Has("type") {
+		rewardTxType = string(queryArgs.Peek("type"))
+	}
+
+	direction := ""
+	if queryArgs.Has("direction") {
+		direction = string(queryArgs.Peek("direction"))
+	}
+
 	filter := account_transaction_view.AccountTransactionsListFilter{
-		Account: account,
-		Memo:    memo,
+		Account:      account,
+		Memo:         memo,
+		RewardTxType: rewardTxType,
+		Direction:    direction,
+	}
+
+	order := account_transaction_view.AccountTransactionsListOrder{
+		Id: idOrder,
 	}
 
 	blocks, paginationResult, err := handler.accountTransactionsView.List(
-		filter, account_transaction_view.AccountTransactionsListOrder{Id: idOrder}, pagination,
+		filter, order, pagination,
 	)
 	if err != nil {
 		handler.logger.Errorf("error listing account transactions: %v", err)
