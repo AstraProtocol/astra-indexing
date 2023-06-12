@@ -3,6 +3,7 @@ package account_transaction
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 
@@ -229,12 +230,12 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 
 			_, converted, err := tmcosmosutils.DecodeAddressToHex(typedEvent.FromAddress)
 			if err == nil {
-				transactionInfos[typedEvent.TxHash()].row.FromAddress = "0x" + hex.EncodeToString(converted)
+				transactionInfos[typedEvent.TxHash()].row.FromAddress = strings.ToLower("0x" + hex.EncodeToString(converted))
 			}
 
 			_, converted, err = tmcosmosutils.DecodeAddressToHex(typedEvent.ToAddress)
 			if err == nil {
-				transactionInfos[typedEvent.TxHash()].row.ToAddress = "0x" + hex.EncodeToString(converted)
+				transactionInfos[typedEvent.TxHash()].row.ToAddress = strings.ToLower("0x" + hex.EncodeToString(converted))
 			}
 
 			rewardTxType[typedEvent.TxHash()] = SEND
@@ -437,15 +438,15 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			if evmUtil.IsHexAddress(typedEvent.Params.From) {
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.From[2:])
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
-				transactionInfos[typedEvent.TxHash()].row.FromAddress = typedEvent.Params.From
+				transactionInfos[typedEvent.TxHash()].row.FromAddress = strings.ToLower(typedEvent.Params.From)
 			} else if len(typedEvent.Params.From) > 2 {
 				transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.From)
-				transactionInfos[typedEvent.TxHash()].row.FromAddress = typedEvent.Params.From
+				transactionInfos[typedEvent.TxHash()].row.FromAddress = strings.ToLower(typedEvent.Params.From)
 			}
 			if evmUtil.IsHexAddress(typedEvent.Params.Data.To) {
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.Data.To[2:])
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
-				transactionInfos[typedEvent.TxHash()].row.ToAddress = typedEvent.Params.Data.To
+				transactionInfos[typedEvent.TxHash()].row.ToAddress = strings.ToLower(typedEvent.Params.Data.To)
 			}
 			evmType := projection.evmUtil.GetSignatureFromData(typedEvent.Params.Data.Data)
 			txEvmType[typedEvent.TxHash()] = evmType
