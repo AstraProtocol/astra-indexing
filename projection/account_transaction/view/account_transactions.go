@@ -22,6 +22,7 @@ import (
 )
 
 const EXCHANGE = "exchange"
+const EXCHANGE_WITH_VALUE = "exchangeWithValue"
 const SEND = "send"
 const RECEIVE = "receive"
 
@@ -143,8 +144,8 @@ func (accountMessagesView *AccountTransactions) List(
 			stmtBuilder = stmtBuilder.Where(
 				"view_account_transactions.account = ? AND (view_account_transaction_data.reward_tx_type = ? OR view_account_transaction_data.reward_tx_type = ?)",
 				filter.Account,
-				"exchange",
-				"exchangeWithValue",
+				EXCHANGE,
+				EXCHANGE_WITH_VALUE,
 			)
 		} else {
 			stmtBuilder = stmtBuilder.Where(
@@ -186,16 +187,16 @@ func (accountMessagesView *AccountTransactions) List(
 					"view_account_transactions.account = ? AND view_account_transactions.from_address = ? AND (view_account_transaction_data.reward_tx_type = ? OR view_account_transaction_data.reward_tx_type = ?)",
 					filter.Account,
 					evmAddressHash,
-					"exchange",
-					"exchangeWithValue",
+					EXCHANGE,
+					EXCHANGE_WITH_VALUE,
 				)
 			} else if filter.Direction == RECEIVE {
 				stmtBuilder = stmtBuilder.Where(
 					"view_account_transactions.account = ? AND view_account_transactions.to_address = ? AND (view_account_transaction_data.reward_tx_type = ? OR view_account_transaction_data.reward_tx_type = ?)",
 					filter.Account,
 					evmAddressHash,
-					"exchange",
-					"exchangeWithValue",
+					EXCHANGE,
+					EXCHANGE_WITH_VALUE,
 				)
 			}
 		} else {
@@ -264,8 +265,8 @@ func (accountMessagesView *AccountTransactions) List(
 						filterQuery = fmt.Sprintf(
 							"(view_account_transaction_data.reward_tx_type = '%s' OR "+
 								"view_account_transaction_data.reward_tx_type = '%s')",
-							"exchange",
-							"exchangeWithValue",
+							EXCHANGE,
+							EXCHANGE_WITH_VALUE,
 						)
 					} else {
 						filterQuery = fmt.Sprintf(
@@ -319,15 +320,15 @@ func (accountMessagesView *AccountTransactions) List(
 							filterQuery = fmt.Sprintf(
 								"view_account_transactions.from_address = '%s' AND (view_account_transaction_data.reward_tx_type = '%s' OR view_account_transaction_data.reward_tx_type = '%s')",
 								evmAddressHash,
-								"exchange",
-								"exchangeWithValue",
+								EXCHANGE,
+								EXCHANGE_WITH_VALUE,
 							)
 						} else if filter.Direction == RECEIVE {
 							filterQuery = fmt.Sprintf(
 								"view_account_transactions.to_address = '%s' AND (view_account_transaction_data.reward_tx_type = '%s' OR view_account_transaction_data.reward_tx_type = '%s')",
 								evmAddressHash,
-								"exchange",
-								"exchangeWithValue",
+								EXCHANGE,
+								EXCHANGE_WITH_VALUE,
 							)
 						}
 					} else {
