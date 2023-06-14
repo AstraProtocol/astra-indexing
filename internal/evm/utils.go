@@ -43,13 +43,22 @@ func (utils *EvmUtils) GetSignature(signature string) (string, error) {
 	return string(value), nil
 }
 
-func (utils *EvmUtils) GetSignatureFromData(base64Data string) string {
+func (utils *EvmUtils) GetMethodNameFromMethodId(methodId string) string {
+	key := strings.TrimPrefix(methodId, "0x")
+	value, err := utils.db.Get([]byte(key))
+	if err != nil {
+		return ""
+	} else {
+		return strings.Split(string(value), "(")[0]
+	}
+}
+
+func (utils *EvmUtils) GetMethodNameFromData(base64Data string) string {
 	if base64Data == "" {
 		return "transfer"
 	}
 	p, err := base64.StdEncoding.DecodeString(base64Data)
 	if err != nil {
-		fmt.Println(err)
 		return ""
 	} else {
 		h := hex.EncodeToString(p)

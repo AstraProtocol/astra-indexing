@@ -448,7 +448,7 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
 				transactionInfos[typedEvent.TxHash()].row.ToAddress = strings.ToLower(typedEvent.Params.Data.To)
 			}
-			evmType := projection.evmUtil.GetSignatureFromData(typedEvent.Params.Data.Data)
+			evmType := projection.evmUtil.GetMethodNameFromData(typedEvent.Params.Data.Data)
 			txEvmType[typedEvent.TxHash()] = evmType
 			txEvmHashes[typedEvent.TxHash()] = typedEvent.Params.Hash
 			rewardTxType[typedEvent.TxHash()] = evmType
