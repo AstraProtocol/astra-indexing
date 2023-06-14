@@ -16,6 +16,9 @@ import (
 	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 )
 
+const EVM_TXS_TOPIC = "evm-txs"
+const INTERNAL_TXS_TOPIC = "internal-txs"
+
 func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger) error {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, os.Interrupt)
@@ -26,7 +29,7 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 	consumer := Consumer[[]CollectedEvmTx]{
 		TimeOut:            utils.KAFKA_TIME_OUT,
 		Brokers:            config.KafkaService.Brokers,
-		Topic:              config.KafkaService.Topic,
+		Topic:              EVM_TXS_TOPIC,
 		GroupId:            config.KafkaService.GroupID,
 		User:               config.KafkaService.User,
 		Password:           config.KafkaService.Password,
@@ -79,6 +82,30 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 			}
 		},
 	)
+	return nil
+}
 
+func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger) error {
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, os.Interrupt)
+
+	//rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
+	//rdbAccountTransactionDataView := accountTransactionView.NewAccountTransactionData(rdbHandle)
+
+	consumer := Consumer[[]CollectedInternalTx]{
+		TimeOut:            utils.KAFKA_TIME_OUT,
+		Brokers:            config.KafkaService.Brokers,
+		Topic:              INTERNAL_TXS_TOPIC,
+		GroupId:            config.KafkaService.GroupID,
+		User:               config.KafkaService.User,
+		Password:           config.KafkaService.Password,
+		AuthenticationType: config.KafkaService.AuthenticationType,
+		Sigchan:            sigchan,
+	}
+	errConn := consumer.CreateConnection()
+	if errConn != nil {
+		return errConn
+	}
+	//TODO: implement here
 	return nil
 }
