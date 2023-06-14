@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -20,6 +21,7 @@ import (
 	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 	"github.com/AstraProtocol/astra-indexing/usecase/event"
+	"github.com/AstraProtocol/astra-indexing/usecase/model"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -157,16 +159,41 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 
 					evmType := evmUtil.GetMethodNameFromMethodId(internalTx.Input[2:10])
 
-					tmpMessage := accountTransactionView.TransactionRowMessage{
-						Type:    event.MSG_ETHEREUM_TX,
-						EvmType: evmType,
+					//parse internal tx message content
+					legacyTx := model.LegacyTx{
+						Type:  internalTx.Type,
+						Gas:   strconv.FormatInt(internalTx.GasUsed, 10),
+						To:    internalTx.ToAddressHash,
+						Value: string(internalTx.Value),
+						Data:  internalTx.Input,
 					}
-					//TODO: parse message content
+					rawMsgEthereumTx := model.RawMsgEthereumTx{
+						Type: event.MSG_ETHEREUM_INTERNAL_TX,
+						Size: 0,
+						From: internalTx.FromAddressHash,
+						Hash: internalTx.TransactionHash,
+						Data: legacyTx,
+					}
+					params := model.MsgEthereumTxParams{
+						RawMsgEthereumTx: rawMsgEthereumTx,
+					}
+					evmEvent := event.NewMsgEthereumTx(event.MsgCommonParams{
+						BlockHeight: internalTx.BlockNumber,
+						TxHash:      internalTx.TransactionHash,
+						TxSuccess:   true,
+						MsgIndex:    int(internalTx.Index),
+					}, params)
+					tmpMessage := accountTransactionView.TransactionRowMessage{
+						Type:    event.MSG_ETHEREUM_INTERNAL_TX,
+						EvmType: evmType,
+						Content: evmEvent,
+					}
+
 					tx := accountTransactionView.TransactionRow{
 						BlockHeight:   internalTx.BlockNumber,
 						BlockTime:     blockTime,
 						BlockHash:     blockHash,
-						Hash:          internalTx.TransactionHash,
+						Hash:          strings.ToUpper(internalTx.TransactionHash[0:]),
 						Index:         int(internalTx.Index),
 						Success:       true,
 						Code:          0,
