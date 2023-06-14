@@ -201,7 +201,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 						Fee:           fee,
 						FeePayer:      "",
 						FeeGranter:    "",
-						GasWanted:     0,
+						GasWanted:     int(internalTx.Gas),
 						GasUsed:       int(internalTx.GasUsed),
 						Memo:          "",
 						TimeoutHeight: 0,
