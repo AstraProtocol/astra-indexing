@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS view_account_transactions_account_is_internal_tx_partial_index;
