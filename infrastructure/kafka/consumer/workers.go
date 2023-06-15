@@ -207,7 +207,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 						BlockHeight:   internalTx.BlockNumber,
 						BlockTime:     blockTime,
 						BlockHash:     blockHash,
-						Hash:          strings.ToUpper(internalTx.TransactionHash[2:]),
+						Hash:          internalTx.TransactionHash,
 						Index:         int(internalTx.Index),
 						Success:       true,
 						Code:          0,
