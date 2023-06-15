@@ -272,9 +272,6 @@ func (accountMessagesView *AccountTransactions) List(
 					rawQuery := fmt.Sprintf(
 						"SELECT "+
 							"(SELECT coalesce(COUNT(*), 0) FROM view_account_transactions "+
-							"INNER JOIN view_account_transaction_data ON "+
-							"view_account_transactions.block_height = view_account_transaction_data.block_height "+
-							"AND view_account_transactions.transaction_hash = view_account_transaction_data.hash "+
 							"WHERE account = '%s' AND is_internal_tx = true) + "+
 							"(SELECT coalesce(SUM(total), 0) FROM view_account_transactions_total "+
 							"WHERE identity = '%s') "+
