@@ -29,8 +29,7 @@ import (
 const EVM_TXS_TOPIC = "evm-txs"
 const INTERNAL_TXS_TOPIC = "internal-txs"
 
-func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger) error {
-	sigchan := make(chan os.Signal, 1)
+func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, sigchan chan os.Signal) error {
 	signal.Notify(sigchan, os.Interrupt)
 
 	rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
@@ -95,8 +94,7 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 	return nil
 }
 
-func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger) error {
-	sigchan := make(chan os.Signal, 1)
+func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, sigchan chan os.Signal) error {
 	signal.Notify(sigchan, os.Interrupt)
 
 	rdbAccountTransactionsView := accountTransactionView.NewAccountTransactions(rdbHandle)

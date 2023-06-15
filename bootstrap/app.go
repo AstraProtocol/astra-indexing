@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -115,8 +116,14 @@ func (a *app) Run() {
 	}
 
 	if a.config.KafkaService.EnableConsumer {
+		sigchan := make(chan os.Signal, 1)
 		go func() {
-			if runErr := astra_consumer.RunConsumerEvmTxs(a.rdbConn.ToHandle(), a.config, a.logger); runErr != nil {
+			if runErr := astra_consumer.RunConsumerEvmTxs(a.rdbConn.ToHandle(), a.config, a.logger, sigchan); runErr != nil {
+				a.logger.Panicf("%v", runErr)
+			}
+		}()
+		go func() {
+			if runErr := astra_consumer.RunConsumerInternalTxs(a.rdbConn.ToHandle(), a.config, a.logger, sigchan); runErr != nil {
 				a.logger.Panicf("%v", runErr)
 			}
 		}()
