@@ -3,6 +3,7 @@ package consumer
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"os"
 	"os/signal"
@@ -112,11 +113,13 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 	}
 	errConn := consumer.CreateConnection()
 	if errConn != nil {
+		fmt.Println(errConn)
 		return errConn
 	}
 
 	evmUtil, err := evm.NewEvmUtils()
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 
@@ -124,6 +127,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 		[]CollectedInternalTx{},
 		func(collectedInternalTxs []CollectedInternalTx, message kafka.Message, ctx context.Context, err error) {
 			if err != nil {
+				fmt.Println(err)
 				logger.Infof("Kafka Consumer error: %v", err)
 			} else {
 				accountTransactionRows := make([]accountTransactionView.AccountTransactionBaseRow, 0)
@@ -235,6 +239,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 				if len(txs) == 0 && len(collectedInternalTxs) > 0 {
 					// Commit offset when no internal txs are valid
 					if errCommit := consumer.Commit(ctx, message); errCommit != nil {
+						fmt.Println(errCommit)
 						logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", INTERNAL_TXS_TOPIC, message.Partition, errCommit)
 					}
 				}
@@ -244,12 +249,15 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 					// Commit offset
 					if err == nil {
 						if errCommit := consumer.Commit(ctx, message); errCommit != nil {
+							fmt.Println(errCommit)
 							logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", INTERNAL_TXS_TOPIC, message.Partition, errCommit)
 						}
 					} else {
+						fmt.Println(err)
 						logger.Infof("Failed to insert account txs from Consumer partition %d: %v", message.Partition, err)
 					}
 				} else {
+					fmt.Println(err)
 					logger.Infof("Failed to insert account txs data from Consumer partition %d: %v", message.Partition, err)
 				}
 			}
