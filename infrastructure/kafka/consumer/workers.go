@@ -79,13 +79,13 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 						// Commit offset
 						if errUpdateTxData == nil {
 							if errCommit := consumer.Commit(ctx, message); errCommit != nil {
-								logger.Infof("Consumer partition %d failed to commit messages: %v", message.Partition, errCommit)
+								logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", EVM_TXS_TOPIC, message.Partition, errCommit)
 							}
 						} else {
-							logger.Infof("failed to update account txs data from Consumer partition %d: %v", message.Partition, errUpdate)
+							logger.Infof("Failed to update account txs data from Consumer partition %d: %v", EVM_TXS_TOPIC, message.Partition, errUpdate)
 						}
 					} else {
-						logger.Infof("failed to update txs from Consumer partition %d: %v", message.Partition, errUpdate)
+						logger.Infof("Failed to update txs from Consumer partition %d: %v", message.Partition, errUpdate)
 					}
 				}
 			}
@@ -98,7 +98,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, os.Interrupt)
 
-	//rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
+	rdbAccountTransactionsView := accountTransactionView.NewAccountTransactions(rdbHandle)
 	rdbAccountTransactionDataView := accountTransactionView.NewAccountTransactionData(rdbHandle)
 
 	consumer := Consumer[[]CollectedInternalTx]{
@@ -127,6 +127,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 			if err != nil {
 				logger.Infof("Kafka Consumer error: %v", err)
 			} else {
+				accountTransactionRows := make([]accountTransactionView.AccountTransactionBaseRow, 0)
 				txs := make([]accountTransactionView.TransactionRow, 0)
 				fee := coin.MustNewCoins(coin.MustNewCoinFromString("aastra", "0"))
 				for _, internalTx := range collectedInternalTxs {
@@ -211,10 +212,21 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 					}
 					tx.Messages = append(tx.Messages, tmpMessage)
 					txs = append(txs, tx)
-
-					if insertErr := rdbAccountTransactionDataView.InsertAll(txs); insertErr != nil {
-
+					accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRows()...)
+				}
+				err := rdbAccountTransactionDataView.InsertAll(txs)
+				if err == nil {
+					err = rdbAccountTransactionsView.InsertAll(accountTransactionRows)
+					// Commit offset
+					if err == nil {
+						if errCommit := consumer.Commit(ctx, message); errCommit != nil {
+							logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", INTERNAL_TXS_TOPIC, message.Partition, errCommit)
+						}
+					} else {
+						logger.Infof("Failed to insert account txs from Consumer partition %d: %v", message.Partition, err)
 					}
+				} else {
+					logger.Infof("Failed to insert account tx data from Consumer partition %d: %v", message.Partition, err)
 				}
 			}
 		},
