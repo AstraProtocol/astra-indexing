@@ -131,6 +131,9 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 				txs := make([]accountTransactionView.TransactionRow, 0)
 				fee := coin.MustNewCoins(coin.MustNewCoinFromString("aastra", "0"))
 				for _, internalTx := range collectedInternalTxs {
+					if internalTx.Value.String() == "0" {
+						continue
+					}
 					if internalTx.FromAddressHash == "" || internalTx.ToAddressHash == "" {
 						continue
 					}
@@ -216,6 +219,11 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 					tx.Messages = append(tx.Messages, tmpMessage)
 					txs = append(txs, tx)
 					accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRowsIncludingInternalTx()...)
+				}
+				if len(txs) == 0 && len(collectedInternalTxs) > 0 {
+					if errCommit := consumer.Commit(ctx, message); errCommit != nil {
+						logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", INTERNAL_TXS_TOPIC, message.Partition, errCommit)
+					}
 				}
 				err := rdbAccountTransactionDataView.InsertAll(txs)
 				if err == nil {
