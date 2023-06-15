@@ -33,6 +33,7 @@ func initProjections(
 	rdbConn rdb.Conn,
 	config *configuration.Config,
 	customConfig *CustomConfig,
+	evmUtil evmUtil.EvmUtils,
 ) []projection_entity.Projection {
 	if !config.IndexService.Enable {
 		return []projection_entity.Projection{}
@@ -61,11 +62,10 @@ func initProjections(
 		ServerMigrationRepoRef: customConfig.ServerGithubAPI.MigrationRepoRef,
 	}
 
-	util, _ := evmUtil.NewEvmUtils()
 	for _, projectionName := range config.IndexService.Projection.Enables {
 		projection := InitProjection(
 			projectionName, initParams,
-			util,
+			evmUtil,
 		)
 		if projection == nil {
 			continue

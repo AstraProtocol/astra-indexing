@@ -13,6 +13,7 @@ import (
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/primptr"
 	"github.com/AstraProtocol/astra-indexing/infrastructure"
+	"github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/AstraProtocol/astra-indexing/internal/filereader/yaml"
 )
 
@@ -112,11 +113,6 @@ func run(args []string) error {
 				EnvVars: []string{"ENABLE_CONSUMER"},
 			},
 			&cli.StringFlag{
-				Name:    "kafkaTopic",
-				Usage:   "Kafka Topic",
-				EnvVars: []string{"KAFKA_TOPICS"},
-			},
-			&cli.StringFlag{
 				Name:    "consumerGroupId",
 				Usage:   "Kafka Consumer Group Id",
 				EnvVars: []string{"CONSUMER_GROUP_ID"},
@@ -197,9 +193,6 @@ func run(args []string) error {
 			if ctx.IsSet("enableConsumer") {
 				cliConfig.EnableConsumer = primptr.Bool(ctx.Bool("enableConsumer"))
 			}
-			if ctx.IsSet("kafkaTopic") {
-				cliConfig.KafkaTopic = ctx.String("kafkaTopic")
-			}
 			if ctx.IsSet("consumerGroupId") {
 				cliConfig.ConsumerGroupId = ctx.String("consumerGroupId")
 			}
@@ -223,10 +216,15 @@ func run(args []string) error {
 			logger := infrastructure.NewZerologLogger(os.Stdout)
 			logger.SetLogLevel(logLevel)
 
-			app := bootstrap.NewApp(logger, &config)
+			evmUtil, err := evm.NewEvmUtils()
+			if err != nil {
+				return err
+			}
+
+			app := bootstrap.NewApp(logger, &config, evmUtil)
 
 			app.InitIndexService(
-				initProjections(logger, app.GetRDbConn(), &config, &customConfig),
+				initProjections(logger, app.GetRDbConn(), &config, &customConfig, evmUtil),
 				nil,
 			)
 			app.InitHTTPAPIServer(routes.InitRouteRegistry(logger, app.GetRDbConn(), &config))

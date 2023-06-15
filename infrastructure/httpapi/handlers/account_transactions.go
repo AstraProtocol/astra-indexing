@@ -267,11 +267,17 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 		direction = string(queryArgs.Peek("direction"))
 	}
 
+	includingInternalTx := ""
+	if queryArgs.Has("includingInternalTx") {
+		includingInternalTx = string(queryArgs.Peek("includingInternalTx"))
+	}
+
 	filter := account_transaction_view.AccountTransactionsListFilter{
-		Account:      account,
-		Memo:         memo,
-		RewardTxType: rewardTxType,
-		Direction:    direction,
+		Account:             account,
+		Memo:                memo,
+		RewardTxType:        rewardTxType,
+		Direction:           direction,
+		IncludingInternalTx: includingInternalTx,
 	}
 
 	order := account_transaction_view.AccountTransactionsListOrder{
@@ -284,7 +290,7 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 	if err != nil {
 		handler.logger.Errorf("error listing account transactions: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
-		httpapi.InternalServerError(ctx)
+		httpapi.BadRequest(ctx, err)
 		return
 	}
 

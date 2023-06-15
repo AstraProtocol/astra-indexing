@@ -230,12 +230,12 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 
 			_, converted, err := tmcosmosutils.DecodeAddressToHex(typedEvent.FromAddress)
 			if err == nil {
-				transactionInfos[typedEvent.TxHash()].row.FromAddress = strings.ToLower("0x" + hex.EncodeToString(converted))
+				transactionInfos[typedEvent.TxHash()].Row.FromAddress = strings.ToLower("0x" + hex.EncodeToString(converted))
 			}
 
 			_, converted, err = tmcosmosutils.DecodeAddressToHex(typedEvent.ToAddress)
 			if err == nil {
-				transactionInfos[typedEvent.TxHash()].row.ToAddress = strings.ToLower("0x" + hex.EncodeToString(converted))
+				transactionInfos[typedEvent.TxHash()].Row.ToAddress = strings.ToLower("0x" + hex.EncodeToString(converted))
 			}
 
 			rewardTxType[typedEvent.TxHash()] = SEND
@@ -438,17 +438,17 @@ func (projection *AccountTransaction) HandleEvents(height int64, events []event_
 			if evmUtil.IsHexAddress(typedEvent.Params.From) {
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.From[2:])
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
-				transactionInfos[typedEvent.TxHash()].row.FromAddress = strings.ToLower(typedEvent.Params.From)
+				transactionInfos[typedEvent.TxHash()].Row.FromAddress = strings.ToLower(typedEvent.Params.From)
 			} else if len(typedEvent.Params.From) > 2 {
 				transactionInfos[typedEvent.TxHash()].AddAccount(typedEvent.Params.From)
-				transactionInfos[typedEvent.TxHash()].row.FromAddress = strings.ToLower(typedEvent.Params.From)
+				transactionInfos[typedEvent.TxHash()].Row.FromAddress = strings.ToLower(typedEvent.Params.From)
 			}
 			if evmUtil.IsHexAddress(typedEvent.Params.Data.To) {
 				astraAddr, _ := sdk.AccAddressFromHex(typedEvent.Params.Data.To[2:])
 				transactionInfos[typedEvent.TxHash()].AddAccount(astraAddr.String())
-				transactionInfos[typedEvent.TxHash()].row.ToAddress = strings.ToLower(typedEvent.Params.Data.To)
+				transactionInfos[typedEvent.TxHash()].Row.ToAddress = strings.ToLower(typedEvent.Params.Data.To)
 			}
-			evmType := projection.evmUtil.GetSignatureFromData(typedEvent.Params.Data.Data)
+			evmType := projection.evmUtil.GetMethodNameFromData(typedEvent.Params.Data.Data)
 			txEvmType[typedEvent.TxHash()] = evmType
 			txEvmHashes[typedEvent.TxHash()] = typedEvent.Params.Hash
 			rewardTxType[typedEvent.TxHash()] = evmType
@@ -589,14 +589,14 @@ func (projection *AccountTransaction) ParseSenderAddresses(senders []model.Trans
 }
 
 type TransactionInfo struct {
-	row              view.AccountTransactionBaseRow
+	Row              view.AccountTransactionBaseRow
 	involvedAccounts map[string]bool // Set data structure
 	messageTypes     map[string]bool // Set data structure
 }
 
 func NewTransactionInfo(row view.AccountTransactionBaseRow) *TransactionInfo {
 	return &TransactionInfo{
-		row: row,
+		Row: row,
 
 		involvedAccounts: make(map[string]bool),
 		messageTypes:     make(map[string]bool),
@@ -616,8 +616,8 @@ func (info *TransactionInfo) AddMessageTypes(messageTypes string) {
 }
 
 func (info *TransactionInfo) FillBlockInfo(blockHash string, blockTime utctime.UTCTime) {
-	info.row.BlockHash = blockHash
-	info.row.BlockTime = blockTime
+	info.Row.BlockHash = blockHash
+	info.Row.BlockTime = blockTime
 }
 
 func (info *TransactionInfo) ToRows() []view.AccountTransactionBaseRow {
@@ -625,8 +625,23 @@ func (info *TransactionInfo) ToRows() []view.AccountTransactionBaseRow {
 
 	rows := make([]view.AccountTransactionBaseRow, 0)
 	for account := range info.involvedAccounts {
-		clonedRow := info.row
+		clonedRow := info.Row
 		clonedRow.Account = account
+		clonedRow.IsInternalTx = false
+		rows = append(rows, clonedRow)
+	}
+
+	return rows
+}
+
+func (info *TransactionInfo) ToRowsIncludingInternalTx() []view.AccountTransactionBaseRow {
+	info.FillMessageTypes()
+
+	rows := make([]view.AccountTransactionBaseRow, 0)
+	for account := range info.involvedAccounts {
+		clonedRow := info.Row
+		clonedRow.Account = account
+		clonedRow.IsInternalTx = true
 		rows = append(rows, clonedRow)
 	}
 
@@ -634,8 +649,8 @@ func (info *TransactionInfo) ToRows() []view.AccountTransactionBaseRow {
 }
 
 func (info *TransactionInfo) FillMessageTypes() {
-	info.row.MessageTypes = make([]string, 0)
+	info.Row.MessageTypes = make([]string, 0)
 	for messageType := range info.messageTypes {
-		info.row.MessageTypes = append(info.row.MessageTypes, messageType)
+		info.Row.MessageTypes = append(info.Row.MessageTypes, messageType)
 	}
 }

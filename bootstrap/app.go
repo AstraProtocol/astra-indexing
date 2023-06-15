@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -13,20 +14,22 @@ import (
 	astra_consumer "github.com/AstraProtocol/astra-indexing/infrastructure/kafka/consumer"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg"
+	"github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/golang-migrate/migrate/v4"
 	"gopkg.in/robfig/cron.v2"
 )
 
 type app struct {
-	logger applogger.Logger
-	config *config.Config
+	logger  applogger.Logger
+	config  *config.Config
+	evmUtil evm.EvmUtils
 
 	rdbConn       rdb.Conn
 	httpAPIServer *HTTPAPIServer
 	indexService  *IndexService
 }
 
-func NewApp(logger applogger.Logger, config *config.Config) *app {
+func NewApp(logger applogger.Logger, config *config.Config, evmUtil evm.EvmUtils) *app {
 	rdbConn, err := SetupRDbConn(config, logger)
 	if err != nil {
 		logger.Panicf("error setting up RDb connection: %v", err)
@@ -55,6 +58,7 @@ func NewApp(logger applogger.Logger, config *config.Config) *app {
 		logger:  logger,
 		config:  config,
 		rdbConn: rdbConn,
+		evmUtil: evmUtil,
 	}
 }
 
@@ -115,8 +119,14 @@ func (a *app) Run() {
 	}
 
 	if a.config.KafkaService.EnableConsumer {
+		sigchan := make(chan os.Signal, 1)
 		go func() {
-			if runErr := astra_consumer.RunConsumerEvmTxs(a.rdbConn.ToHandle(), a.config, a.logger); runErr != nil {
+			if runErr := astra_consumer.RunConsumerInternalTxs(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan); runErr != nil {
+				a.logger.Panicf("%v", runErr)
+			}
+		}()
+		go func() {
+			if runErr := astra_consumer.RunConsumerEvmTxs(a.rdbConn.ToHandle(), a.config, a.logger, sigchan); runErr != nil {
 				a.logger.Panicf("%v", runErr)
 			}
 		}()

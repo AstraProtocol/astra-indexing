@@ -189,7 +189,7 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 
 	for _, event := range events {
 		if txEvmEvent, ok := event.(*event_usecase.MsgEthereumTx); ok {
-			evmType := projection.evmUtil.GetSignatureFromData(txEvmEvent.Params.Data.Data)
+			evmType := projection.evmUtil.GetMethodNameFromData(txEvmEvent.Params.Data.Data)
 			txEvmTypes[txEvmEvent.TxHash()] = evmType
 			txEvmHashes[txEvmEvent.TxHash()] = txEvmEvent.Params.Hash
 		}
