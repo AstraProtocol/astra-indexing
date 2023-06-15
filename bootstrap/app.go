@@ -120,11 +120,13 @@ func (a *app) Run() {
 				a.logger.Panicf("%v", runErr)
 			}
 		}()
-		go func() {
-			if runErr := astra_consumer.RunConsumerInternalTxs(a.rdbConn.ToHandle(), a.config, a.logger); runErr != nil {
-				a.logger.Panicf("%v", runErr)
-			}
-		}()
+		/*
+			go func() {
+				if runErr := astra_consumer.RunConsumerInternalTxs(a.rdbConn.ToHandle(), a.config, a.logger); runErr != nil {
+					a.logger.Panicf("%v", runErr)
+				}
+			}()
+		*/
 	}
 
 	select {}
