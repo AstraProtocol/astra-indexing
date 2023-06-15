@@ -119,9 +119,7 @@ func (a *app) Run() {
 		sigchan := make(chan os.Signal, 1)
 		go func() {
 			if runErr := astra_consumer.RunConsumerInternalTxs(a.rdbConn.ToHandle(), a.config, a.logger, sigchan); runErr != nil {
-				fmt.Println("CHECK")
-				fmt.Println(runErr)
-				//a.logger.Panicf("%v", runErr)
+				a.logger.Infof("%v", runErr)
 			}
 		}()
 		go func() {
