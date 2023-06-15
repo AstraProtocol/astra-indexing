@@ -125,6 +125,9 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 				txs := make([]accountTransactionView.TransactionRow, 0)
 				fee := coin.MustNewCoins(coin.MustNewCoinFromString("aastra", "0"))
 				for _, internalTx := range collectedInternalTxs {
+					if internalTx.CallType != "call" {
+						continue
+					}
 					if internalTx.Value.String() == "0" {
 						continue
 					}
@@ -175,7 +178,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 
 					//parse internal tx message content
 					legacyTx := model.LegacyTx{
-						Type:  internalTx.Type,
+						Type:  internalTx.CallType,
 						Gas:   strconv.FormatInt(internalTx.GasUsed, 10),
 						To:    internalTx.ToAddressHash,
 						Value: string(internalTx.Value),
