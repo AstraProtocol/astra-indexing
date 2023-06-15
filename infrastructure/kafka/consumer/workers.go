@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"context"
+	"encoding/hex"
 	"math/big"
 	"os"
 	"os/signal"
@@ -14,6 +15,7 @@ import (
 	"github.com/segmentio/kafka-go"
 
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
 	"github.com/AstraProtocol/astra-indexing/projection/account_transaction"
@@ -22,7 +24,6 @@ import (
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 	"github.com/AstraProtocol/astra-indexing/usecase/event"
 	"github.com/AstraProtocol/astra-indexing/usecase/model"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const EVM_TXS_TOPIC = "evm-txs"
@@ -149,11 +150,14 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 						},
 					)
 
-					fromAstraAddr, _ := sdk.AccAddressFromHex(internalTx.FromAddressHash[2:])
-					toAstraAddr, _ := sdk.AccAddressFromHex(internalTx.ToAddressHash[2:])
+					converted, _ := hex.DecodeString(internalTx.FromAddressHash[2:])
+					fromAstraAddr, _ := tmcosmosutils.EncodeHexToAddress("astra", converted)
 
-					transactionInfo.AddAccount(fromAstraAddr.String())
-					transactionInfo.AddAccount(toAstraAddr.String())
+					converted, _ = hex.DecodeString(internalTx.ToAddressHash[2:])
+					toAstraAddr, _ := tmcosmosutils.EncodeHexToAddress("astra", converted)
+
+					transactionInfo.AddAccount(fromAstraAddr)
+					transactionInfo.AddAccount(toAstraAddr)
 
 					transactionInfo.Row.FromAddress = strings.ToLower(internalTx.FromAddressHash)
 					transactionInfo.Row.ToAddress = strings.ToLower(internalTx.ToAddressHash)
@@ -164,7 +168,10 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 					blockTime := utctime.Now()
 					transactionInfo.FillBlockInfo(blockHash, blockTime)
 
-					evmType := evmUtil.GetMethodNameFromMethodId(internalTx.Input[2:10])
+					evmType := ""
+					if len(internalTx.Input) > 10 {
+						evmType = evmUtil.GetMethodNameFromMethodId(internalTx.Input[2:10])
+					}
 
 					//parse internal tx message content
 					legacyTx := model.LegacyTx{
@@ -200,7 +207,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 						BlockHeight:   internalTx.BlockNumber,
 						BlockTime:     blockTime,
 						BlockHash:     blockHash,
-						Hash:          strings.ToUpper(internalTx.TransactionHash[0:]),
+						Hash:          strings.ToUpper(internalTx.TransactionHash[2:]),
 						Index:         int(internalTx.Index),
 						Success:       true,
 						Code:          0,

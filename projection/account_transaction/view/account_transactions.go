@@ -129,16 +129,30 @@ func (accountMessagesView *AccountTransactions) List(
 		"view_account_transaction_data ON view_account_transactions.block_height = view_account_transaction_data.block_height AND view_account_transactions.transaction_hash = view_account_transaction_data.hash",
 	)
 
-	if filter.Memo == "" && filter.RewardTxType == "" && filter.Direction == "" {
-		stmtBuilder = stmtBuilder.Where(
-			"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ?", false, filter.Account,
-		)
-	}
+	if filter.IncludingInternalTx == "true" {
+		if filter.Memo == "" && filter.RewardTxType == "" && filter.Direction == "" {
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.account = ?", filter.Account,
+			)
+		}
 
-	if filter.Memo != "" {
-		stmtBuilder = stmtBuilder.Where(
-			"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?", false, filter.Account, filter.Memo,
-		)
+		if filter.Memo != "" {
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.account = ? AND view_account_transaction_data.memo = ?", filter.Account, filter.Memo,
+			)
+		}
+	} else {
+		if filter.Memo == "" && filter.RewardTxType == "" && filter.Direction == "" {
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ?", false, filter.Account,
+			)
+		}
+
+		if filter.Memo != "" {
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?", false, filter.Account, filter.Memo,
+			)
+		}
 	}
 
 	if filter.RewardTxType != "" && filter.Direction == "" {
@@ -485,6 +499,8 @@ type AccountTransactionsListFilter struct {
 	RewardTxType string
 	// Optional direction filter
 	Direction string
+	// Optional including internal txs filter
+	IncludingInternalTx string
 }
 
 type AccountTransactionsListOrder struct {
