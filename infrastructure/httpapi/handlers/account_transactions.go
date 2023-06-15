@@ -290,7 +290,7 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 	if err != nil {
 		handler.logger.Errorf("error listing account transactions: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
-		httpapi.InternalServerError(ctx)
+		httpapi.BadRequest(ctx, err)
 		return
 	}
 
