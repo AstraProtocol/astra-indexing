@@ -132,25 +132,40 @@ func (accountMessagesView *AccountTransactions) List(
 	if filter.IncludingInternalTx == "true" {
 		if filter.Memo == "" && filter.RewardTxType == "" && filter.Direction == "" {
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.account = ?", filter.Account,
+				"view_account_transactions.account = ? AND "+
+					"(view_account_transaction_data.from_address = ? OR view_account_transaction_data.to_address = ?)",
+				filter.Account,
+				filter.Account,
+				filter.Account,
 			)
 		}
 
 		if filter.Memo != "" {
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.account = ? AND view_account_transaction_data.memo = ?", filter.Account, filter.Memo,
+				"view_account_transactions.account = ? AND "+
+					"(view_account_transaction_data.from_address = ? OR view_account_transaction_data.to_address = ?) AND "+
+					"view_account_transaction_data.memo = ?",
+				filter.Account,
+				filter.Account,
+				filter.Account,
+				filter.Memo,
 			)
 		}
 	} else {
 		if filter.Memo == "" && filter.RewardTxType == "" && filter.Direction == "" {
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ?", false, filter.Account,
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ?",
+				false,
+				filter.Account,
 			)
 		}
 
 		if filter.Memo != "" {
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?", false, filter.Account, filter.Memo,
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?",
+				false,
+				filter.Account,
+				filter.Memo,
 			)
 		}
 	}
