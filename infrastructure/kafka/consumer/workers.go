@@ -96,6 +96,7 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 }
 
 func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, sigchan chan os.Signal) error {
+	fmt.Println("CHECK1")
 	signal.Notify(sigchan, os.Interrupt)
 
 	rdbAccountTransactionsView := accountTransactionView.NewAccountTransactions(rdbHandle)
@@ -111,20 +112,25 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 		AuthenticationType: config.KafkaService.AuthenticationType,
 		Sigchan:            sigchan,
 	}
+	fmt.Println("CHECK2")
 	errConn := consumer.CreateConnection()
 	if errConn != nil {
 		return errConn
 	}
 
+	fmt.Println("CHECK3")
 	evmUtil, err := evm.NewEvmUtils()
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("CHECK4")
 	consumer.Fetch(
 		[]CollectedInternalTx{},
 		func(collectedInternalTxs []CollectedInternalTx, message kafka.Message, ctx context.Context, err error) {
+			fmt.Println("CHECK5")
 			if err != nil {
+				fmt.Println("CHECK6")
 				logger.Infof("Kafka Consumer error: %v", err)
 			} else {
 				fmt.Println("ConsumerInternalTxs is running...")
