@@ -112,11 +112,6 @@ func run(args []string) error {
 				EnvVars: []string{"ENABLE_CONSUMER"},
 			},
 			&cli.StringFlag{
-				Name:    "kafkaTopic",
-				Usage:   "Kafka Topic",
-				EnvVars: []string{"KAFKA_TOPICS"},
-			},
-			&cli.StringFlag{
 				Name:    "consumerGroupId",
 				Usage:   "Kafka Consumer Group Id",
 				EnvVars: []string{"CONSUMER_GROUP_ID"},
@@ -196,9 +191,6 @@ func run(args []string) error {
 			}
 			if ctx.IsSet("enableConsumer") {
 				cliConfig.EnableConsumer = primptr.Bool(ctx.Bool("enableConsumer"))
-			}
-			if ctx.IsSet("kafkaTopic") {
-				cliConfig.KafkaTopic = ctx.String("kafkaTopic")
 			}
 			if ctx.IsSet("consumerGroupId") {
 				cliConfig.ConsumerGroupId = ctx.String("consumerGroupId")

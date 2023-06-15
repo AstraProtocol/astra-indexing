@@ -40,7 +40,6 @@ type CLIConfig struct {
 	CronjobStats *bool
 
 	EnableConsumer          *bool
-	KafkaTopic              string
 	ConsumerGroupId         string
 	KafkaBrokers            string
 	KafkaUser               string
@@ -101,9 +100,6 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	}
 	if cliConfig.EnableConsumer != nil {
 		config.KafkaService.EnableConsumer = *cliConfig.EnableConsumer
-	}
-	if cliConfig.KafkaTopic != "" {
-		config.KafkaService.Topic = cliConfig.KafkaTopic
 	}
 	if cliConfig.ConsumerGroupId != "" {
 		config.KafkaService.GroupID = cliConfig.ConsumerGroupId
