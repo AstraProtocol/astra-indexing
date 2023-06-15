@@ -462,16 +462,16 @@ type AccountTransactionRecord struct {
 }
 
 type AccountTransactionBaseRow struct {
-	Account      string          `json:"account,omitempty"`
+	Account      string          `json:"account"`
 	BlockHeight  int64           `json:"blockHeight"`
 	BlockHash    string          `json:"blockHash"`
 	BlockTime    utctime.UTCTime `json:"blockTime"`
 	Hash         string          `json:"hash"`
 	MessageTypes []string        `json:"messageTypes"`
 	Success      bool            `json:"success"`
-	FromAddress  string          `json:"from_address"`
-	ToAddress    string          `json:"to_address"`
-	IsInternalTx bool            `json:"is_internal_tx"`
+	FromAddress  string          `json:"from_address,omitempty"`
+	ToAddress    string          `json:"to_address,omitempty"`
+	IsInternalTx bool            `json:"is_internal_tx,omitempty"`
 }
 
 type AccountTransactionReadRow struct {
