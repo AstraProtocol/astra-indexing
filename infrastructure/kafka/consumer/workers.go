@@ -169,8 +169,15 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 					transactionInfo.FillBlockInfo(blockHash, blockTime)
 
 					evmType := ""
+					data := "0x"
 					if len(internalTx.Input) > 10 {
 						evmType = evmUtil.GetMethodNameFromMethodId(internalTx.Input[2:10])
+						data = internalTx.Input
+					} else {
+						if len(internalTx.Output) > 10 {
+							evmType = evmUtil.GetMethodNameFromMethodId(internalTx.Output[2:10])
+							data = internalTx.Output
+						}
 					}
 
 					//parse internal tx message content
@@ -179,7 +186,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 						Gas:   strconv.FormatInt(internalTx.GasUsed, 10),
 						To:    internalTx.ToAddressHash,
 						Value: string(internalTx.Value),
-						Data:  internalTx.Input,
+						Data:  data,
 					}
 					rawMsgEthereumTx := model.RawMsgEthereumTx{
 						Type: event.MSG_ETHEREUM_INTERNAL_TX,
