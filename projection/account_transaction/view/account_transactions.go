@@ -58,6 +58,7 @@ func (accountMessagesView *AccountTransactions) InsertAll(
 				"message_types",
 				"from_address",
 				"to_address",
+				"is_internal_tx",
 			)
 		}
 
@@ -72,6 +73,7 @@ func (accountMessagesView *AccountTransactions) InsertAll(
 			json.MustMarshalToString(row.MessageTypes),
 			row.FromAddress,
 			row.ToAddress,
+			row.IsInternalTx,
 		)
 		pendingRowCount += 1
 
@@ -129,13 +131,13 @@ func (accountMessagesView *AccountTransactions) List(
 
 	if filter.Memo == "" && filter.RewardTxType == "" && filter.Direction == "" {
 		stmtBuilder = stmtBuilder.Where(
-			"view_account_transactions.account = ?", filter.Account,
+			"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ?", false, filter.Account,
 		)
 	}
 
 	if filter.Memo != "" {
 		stmtBuilder = stmtBuilder.Where(
-			"view_account_transactions.account = ? AND view_account_transaction_data.memo = ?", filter.Account, filter.Memo,
+			"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?", false, filter.Account, filter.Memo,
 		)
 	}
 
@@ -455,6 +457,7 @@ type AccountTransactionBaseRow struct {
 	Success      bool            `json:"success"`
 	FromAddress  string          `json:"from_address"`
 	ToAddress    string          `json:"to_address"`
+	IsInternalTx bool            `json:"is_internal_tx"`
 }
 
 type AccountTransactionReadRow struct {

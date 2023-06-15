@@ -212,7 +212,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 					}
 					tx.Messages = append(tx.Messages, tmpMessage)
 					txs = append(txs, tx)
-					accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRows()...)
+					accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRowsIncludingInternalTx()...)
 				}
 				err := rdbAccountTransactionDataView.InsertAll(txs)
 				if err == nil {
@@ -226,7 +226,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 						logger.Infof("Failed to insert account txs from Consumer partition %d: %v", message.Partition, err)
 					}
 				} else {
-					logger.Infof("Failed to insert account tx data from Consumer partition %d: %v", message.Partition, err)
+					logger.Infof("Failed to insert account txs data from Consumer partition %d: %v", message.Partition, err)
 				}
 			}
 		},

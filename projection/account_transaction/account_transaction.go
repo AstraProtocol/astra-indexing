@@ -627,6 +627,21 @@ func (info *TransactionInfo) ToRows() []view.AccountTransactionBaseRow {
 	for account := range info.involvedAccounts {
 		clonedRow := info.Row
 		clonedRow.Account = account
+		clonedRow.IsInternalTx = false
+		rows = append(rows, clonedRow)
+	}
+
+	return rows
+}
+
+func (info *TransactionInfo) ToRowsIncludingInternalTx() []view.AccountTransactionBaseRow {
+	info.FillMessageTypes()
+
+	rows := make([]view.AccountTransactionBaseRow, 0)
+	for account := range info.involvedAccounts {
+		clonedRow := info.Row
+		clonedRow.Account = account
+		clonedRow.IsInternalTx = true
 		rows = append(rows, clonedRow)
 	}
 
