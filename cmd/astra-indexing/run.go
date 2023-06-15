@@ -13,6 +13,7 @@ import (
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/primptr"
 	"github.com/AstraProtocol/astra-indexing/infrastructure"
+	"github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/AstraProtocol/astra-indexing/internal/filereader/yaml"
 )
 
@@ -215,10 +216,15 @@ func run(args []string) error {
 			logger := infrastructure.NewZerologLogger(os.Stdout)
 			logger.SetLogLevel(logLevel)
 
-			app := bootstrap.NewApp(logger, &config)
+			evmUtil, err := evm.NewEvmUtils()
+			if err != nil {
+				return err
+			}
+
+			app := bootstrap.NewApp(logger, &config, evmUtil)
 
 			app.InitIndexService(
-				initProjections(logger, app.GetRDbConn(), &config, &customConfig),
+				initProjections(logger, app.GetRDbConn(), &config, &customConfig, evmUtil),
 				nil,
 			)
 			app.InitHTTPAPIServer(routes.InitRouteRegistry(logger, app.GetRDbConn(), &config))
