@@ -131,6 +131,9 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 				txs := make([]accountTransactionView.TransactionRow, 0)
 				fee := coin.MustNewCoins(coin.MustNewCoinFromString("aastra", "0"))
 				for _, internalTx := range collectedInternalTxs {
+					if internalTx.FromAddressHash == "" || internalTx.ToAddressHash == "" {
+						continue
+					}
 					transactionInfo := account_transaction.NewTransactionInfo(
 						accountTransactionView.AccountTransactionBaseRow{
 							Account:      "",
@@ -185,7 +188,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 						MsgIndex:    int(internalTx.Index),
 					}, params)
 					tmpMessage := accountTransactionView.TransactionRowMessage{
-						Type:    event.MSG_ETHEREUM_INTERNAL_TX,
+						Type:    event.MSG_ETHEREUM_TX,
 						EvmType: evmType,
 						Content: evmEvent,
 					}
