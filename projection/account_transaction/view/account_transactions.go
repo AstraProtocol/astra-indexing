@@ -123,7 +123,8 @@ func (accountMessagesView *AccountTransactions) List(
 		"view_account_transaction_data.timeout_height",
 		"view_account_transactions.message_types",
 		"view_account_transaction_data.messages",
-	).Distinct().Column("view_account_transactions.id").From(
+		"view_account_transactions.id",
+	).Distinct().From(
 		"view_account_transactions",
 	).InnerJoin(
 		"view_account_transaction_data ON view_account_transactions.block_height = view_account_transaction_data.block_height AND view_account_transactions.transaction_hash = view_account_transaction_data.hash",
