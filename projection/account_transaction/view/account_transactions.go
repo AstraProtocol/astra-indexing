@@ -272,10 +272,14 @@ func (accountMessagesView *AccountTransactions) List(
 					rawQuery := fmt.Sprintf(
 						"SELECT "+
 							"(SELECT coalesce(COUNT(*), 0) FROM view_account_transactions "+
-							"WHERE account = '%s' AND is_internal_tx = true) + "+
+							"INNER JOIN view_account_transaction_data ON "+
+							"view_account_transactions.block_height = view_account_transaction_data.block_height AND "+
+							"view_account_transactions.transaction_hash = view_account_transaction_data.hash "+
+							"WHERE account = '%s' AND is_internal_tx = true AND "+
+							"(view_account_transaction_data.from_address = '%s' OR view_account_transaction_data.to_address = '%s')) + "+
 							"(SELECT coalesce(SUM(total), 0) FROM view_account_transactions_total "+
 							"WHERE identity = '%s') "+
-							"AS total", filter.Account, identity)
+							"AS total", filter.Account, filter.Account, filter.Account, identity)
 					var total int64
 					err := rdbHandle.QueryRow(rawQuery).Scan(&total)
 					if err != nil {
