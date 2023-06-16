@@ -29,6 +29,13 @@ import (
 const EVM_TXS_TOPIC = "evm-txs"
 const INTERNAL_TXS_TOPIC = "internal-txs"
 
+var rewardType = map[string]bool{
+	"sendReward":        true,
+	"redeemReward":      true,
+	"exchange":          true,
+	"exchangeWithValue": true,
+}
+
 func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, sigchan chan os.Signal) error {
 	signal.Notify(sigchan, os.Interrupt)
 
@@ -99,6 +106,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 
 	rdbAccountTransactionsView := accountTransactionView.NewAccountTransactions(rdbHandle)
 	rdbAccountTransactionDataView := accountTransactionView.NewAccountTransactionData(rdbHandle)
+	rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
 
 	consumer := Consumer[[]CollectedInternalTx]{
 		TimeOut:            utils.KAFKA_TIME_OUT,
@@ -121,6 +129,25 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 			if err != nil {
 				logger.Infof("Kafka Consumer error: %v", err)
 			} else {
+				checkEvmHash := make(map[string]bool)
+				//get list tx hash
+				evmHashes := make([]string, 0)
+				for _, internalTx := range collectedInternalTxs {
+					if !checkEvmHash[internalTx.TransactionHash] {
+						evmHashes = append(evmHashes, internalTx.TransactionHash)
+						checkEvmHash[internalTx.TransactionHash] = true
+					}
+				}
+				//get evm types from tx hashes
+				transactionTxTypes, err := rdbTransactionView.GetTxsType(evmHashes)
+				if err != nil {
+					logger.Infof("get txs type query error: %v", err)
+				}
+				txTypeMapping := make(map[string]string)
+				for _, transactionTxType := range transactionTxTypes {
+					txTypeMapping[transactionTxType.EvmHash] = transactionTxType.TxType
+				}
+
 				accountTransactionRows := make([]accountTransactionView.AccountTransactionBaseRow, 0)
 				txs := make([]accountTransactionView.TransactionRow, 0)
 				fee := coin.MustNewCoins(coin.MustNewCoinFromString("aastra", "0"))
@@ -132,6 +159,11 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 						continue
 					}
 					if internalTx.FromAddressHash == "" || internalTx.ToAddressHash == "" {
+						continue
+					}
+					//check if tx is reward tx
+					txType := txTypeMapping[internalTx.TransactionHash]
+					if !rewardType[txType] {
 						continue
 					}
 					transactionInfo := account_transaction.NewTransactionInfo(
@@ -164,25 +196,13 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 					blockTime := utctime.Now()
 					transactionInfo.FillBlockInfo(blockHash, blockTime)
 
-					evmType := ""
-					data := "0x"
-					if len(internalTx.Input) > 10 {
-						evmType = evmUtil.GetMethodNameFromMethodId(internalTx.Input[2:10])
-						data = internalTx.Input
-					} else {
-						if len(internalTx.Output) > 10 {
-							evmType = evmUtil.GetMethodNameFromMethodId(internalTx.Output[2:10])
-							data = internalTx.Output
-						}
-					}
-
 					//parse internal tx message content
 					legacyTx := model.LegacyTx{
 						Type:  internalTx.CallType,
 						Gas:   strconv.FormatInt(internalTx.GasUsed, 10),
 						To:    internalTx.ToAddressHash,
 						Value: string(internalTx.Value),
-						Data:  data,
+						Data:  internalTx.Input,
 					}
 					rawMsgEthereumTx := model.RawMsgEthereumTx{
 						Type: event.MSG_ETHEREUM_INTERNAL_TX,
@@ -202,7 +222,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 					}, params)
 					tmpMessage := accountTransactionView.TransactionRowMessage{
 						Type:    event.MSG_ETHEREUM_TX,
-						EvmType: evmType,
+						EvmType: txType,
 						Content: evmEvent,
 					}
 
@@ -224,7 +244,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 						TimeoutHeight: 0,
 						Messages:      make([]accountTransactionView.TransactionRowMessage, 0),
 						EvmHash:       internalTx.TransactionHash,
-						RewardTxType:  evmType,
+						RewardTxType:  txType,
 						FromAddress:   strings.ToLower(internalTx.FromAddressHash),
 						ToAddress:     strings.ToLower(internalTx.ToAddressHash),
 					}
@@ -238,7 +258,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 						logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", INTERNAL_TXS_TOPIC, message.Partition, errCommit)
 					}
 				}
-				err := rdbAccountTransactionDataView.InsertAll(txs)
+				err = rdbAccountTransactionDataView.InsertAll(txs)
 				if err == nil {
 					err = rdbAccountTransactionsView.InsertAll(accountTransactionRows)
 					// Commit offset
