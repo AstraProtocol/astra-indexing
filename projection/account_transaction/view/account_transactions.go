@@ -133,9 +133,8 @@ func (accountMessagesView *AccountTransactions) List(
 		if filter.Memo == "" && filter.RewardTxType == "" && filter.Direction == "" {
 			stmtBuilder = stmtBuilder.Where(
 				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ?) OR "+
-					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND view_account_transaction_data.from_address = ?) OR "+
-					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND view_account_transaction_data.to_address = ?)",
-				filter.Account,
+					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
+					"(view_account_transaction_data.from_address = ? OR view_account_transaction_data.to_address = ?))",
 				filter.Account,
 				filter.Account,
 				filter.Account,
@@ -145,16 +144,14 @@ func (accountMessagesView *AccountTransactions) List(
 
 		if filter.Memo != "" {
 			stmtBuilder = stmtBuilder.Where(
-				"((view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ?) OR "+
-					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND view_account_transaction_data.from_address = ?) OR "+
-					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND view_account_transaction_data.to_address = ?)) AND "+
-					"view_account_transaction_data.memo = ?",
-				filter.Account,
-				filter.Account,
-				filter.Account,
-				filter.Account,
+				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?) OR "+
+					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
+					"(view_account_transaction_data.from_address = ? OR view_account_transaction_data.to_address = ?))",
 				filter.Account,
 				filter.Memo,
+				filter.Account,
+				filter.Account,
+				filter.Account,
 			)
 		}
 	} else {
