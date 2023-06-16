@@ -17,6 +17,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
+	"github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/AstraProtocol/astra-indexing/projection/account_transaction"
 	accountTransactionView "github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
 	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
@@ -100,7 +101,7 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 	return nil
 }
 
-func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, sigchan chan os.Signal) error {
+func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, evmUtil evm.EvmUtils, sigchan chan os.Signal) error {
 	signal.Notify(sigchan, os.Interrupt)
 
 	rdbAccountTransactionsView := accountTransactionView.NewAccountTransactions(rdbHandle)
@@ -164,6 +165,13 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 					txType := txTypeMapping[internalTx.TransactionHash]
 					if !rewardType[txType] {
 						continue
+					}
+					if len(internalTx.Input) > 10 {
+						evmType := evmUtil.GetMethodNameFromMethodId(internalTx.Input[2:10])
+						//ignore duplicate internal tx with parent's tx data
+						if evmType == txTypeMapping[internalTx.TransactionHash] {
+							continue
+						}
 					}
 					transactionInfo := account_transaction.NewTransactionInfo(
 						accountTransactionView.AccountTransactionBaseRow{
