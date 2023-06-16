@@ -222,6 +222,7 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 			}
 			txs[i].Messages = append(txs[i].Messages, tmpMessage)
 			txs[i].EvmHash = txEvmHashes[tx.Hash]
+			txs[i].TxType = txEvmTypes[tx.Hash]
 		}
 
 		fromAddress := ""
