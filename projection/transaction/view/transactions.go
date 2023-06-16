@@ -74,6 +74,7 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 				"timeout_height",
 				"messages",
 				"signers",
+				"tx_type",
 			)
 		}
 		var transactionMessagesJSON string
@@ -121,6 +122,7 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 			transaction.TimeoutHeight,
 			transactionMessagesJSON,
 			signersJSON,
+			transaction.TxType,
 		)
 		pendingRowCount += 1
 
@@ -741,6 +743,7 @@ type TransactionRow struct {
 	TimeoutHeight int64                   `json:"timeoutHeight"`
 	Messages      []TransactionRowMessage `json:"messages"`
 	Signers       []TransactionRowSigner  `json:"signers"`
+	TxType        string                  `json:"txType"`
 }
 
 type TransactionRowMessage struct {
