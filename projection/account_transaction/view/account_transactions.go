@@ -123,7 +123,7 @@ func (accountMessagesView *AccountTransactions) List(
 		"view_account_transaction_data.timeout_height",
 		"view_account_transactions.message_types",
 		"view_account_transaction_data.messages",
-	).From(
+	).Distinct().Column("view_account_transactions.id").From(
 		"view_account_transactions",
 	).InnerJoin(
 		"view_account_transaction_data ON view_account_transactions.block_height = view_account_transaction_data.block_height AND view_account_transactions.transaction_hash = view_account_transaction_data.hash",
@@ -270,12 +270,12 @@ func (accountMessagesView *AccountTransactions) List(
 				if filter.IncludingInternalTx == "true" {
 					rawQuery := fmt.Sprintf(
 						"SELECT "+
-							"(SELECT coalesce(COUNT(*), 0) FROM view_account_transactions "+
+							"(SELECT coalesce(COUNT(*), 0) FROM (SELECT DISTINCT view_account_transactions.id FROM view_account_transactions "+
 							"INNER JOIN view_account_transaction_data ON "+
 							"view_account_transactions.block_height = view_account_transaction_data.block_height AND "+
 							"view_account_transactions.transaction_hash = view_account_transaction_data.hash "+
 							"WHERE account = '%s' AND is_internal_tx = true AND "+
-							"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)) + "+
+							"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)) AS temp) + "+
 							"(SELECT coalesce(SUM(total), 0) FROM view_account_transactions_total "+
 							"WHERE identity = '%s') "+
 							"AS total", filter.Account, identity)
@@ -446,6 +446,7 @@ func (accountMessagesView *AccountTransactions) List(
 			&accountMessage.TimeoutHeight,
 			&messageTypesJSON,
 			&messagesJSON,
+			&accountMessage.Id,
 		); err != nil {
 			if errors.Is(err, rdb.ErrNoRows) {
 				return nil, nil, rdb.ErrNoRows
@@ -495,6 +496,7 @@ type AccountTransactionRecord struct {
 }
 
 type AccountTransactionBaseRow struct {
+	Id           int64           `json:"id"`
 	Account      string          `json:"account"`
 	BlockHeight  int64           `json:"blockHeight"`
 	BlockHash    string          `json:"blockHash"`
