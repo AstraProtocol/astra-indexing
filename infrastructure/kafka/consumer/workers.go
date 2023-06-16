@@ -11,7 +11,6 @@ import (
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/bootstrap/config"
-	"github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/segmentio/kafka-go"
 
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
@@ -101,7 +100,7 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 	return nil
 }
 
-func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, evmUtil evm.EvmUtils, sigchan chan os.Signal) error {
+func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, sigchan chan os.Signal) error {
 	signal.Notify(sigchan, os.Interrupt)
 
 	rdbAccountTransactionsView := accountTransactionView.NewAccountTransactions(rdbHandle)
