@@ -132,25 +132,40 @@ func (accountMessagesView *AccountTransactions) List(
 	if filter.IncludingInternalTx == "true" {
 		if filter.Memo == "" && filter.RewardTxType == "" && filter.Direction == "" {
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.account = ?", filter.Account,
+				"view_account_transactions.account = ? AND "+
+					"(view_account_transaction_data.from_address = ? OR view_account_transaction_data.to_address = ?)",
+				filter.Account,
+				filter.Account,
+				filter.Account,
 			)
 		}
 
 		if filter.Memo != "" {
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.account = ? AND view_account_transaction_data.memo = ?", filter.Account, filter.Memo,
+				"view_account_transactions.account = ? AND "+
+					"(view_account_transaction_data.from_address = ? OR view_account_transaction_data.to_address = ?) AND "+
+					"view_account_transaction_data.memo = ?",
+				filter.Account,
+				filter.Account,
+				filter.Account,
+				filter.Memo,
 			)
 		}
 	} else {
 		if filter.Memo == "" && filter.RewardTxType == "" && filter.Direction == "" {
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ?", false, filter.Account,
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ?",
+				false,
+				filter.Account,
 			)
 		}
 
 		if filter.Memo != "" {
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?", false, filter.Account, filter.Memo,
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?",
+				false,
+				filter.Account,
+				filter.Memo,
 			)
 		}
 	}
@@ -257,9 +272,6 @@ func (accountMessagesView *AccountTransactions) List(
 					rawQuery := fmt.Sprintf(
 						"SELECT "+
 							"(SELECT coalesce(COUNT(*), 0) FROM view_account_transactions "+
-							"INNER JOIN view_account_transaction_data ON "+
-							"view_account_transactions.block_height = view_account_transaction_data.block_height "+
-							"AND view_account_transactions.transaction_hash = view_account_transaction_data.hash "+
 							"WHERE account = '%s' AND is_internal_tx = true) + "+
 							"(SELECT coalesce(SUM(total), 0) FROM view_account_transactions_total "+
 							"WHERE identity = '%s') "+

@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS view_account_transaction_data_from_address_btree_index;

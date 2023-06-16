@@ -225,6 +225,8 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 						Messages:      make([]accountTransactionView.TransactionRowMessage, 0),
 						EvmHash:       internalTx.TransactionHash,
 						RewardTxType:  evmType,
+						FromAddress:   fromAstraAddr,
+						ToAddress:     toAstraAddr,
 					}
 					tx.Messages = append(tx.Messages, tmpMessage)
 					txs = append(txs, tx)
