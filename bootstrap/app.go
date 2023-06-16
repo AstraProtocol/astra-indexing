@@ -121,7 +121,7 @@ func (a *app) Run() {
 	if a.config.KafkaService.EnableConsumer {
 		sigchan := make(chan os.Signal, 1)
 		go func() {
-			if runErr := astra_consumer.RunConsumerInternalTxs(a.rdbConn.ToHandle(), a.config, a.logger, sigchan); runErr != nil {
+			if runErr := astra_consumer.RunConsumerInternalTxs(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan); runErr != nil {
 				a.logger.Panicf("%v", runErr)
 			}
 		}()
