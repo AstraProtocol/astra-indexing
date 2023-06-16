@@ -106,6 +106,7 @@ func (accountMessagesView *AccountTransactions) List(
 	pagination *pagination_interface.Pagination,
 ) ([]AccountTransactionReadRow, *pagination_interface.Result, error) {
 	stmtBuilder := accountMessagesView.rdb.StmtBuilder.Select(
+		"DISTINCT ON (view_account_transactions.id) view_account_transactions.id",
 		"view_account_transactions.account",
 		"view_account_transactions.block_height",
 		"view_account_transactions.block_hash",
@@ -123,8 +124,7 @@ func (accountMessagesView *AccountTransactions) List(
 		"view_account_transaction_data.timeout_height",
 		"view_account_transactions.message_types",
 		"view_account_transaction_data.messages",
-		"view_account_transactions.id",
-	).Distinct().From(
+	).From(
 		"view_account_transactions",
 	).InnerJoin(
 		"view_account_transaction_data ON view_account_transactions.block_height = view_account_transaction_data.block_height AND view_account_transactions.transaction_hash = view_account_transaction_data.hash",
@@ -429,6 +429,7 @@ func (accountMessagesView *AccountTransactions) List(
 		blockTimeReader := accountMessagesView.rdb.NtotReader()
 
 		if err = rowsResult.Scan(
+			&accountMessage.Id,
 			&accountMessage.Account,
 			&accountMessage.BlockHeight,
 			&accountMessage.BlockHash,
@@ -447,7 +448,6 @@ func (accountMessagesView *AccountTransactions) List(
 			&accountMessage.TimeoutHeight,
 			&messageTypesJSON,
 			&messagesJSON,
-			&accountMessage.Id,
 		); err != nil {
 			if errors.Is(err, rdb.ErrNoRows) {
 				return nil, nil, rdb.ErrNoRows
