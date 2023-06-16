@@ -251,7 +251,7 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 					txs = append(txs, tx)
 					accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRowsIncludingInternalTx()...)
 				}
-				if len(txs) == 0 && len(collectedInternalTxs) > 0 {
+				if len(txs) == 0 {
 					// Commit offset when no internal txs are valid
 					if errCommit := consumer.Commit(ctx, message); errCommit != nil {
 						logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", INTERNAL_TXS_TOPIC, message.Partition, errCommit)
