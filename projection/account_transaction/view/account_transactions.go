@@ -134,9 +134,7 @@ func (accountMessagesView *AccountTransactions) List(
 			stmtBuilder = stmtBuilder.Where(
 				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ?) OR "+
 					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
-					"(view_account_transaction_data.from_address = ? OR view_account_transaction_data.to_address = ?))",
-				filter.Account,
-				filter.Account,
+					"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
 				filter.Account,
 				filter.Account,
 			)
@@ -146,11 +144,9 @@ func (accountMessagesView *AccountTransactions) List(
 			stmtBuilder = stmtBuilder.Where(
 				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?) OR "+
 					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
-					"(view_account_transaction_data.from_address = ? OR view_account_transaction_data.to_address = ?))",
+					"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
 				filter.Account,
 				filter.Memo,
-				filter.Account,
-				filter.Account,
 				filter.Account,
 			)
 		}
@@ -279,10 +275,10 @@ func (accountMessagesView *AccountTransactions) List(
 							"view_account_transactions.block_height = view_account_transaction_data.block_height AND "+
 							"view_account_transactions.transaction_hash = view_account_transaction_data.hash "+
 							"WHERE account = '%s' AND is_internal_tx = true AND "+
-							"(view_account_transaction_data.from_address = '%s' OR view_account_transaction_data.to_address = '%s')) + "+
+							"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)) + "+
 							"(SELECT coalesce(SUM(total), 0) FROM view_account_transactions_total "+
 							"WHERE identity = '%s') "+
-							"AS total", filter.Account, filter.Account, filter.Account, identity)
+							"AS total", filter.Account, identity)
 					var total int64
 					err := rdbHandle.QueryRow(rawQuery).Scan(&total)
 					if err != nil {
