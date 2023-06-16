@@ -23,6 +23,7 @@ type BlockTransactions interface {
 	Insert(transaction *TransactionRow) error
 	FindByHash(txHash string) (*TransactionRow, error)
 	FindByEvmHash(txEvmHash string) (*TransactionRow, error)
+	GetTxsType(evmHashes []string) ([]TransactionTxType, error)
 	List(
 		filter TransactionsListFilter,
 		order TransactionsListOrder,
@@ -407,6 +408,41 @@ func (transactionsView *BlockTransactionsView) FindByEvmHash(txEvmHash string) (
 	return &transaction, nil
 }
 
+func (transactionsView *BlockTransactionsView) GetTxsType(evmHashes []string) ([]TransactionTxType, error) {
+	inValue := ""
+	for index, evmHash := range evmHashes {
+		if index == 0 {
+			inValue += fmt.Sprintf("'%s'", evmHash)
+		} else {
+			inValue += fmt.Sprintf(",'%s'", evmHash)
+		}
+	}
+	rawQuery := fmt.Sprintf("SELECT evm_hash, tx_type "+
+		"FROM view_transactions "+
+		"WHERE evm_hash IN(%s)", inValue)
+
+	transactionTxTypes := make([]TransactionTxType, 0)
+	rowsResult, err := transactionsView.rdb.Query(rawQuery)
+	if err != nil {
+		return nil, fmt.Errorf("error executing get txs type select SQL: %v: %w", err, rdb.ErrQuery)
+	}
+	defer rowsResult.Close()
+	for rowsResult.Next() {
+		var transactionTxType TransactionTxType
+		if err = rowsResult.Scan(
+			&transactionTxType.EvmHash,
+			&transactionTxType.TxType,
+		); err != nil {
+			if errors.Is(err, rdb.ErrNoRows) {
+				return nil, rdb.ErrNoRows
+			}
+			return nil, fmt.Errorf("error scanning get txs type row: %v: %w", err, rdb.ErrQuery)
+		}
+		transactionTxTypes = append(transactionTxTypes, transactionTxType)
+	}
+	return transactionTxTypes, nil
+}
+
 func (transactionsView *BlockTransactionsView) List(
 	filter TransactionsListFilter,
 	order TransactionsListOrder,
@@ -772,4 +808,9 @@ type TransactionRowSignerKeyInfo struct {
 	IsMultiSig     bool     `json:"isMultiSig"`
 	Pubkeys        []string `json:"pubkeys"`
 	MaybeThreshold *int     `json:"threshold,omitempty"`
+}
+
+type TransactionTxType struct {
+	TxType  string `json:"txType"`
+	EvmHash string `json:"evmHash"`
 }
