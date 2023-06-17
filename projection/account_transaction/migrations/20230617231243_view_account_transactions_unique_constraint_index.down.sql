@@ -1,0 +1,1 @@
+ALTER TABLE view_account_transactions DROP CONSTRAINT IF EXISTS account_transactions_unique;
