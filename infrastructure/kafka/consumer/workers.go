@@ -17,6 +17,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
+	"github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/AstraProtocol/astra-indexing/projection/account_transaction"
 	accountTransactionView "github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
 	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
@@ -100,7 +101,7 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 	return nil
 }
 
-func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, sigchan chan os.Signal) error {
+func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, evmUtil evm.EvmUtils, sigchan chan os.Signal) error {
 	signal.Notify(sigchan, os.Interrupt)
 
 	rdbAccountTransactionsView := accountTransactionView.NewAccountTransactions(rdbHandle)
@@ -143,12 +144,12 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 					logger.Infof("get txs type query error: %v", err)
 				}
 				txTypeMapping := make(map[string]string)
-				txFromAddressMapping := make(map[string]string)
-				txToAddressMapping := make(map[string]string)
+				//txFromAddressMapping := make(map[string]string)
+				//txToAddressMapping := make(map[string]string)
 				for _, transactionTxType := range txTypesFromToAddresses {
 					txTypeMapping[transactionTxType.EvmHash] = transactionTxType.TxType
-					txFromAddressMapping[transactionTxType.EvmHash] = strings.ToLower(transactionTxType.FromAddress)
-					txToAddressMapping[transactionTxType.EvmHash] = strings.ToLower(transactionTxType.ToAddress)
+					//txFromAddressMapping[transactionTxType.EvmHash] = strings.ToLower(transactionTxType.FromAddress)
+					//txToAddressMapping[transactionTxType.EvmHash] = strings.ToLower(transactionTxType.ToAddress)
 				}
 
 				accountTransactionRows := make([]accountTransactionView.AccountTransactionBaseRow, 0)
@@ -170,9 +171,11 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 						continue
 					}
 					//ignore if internal tx is same data with parent tx
-					if strings.ToLower(internalTx.FromAddressHash) == txFromAddressMapping[internalTx.TransactionHash] &&
-						strings.ToLower(internalTx.ToAddressHash) == txToAddressMapping[internalTx.TransactionHash] {
-						continue
+					if len(internalTx.Input) > 10 {
+						evmType := evmUtil.GetMethodNameFromMethodId(internalTx.Input[2:10])
+						if evmType == txTypeMapping[internalTx.TransactionHash] {
+							continue
+						}
 					}
 
 					transactionInfo := account_transaction.NewTransactionInfo(
