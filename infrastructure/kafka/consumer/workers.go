@@ -17,7 +17,6 @@ import (
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
-	"github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/AstraProtocol/astra-indexing/projection/account_transaction"
 	accountTransactionView "github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
 	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
@@ -101,7 +100,7 @@ func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger appl
 	return nil
 }
 
-func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, evmUtil evm.EvmUtils, sigchan chan os.Signal) error {
+func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, sigchan chan os.Signal) error {
 	signal.Notify(sigchan, os.Interrupt)
 
 	rdbAccountTransactionsView := accountTransactionView.NewAccountTransactions(rdbHandle)
@@ -138,14 +137,18 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 						checkEvmHash[internalTx.TransactionHash] = true
 					}
 				}
-				//get evm types from tx hashes
-				transactionTxTypes, err := rdbTransactionView.GetTxsType(evmHashes)
+				//get evm types from/to address by tx hashes
+				txTypesFromToAddresses, err := rdbTransactionView.GetTxsTypeFromToAddress(evmHashes)
 				if err != nil {
 					logger.Infof("get txs type query error: %v", err)
 				}
 				txTypeMapping := make(map[string]string)
-				for _, transactionTxType := range transactionTxTypes {
+				txFromAddressMapping := make(map[string]string)
+				txToAddressMapping := make(map[string]string)
+				for _, transactionTxType := range txTypesFromToAddresses {
 					txTypeMapping[transactionTxType.EvmHash] = transactionTxType.TxType
+					txFromAddressMapping[transactionTxType.EvmHash] = strings.ToLower(transactionTxType.FromAddress)
+					txToAddressMapping[transactionTxType.EvmHash] = strings.ToLower(transactionTxType.ToAddress)
 				}
 
 				accountTransactionRows := make([]accountTransactionView.AccountTransactionBaseRow, 0)
@@ -161,18 +164,17 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 					if internalTx.FromAddressHash == "" || internalTx.ToAddressHash == "" {
 						continue
 					}
-					//check if tx is reward tx
+					//ignore if internal tx is not reward tx
 					txType := txTypeMapping[internalTx.TransactionHash]
 					if !rewardType[txType] {
 						continue
 					}
-					if len(internalTx.Input) > 10 {
-						evmType := evmUtil.GetMethodNameFromMethodId(internalTx.Input[2:10])
-						//ignore duplicate internal tx with parent's tx data
-						if evmType == txTypeMapping[internalTx.TransactionHash] {
-							continue
-						}
+					//ignore if internal tx is same data with parent tx
+					if strings.ToLower(internalTx.FromAddressHash) == txFromAddressMapping[internalTx.TransactionHash] &&
+						strings.ToLower(internalTx.ToAddressHash) == txToAddressMapping[internalTx.TransactionHash] {
+						continue
 					}
+
 					transactionInfo := account_transaction.NewTransactionInfo(
 						accountTransactionView.AccountTransactionBaseRow{
 							Account:      "",
