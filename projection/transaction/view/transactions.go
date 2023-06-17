@@ -71,6 +71,7 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 				"gas_wanted",
 				"gas_used",
 				"from_address",
+				"to_address",
 				"memo",
 				"timeout_height",
 				"messages",
@@ -119,6 +120,7 @@ func (transactionsView *BlockTransactionsView) InsertAll(transactions []Transact
 			transaction.GasWanted,
 			transaction.GasUsed,
 			transaction.FromAddress,
+			transaction.ToAddress,
 			transaction.Memo,
 			transaction.TimeoutHeight,
 			transactionMessagesJSON,
@@ -775,6 +777,7 @@ type TransactionRow struct {
 	GasWanted     int                     `json:"gasWanted"`
 	GasUsed       int                     `json:"gasUsed"`
 	FromAddress   string                  `json:"fromAddress"`
+	ToAddress     string                  `json:"toAddress"`
 	Memo          string                  `json:"memo"`
 	TimeoutHeight int64                   `json:"timeoutHeight"`
 	Messages      []TransactionRowMessage `json:"messages"`
