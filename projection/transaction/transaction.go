@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"strings"
 
 	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 
@@ -100,6 +101,7 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 	txMsgs := make(map[string][]event_usecase.MsgEvent)
 	txEvmTypes := make(map[string]string)
 	txEvmHashes := make(map[string]string)
+	txEvmToAddress := make(map[string]string)
 	for _, event := range events {
 		if blockCreatedEvent, ok := event.(*event_usecase.BlockCreated); ok {
 			blockTime = blockCreatedEvent.Block.Time
@@ -192,6 +194,7 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 			evmType := projection.evmUtil.GetMethodNameFromData(txEvmEvent.Params.Data.Data)
 			txEvmTypes[txEvmEvent.TxHash()] = evmType
 			txEvmHashes[txEvmEvent.TxHash()] = txEvmEvent.Params.Hash
+			txEvmToAddress[txEvmEvent.TxHash()] = strings.ToLower(txEvmEvent.Params.Data.To)
 		}
 	}
 
@@ -223,6 +226,7 @@ func (projection *Transaction) HandleEvents(height int64, events []event_entity.
 			txs[i].Messages = append(txs[i].Messages, tmpMessage)
 			txs[i].EvmHash = txEvmHashes[tx.Hash]
 			txs[i].TxType = txEvmTypes[tx.Hash]
+			txs[i].ToAddress = txEvmToAddress[tx.Hash]
 		}
 
 		fromAddress := ""
