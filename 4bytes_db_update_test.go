@@ -15,8 +15,7 @@ func TestUpdate4Bytes(t *testing.T) {
 		panic(err)
 	}
 
-	util.UpdateSignature("0xfbb4c714", "createCouponProg(bytes)")
-	util.UpdateSignature("0x2f2ff15d", "grantRole(bytes32, address)")
+	util.UpdateSignature("0x4115c7e6", "createRewardProg(bytes)")
 
 	res, err := util.GetSignature("0xa07aea1c")
 	if err != nil {
@@ -24,8 +23,8 @@ func TestUpdate4Bytes(t *testing.T) {
 	}
 	assert.Equal(res, "addOperators(address[])")
 
-	input := "0x2f2ff15d"
-	assert.Equal(util.GetMethodNameFromMethodId(input[2:10]), "grantRole")
+	input := "0x4115c7e6"
+	assert.Equal(util.GetMethodNameFromMethodId(input[2:10]), "createRewardProg")
 
 	data := "0q7S1gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGSWzhIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQVbZvQpCuU8VUVDSeyAd243bdr5ljiPA3bK7aUm/VuQVdhajtudaHAI7ltLe1GHQeZchiXxaXAq2Ez+6ErCpJRscAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 	signature := util.GetMethodNameFromData(data)
