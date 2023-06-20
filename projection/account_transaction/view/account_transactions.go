@@ -106,7 +106,7 @@ func (accountMessagesView *AccountTransactions) List(
 	pagination *pagination_interface.Pagination,
 ) ([]AccountTransactionReadRow, *pagination_interface.Result, error) {
 	stmtBuilder := accountMessagesView.rdb.StmtBuilder.Select(
-		"DISTINCT ON (view_account_transactions.id) view_account_transactions.id",
+		"view_account_transactions.id",
 		"view_account_transactions.account",
 		"view_account_transactions.block_height",
 		"view_account_transactions.block_hash",
@@ -271,7 +271,7 @@ func (accountMessagesView *AccountTransactions) List(
 				if filter.IncludingInternalTx == "true" {
 					rawQuery := fmt.Sprintf(
 						"SELECT "+
-							"(SELECT coalesce(COUNT(*), 0) FROM (SELECT DISTINCT view_account_transactions.id FROM view_account_transactions "+
+							"(SELECT coalesce(COUNT(*), 0) FROM (SELECT view_account_transactions.id FROM view_account_transactions "+
 							"INNER JOIN view_account_transaction_data ON "+
 							"view_account_transactions.block_height = view_account_transaction_data.block_height AND "+
 							"view_account_transactions.transaction_hash = view_account_transaction_data.hash "+
