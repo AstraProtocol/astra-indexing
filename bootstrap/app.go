@@ -11,7 +11,7 @@ import (
 	config "github.com/AstraProtocol/astra-indexing/bootstrap/config"
 	projection_entity "github.com/AstraProtocol/astra-indexing/entity/projection"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
-	astra_consumer "github.com/AstraProtocol/astra-indexing/infrastructure/kafka/consumer"
+	worker_consumer "github.com/AstraProtocol/astra-indexing/infrastructure/kafka/consumer/worker"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg"
 	"github.com/AstraProtocol/astra-indexing/internal/evm"
@@ -121,12 +121,12 @@ func (a *app) Run() {
 	if a.config.KafkaService.EnableConsumer {
 		sigchan := make(chan os.Signal, 1)
 		go func() {
-			if runErr := astra_consumer.RunConsumerInternalTxs(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan); runErr != nil {
+			if runErr := worker_consumer.RunInternalTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan); runErr != nil {
 				a.logger.Panicf("%v", runErr)
 			}
 		}()
 		go func() {
-			if runErr := astra_consumer.RunConsumerEvmTxs(a.rdbConn.ToHandle(), a.config, a.logger, sigchan); runErr != nil {
+			if runErr := worker_consumer.RunEvmTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, sigchan); runErr != nil {
 				a.logger.Panicf("%v", runErr)
 			}
 		}()
