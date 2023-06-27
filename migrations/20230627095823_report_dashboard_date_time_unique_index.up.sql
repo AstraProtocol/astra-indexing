@@ -1,1 +1,1 @@
-CREATE UNIQUE INDEX report_dashboard_date_time_unique_index ON chain_stats (date_time);
+CREATE UNIQUE INDEX report_dashboard_date_time_unique_index ON report_dashboard(date_time);
