@@ -270,3 +270,46 @@ func (impl *RDbReportDashboard) UpdateTotalTxsOfRedeemedCouponsWithRDbHandle(cur
 	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
 	return nil
 }
+
+func (impl *RDbReportDashboard) UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle(currentDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle"
+
+	if err := impl.init(); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error initializing report dashboard %v", err)
+	}
+
+	rawQuery := fmt.Sprintf(
+		"COUNT(*) "+
+			"FROM (SELECT DISTINCT from_address "+
+			"FROM view_transactions "+
+			"WHERE "+
+			"block_time >= %d AND "+
+			"tx_type = '%s') AS dt", currentDate, "exchangeWithValue")
+
+	addressesOfRedeemedCouponsCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
+	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
+		impl.table,
+	).Set(
+		"total_redeemed_coupon_addresses", impl.selectRDbHandle.StmtBuilder.SubQuery(addressesOfRedeemedCouponsCountSubQuery),
+	).Where(
+		"date_time = ?", currentDate,
+	).ToSql()
+	if err != nil {
+		return fmt.Errorf("error building total addresses of redeemed coupons update SQL: %v", err)
+	}
+
+	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
+	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error executing total addresses of redeemed coupons update SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return errors.New("error executing total addresses of redeemed coupons update SQL: no rows affected")
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
+	return nil
+}
