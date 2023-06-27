@@ -183,3 +183,47 @@ func (impl *RDbReportDashboard) UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(c
 	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
 	return nil
 }
+
+func (impl *RDbReportDashboard) UpdateTotalAstraOfRedeemedCouponsWithRDbHandle(currentDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateTotalAstraOfRedeemedCouponsWithRDbHandle"
+
+	if err := impl.init(); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error initializing report dashboard %v", err)
+	}
+
+	rawQuery := fmt.Sprintf(
+		"CAST(SUM(CAST(CAST(CAST(CAST(value ->> 'content' AS jsonb) ->> 'params' AS jsonb) ->> 'data' AS jsonb) ->> 'value' AS numeric))/pow(10,18) AS VARCHAR) "+
+			"FROM "+
+			"view_transactions, "+
+			"jsonb_array_elements(view_transactions.messages) elems "+
+			"WHERE "+
+			"block_time >= %d AND "+
+			"tx_type = '%s'", currentDate, "exchangeWithValue")
+
+	astraOfRedeemedCouponsCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
+	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
+		impl.table,
+	).Set(
+		"total_asa_of_redeemed_coupons", impl.selectRDbHandle.StmtBuilder.SubQuery(astraOfRedeemedCouponsCountSubQuery),
+	).Where(
+		"date_time = ?", currentDate,
+	).ToSql()
+	if err != nil {
+		return fmt.Errorf("error building total astra of redeemed coupons update SQL: %v", err)
+	}
+
+	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
+	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error executing astra of redeemed coupons update SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return errors.New("error executing astra of redeemed coupons update SQL: no rows affected")
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
+	return nil
+}
