@@ -39,6 +39,9 @@ type CLIConfig struct {
 
 	CronjobStats *bool
 
+	CronjobReportDashboard *bool
+	TikiAddress            string
+
 	EnableConsumer          *bool
 	ConsumerGroupId         string
 	KafkaBrokers            string
@@ -97,6 +100,12 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	}
 	if cliConfig.CronjobStats != nil {
 		config.CronjobStats.Enable = *cliConfig.CronjobStats
+	}
+	if cliConfig.CronjobReportDashboard != nil {
+		config.CronjobReportDashboard.Enable = *cliConfig.CronjobReportDashboard
+	}
+	if cliConfig.TikiAddress != "" {
+		config.CronjobReportDashboard.TikiAddress = cliConfig.TikiAddress
 	}
 	if cliConfig.EnableConsumer != nil {
 		config.KafkaService.EnableConsumer = *cliConfig.EnableConsumer

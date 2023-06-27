@@ -108,6 +108,16 @@ func run(args []string) error {
 				EnvVars: []string{"STATISTICS_SERVICE"},
 			},
 			&cli.BoolFlag{
+				Name:    "cronjobReportDashboard",
+				Usage:   "Enable Cronjob Report Dashboard",
+				EnvVars: []string{"REPORT_DASHBOARD_SERVICE"},
+			},
+			&cli.StringFlag{
+				Name:    "tikiAddress",
+				Usage:   "Tiki Pool Address",
+				EnvVars: []string{"TIKI_ADDRESS"},
+			},
+			&cli.BoolFlag{
 				Name:    "enableConsumer",
 				Usage:   "Enable Consumer",
 				EnvVars: []string{"ENABLE_CONSUMER"},
@@ -189,6 +199,12 @@ func run(args []string) error {
 			}
 			if ctx.IsSet("cronjobStats") {
 				cliConfig.CronjobStats = primptr.Bool(ctx.Bool("cronjobStats"))
+			}
+			if ctx.IsSet("cronjobReportDashboard") {
+				cliConfig.CronjobReportDashboard = primptr.Bool(ctx.Bool("cronjobReportDashboard"))
+			}
+			if ctx.IsSet("tikiAddress") {
+				cliConfig.TikiAddress = ctx.String("tikiAddress")
 			}
 			if ctx.IsSet("enableConsumer") {
 				cliConfig.EnableConsumer = primptr.Bool(ctx.Bool("enableConsumer"))

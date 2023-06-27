@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	"github.com/AstraProtocol/astra-indexing/bootstrap/config"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 )
 
@@ -15,15 +16,15 @@ const FAIL = "fail"
 
 type RDbReportDashboard struct {
 	selectRDbHandle *rdb.Handle
-
-	table string
+	table           string
+	config          *config.Config
 }
 
-func NewRDbReportDashboard(rdbHandle *rdb.Handle) *RDbReportDashboard {
+func NewRDbReportDashboard(rdbHandle *rdb.Handle, config *config.Config) *RDbReportDashboard {
 	return &RDbReportDashboard{
 		selectRDbHandle: rdbHandle,
-
-		table: DEFAULT_TABLE,
+		table:           DEFAULT_TABLE,
+		config:          config,
 	}
 }
 
@@ -132,6 +133,51 @@ func (impl *RDbReportDashboard) UpdateTotalAstraOnchainRewardsWithRDbHandle(curr
 	if execResult.RowsAffected() == 0 {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return errors.New("error executing astra onchain update SQL: no rows affected")
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
+	return nil
+}
+
+func (impl *RDbReportDashboard) UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(currentDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateTotalAstraWithdrawnFromTikiWithRDbHandle"
+
+	if err := impl.init(); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error initializing report dashboard %v", err)
+	}
+
+	rawQuery := fmt.Sprintf(
+		"CAST(SUM(CAST(CAST(CAST(CAST(value ->> 'content' AS jsonb) ->> 'amount' AS json) ->> 0 AS jsonb) ->> 'amount' AS numeric))/pow(10,18) AS VARCHAR) "+
+			"FROM "+
+			"view_transactions, "+
+			"jsonb_array_elements(view_transactions.messages) elems "+
+			"WHERE "+
+			"block_time >= %d AND "+
+			"value->>'type'='/cosmos.bank.v1beta1.MsgSend' AND "+
+			"from_address='%s'", currentDate, impl.config.CronjobReportDashboard.TikiAddress)
+
+	astraWithdrawnFromTikiCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
+	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
+		impl.table,
+	).Set(
+		"total_asa_withdrawn_from_tiki", impl.selectRDbHandle.StmtBuilder.SubQuery(astraWithdrawnFromTikiCountSubQuery),
+	).Where(
+		"date_time = ?", currentDate,
+	).ToSql()
+	if err != nil {
+		return fmt.Errorf("error building total astra withdrawn from Tiki update SQL: %v", err)
+	}
+
+	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
+	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error executing astra withdrawn from Tiki update SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return errors.New("error executing astra withdrawn from Tiki update SQL: no rows affected")
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
