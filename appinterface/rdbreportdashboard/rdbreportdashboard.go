@@ -128,11 +128,11 @@ func (impl *RDbReportDashboard) UpdateTotalAstraOnchainRewardsWithRDbHandle(curr
 	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
 	if err != nil {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
-		return fmt.Errorf("error executing astra onchain rewards update SQL: %v", err)
+		return fmt.Errorf("error executing total astra onchain rewards update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
-		return errors.New("error executing astra onchain update SQL: no rows affected")
+		return errors.New("error executing total astra onchain update SQL: no rows affected")
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
@@ -173,11 +173,11 @@ func (impl *RDbReportDashboard) UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(c
 	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
 	if err != nil {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
-		return fmt.Errorf("error executing astra withdrawn from Tiki update SQL: %v", err)
+		return fmt.Errorf("error executing total astra withdrawn from Tiki update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
-		return errors.New("error executing astra withdrawn from Tiki update SQL: no rows affected")
+		return errors.New("error executing total astra withdrawn from Tiki update SQL: no rows affected")
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
@@ -217,11 +217,54 @@ func (impl *RDbReportDashboard) UpdateTotalAstraOfRedeemedCouponsWithRDbHandle(c
 	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
 	if err != nil {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
-		return fmt.Errorf("error executing astra of redeemed coupons update SQL: %v", err)
+		return fmt.Errorf("error executing total astra of redeemed coupons update SQL: %v", err)
 	}
 	if execResult.RowsAffected() == 0 {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
-		return errors.New("error executing astra of redeemed coupons update SQL: no rows affected")
+		return errors.New("error executing total astra of redeemed coupons update SQL: no rows affected")
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
+	return nil
+}
+
+func (impl *RDbReportDashboard) UpdateTotalTxsOfRedeemedCouponsWithRDbHandle(currentDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateTotalTxsOfRedeemedCouponsWithRDbHandle"
+
+	if err := impl.init(); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error initializing report dashboard %v", err)
+	}
+
+	rawQuery := fmt.Sprintf(
+		"COUNT(*) "+
+			"FROM (SELECT DISTINCT evm_hash "+
+			"FROM view_transactions "+
+			"WHERE "+
+			"block_time >= %d AND "+
+			"tx_type = '%s') AS dt", currentDate, "exchangeWithValue")
+
+	txsOfRedeemedCouponsCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
+	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
+		impl.table,
+	).Set(
+		"total_transaction_of_redeemed_coupons", impl.selectRDbHandle.StmtBuilder.SubQuery(txsOfRedeemedCouponsCountSubQuery),
+	).Where(
+		"date_time = ?", currentDate,
+	).ToSql()
+	if err != nil {
+		return fmt.Errorf("error building total txs of redeemed coupons update SQL: %v", err)
+	}
+
+	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
+	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error executing total txs of redeemed coupons update SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return errors.New("error executing total txs of redeemed coupons update SQL: no rows affected")
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
