@@ -15,7 +15,10 @@ func TestUpdate4Bytes(t *testing.T) {
 		panic(err)
 	}
 
-	util.UpdateSignature("0x7ff36ab5", "swapExactETHForTokens(uint256, address[], address, uint256)")
+	util.UpdateSignature("0x18cbafe5", "swapExactTokensForETH(uint256, uint256, address[], address, uint256)")
+	util.UpdateSignature("0x095ea7b3", "approve(address, uint256)")
+	util.UpdateSignature("0xe2bbb158", "deposit(uint256, uint256)")
+	util.UpdateSignature("0xded9382a", "removeLiquidityETHWithPermit(address, uint256, uint256, uint256, address, uint256, bool, uint8, bytes32, bytes32)")
 
 	res, err := util.GetSignature("0xa07aea1c")
 	if err != nil {
@@ -23,8 +26,11 @@ func TestUpdate4Bytes(t *testing.T) {
 	}
 	assert.Equal(res, "addOperators(address[])")
 
-	input := "0x7ff36ab5"
-	assert.Equal(util.GetMethodNameFromMethodId(input[2:10]), "swapExactETHForTokens")
+	input := "0x18cbafe5"
+	assert.Equal(util.GetMethodNameFromMethodId(input[2:10]), "swapExactTokensForETH")
+	assert.Equal(util.GetMethodNameFromMethodId("0x095ea7b3"), "approve")
+	assert.Equal(util.GetMethodNameFromMethodId("0xe2bbb158"), "deposit")
+	assert.Equal(util.GetMethodNameFromMethodId("0xded9382a"), "removeLiquidityETHWithPermit")
 
 	data := "0q7S1gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGSWzhIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQVbZvQpCuU8VUVDSeyAd243bdr5ljiPA3bK7aUm/VuQVdhajtudaHAI7ltLe1GHQeZchiXxaXAq2Ez+6ErCpJRscAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 	signature := util.GetMethodNameFromData(data)
