@@ -88,15 +88,12 @@ func NewSyncManager(
 	pm *utils.CosmosParserManager,
 	eventHandler eventhandler_interface.Handler,
 ) *SyncManager {
-	var tendermintClient *tendermint.HTTPClient
-	tendermintClient = tendermint.NewHTTPClient(
+	tendermintClient := tendermint.NewHTTPClient(
 		params.Config.TendermintRPCUrl,
 		params.Config.StrictGenesisParsing,
 	)
 
-	var cosmosClient cosmosapp_interface.Client
-
-	cosmosClient = cosmosapp_infrastructure.NewHTTPClient(
+	cosmosClient := cosmosapp_infrastructure.NewHTTPClient(
 		params.Config.CosmosAppHTTPRPCURL,
 		params.Config.StakingDenom,
 	)

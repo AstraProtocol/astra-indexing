@@ -8,10 +8,11 @@ import (
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdbchainstatsstore"
+	"github.com/AstraProtocol/astra-indexing/appinterface/rdbreportdashboard"
 	config "github.com/AstraProtocol/astra-indexing/bootstrap/config"
 	projection_entity "github.com/AstraProtocol/astra-indexing/entity/projection"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
-	astra_consumer "github.com/AstraProtocol/astra-indexing/infrastructure/kafka/consumer"
+	worker_consumer "github.com/AstraProtocol/astra-indexing/infrastructure/kafka/consumer/worker"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/pg"
 	"github.com/AstraProtocol/astra-indexing/internal/evm"
@@ -121,12 +122,12 @@ func (a *app) Run() {
 	if a.config.KafkaService.EnableConsumer {
 		sigchan := make(chan os.Signal, 1)
 		go func() {
-			if runErr := astra_consumer.RunConsumerInternalTxs(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan); runErr != nil {
+			if runErr := worker_consumer.RunInternalTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan); runErr != nil {
 				a.logger.Panicf("%v", runErr)
 			}
 		}()
 		go func() {
-			if runErr := astra_consumer.RunConsumerEvmTxs(a.rdbConn.ToHandle(), a.config, a.logger, sigchan); runErr != nil {
+			if runErr := worker_consumer.RunEvmTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, sigchan); runErr != nil {
 				a.logger.Panicf("%v", runErr)
 			}
 		}()
@@ -137,7 +138,7 @@ func (a *app) Run() {
 
 func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 	if a.config.CronjobStats.Enable {
-		rdbTransactionStatsStore := rdbchainstatsstore.NewRDbChainStatsStore(rdbHandle)
+		rdbChainStatsStore := rdbchainstatsstore.NewRDbChainStatsStore(rdbHandle)
 		s := cron.New()
 
 		delayTime := 60
@@ -153,7 +154,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 			i = 0
 			var err error
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateCountedTransactionsWithRDbHandle(currentDate)
+				err = rdbChainStatsStore.UpdateCountedTransactionsWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -169,7 +170,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(2 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalGasUsedWithRDbHandle(currentDate)
+				err = rdbChainStatsStore.UpdateTotalGasUsedWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -185,7 +186,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(4 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalAddressesWithRDbHandle(currentDate)
+				err = rdbChainStatsStore.UpdateTotalAddressesWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -201,7 +202,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(6 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateActiveAddressesWithRDbHandle(currentDate)
+				err = rdbChainStatsStore.UpdateActiveAddressesWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -217,11 +218,174 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(8 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalFeeWithRDbHandle(currentDate, a.config)
+				err = rdbChainStatsStore.UpdateTotalFeeWithRDbHandle(currentDate, a.config)
 				if err == nil {
 					break
 				}
 				a.logger.Infof("failed to run UpdateTotalFeeWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.Start()
+	}
+}
+
+func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
+	if a.config.CronjobReportDashboard.Enable {
+		rdbReportDashboard := rdbreportdashboard.NewRDbReportDashboard(rdbHandle)
+		s := cron.New()
+
+		delayTime := 60
+		retry := 5
+
+		var i int
+
+		// At 59 seconds past the minute, at 59 minutes past every hour from 0 through 23
+		// @every 0h0m5s
+		// 59 59 0-23 * * *
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(1 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalAstraOnchainRewardsWithRDbHandle(currentDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalAstraOnchainRewardsWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			tikiAddress := a.config.CronjobReportDashboard.TikiAddress
+			i = 0
+			var err error
+			time.Sleep(3 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(currentDate, tikiAddress)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalAstraWithdrawnFromTikiWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(5 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalAstraOfRedeemedCouponsWithRDbHandle(currentDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalAstraOfRedeemedCouponsWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(7 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalTxsOfRedeemedCouponsWithRDbHandle(currentDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalTxsOfRedeemedCouponsWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(9 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle(currentDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(11 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalAstraStakedWithRDbHandle(currentDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalAstraStakedWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(13 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalStakingTxsWithRDbHandle(currentDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalStakingTxsWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(15 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalStakingAddressesWithRDbHandle(currentDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalStakingAddressesWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			prevDate := time.Now().Truncate(24 * time.Hour).Add(-24 * time.Hour).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(17 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalNewAddressesWithRDbHandle(currentDate, prevDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalNewAddressesWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}

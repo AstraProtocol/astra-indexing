@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX report_dashboard_date_time_unique_index ON report_dashboard(date_time);
