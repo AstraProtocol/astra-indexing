@@ -247,6 +247,8 @@ func run(args []string) error {
 
 			app.RunCronJobsStats(app.GetRDbConn().ToHandle())
 
+			app.RunCronJobsReportDashboard(app.GetRDbConn().ToHandle())
+
 			app.Run()
 
 			return nil

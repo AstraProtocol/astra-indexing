@@ -8,6 +8,7 @@ import (
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdbchainstatsstore"
+	"github.com/AstraProtocol/astra-indexing/appinterface/rdbreportdashboard"
 	config "github.com/AstraProtocol/astra-indexing/bootstrap/config"
 	projection_entity "github.com/AstraProtocol/astra-indexing/entity/projection"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
@@ -222,6 +223,38 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 					break
 				}
 				a.logger.Infof("failed to run UpdateTotalFeeWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.Start()
+	}
+}
+
+func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
+	if a.config.CronjobReportDashboard.Enable {
+		rdbTransactionStatsStore := rdbreportdashboard.NewRDbReportDashboard(rdbHandle, a.config)
+		s := cron.New()
+
+		delayTime := 60
+		retry := 5
+
+		var i int
+
+		// At 59 seconds past the minute, at 59 minutes past every hour from 0 through 23
+		// @every 0h0m5s
+		// 59 59 0-23 * * *
+		s.AddFunc("@every 0h0m10s", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			i = 0
+			var err error
+			for i < retry {
+				err = rdbTransactionStatsStore.UpdateTotalAstraOnchainRewardsWithRDbHandle(currentDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalAstraOnchainRewardsWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
