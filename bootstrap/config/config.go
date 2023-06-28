@@ -4,18 +4,19 @@ const SYSTEM_MODE_EVENT_STORE = "EVENT_STORE"
 const SYSTEM_MODE_TENDERMINT_DIRECT = "TENDERMINT_DIRECT"
 
 type Config struct {
-	Blockchain    Blockchain    `yaml:"blockchain" toml:"blockchain" xml:"blockchain" json:"blockchain"`
-	IndexService  IndexService  `yaml:"index_service" toml:"index_service" xml:"index_service" json:"index_service"`
-	HTTPService   HTTPService   `yaml:"http_service" toml:"http_service" xml:"http_service" json:"http_service"`
-	TendermintApp TendermintApp `yaml:"tendermint_app" toml:"tendermint_app" xml:"tendermint_app" json:"tendermint_app"`
-	CosmosApp     CosmosApp     `yaml:"cosmos_app" toml:"cosmos_app" xml:"cosmos_app" json:"cosmos_app"`
-	BlockscoutApp BlockscoutApp `yaml:"blockscout_app" toml:"blockscout_app" xml:"blockscout_app" json:"blockscout_app"`
-	Debug         Debug         `yaml:"debug" toml:"debug" xml:"debug" json:"debug"`
-	Postgres      Postgres      `yaml:"postgres" toml:"postgres" xml:"postgres" json:"postgres"`
-	Logger        Logger        `yaml:"logger" toml:"logger" xml:"logger" json:"logger"`
-	Prometheus    Prometheus    `yaml:"prometheus" toml:"prometheus" xml:"prometheus" json:"prometheus"`
-	CronjobStats  CronjobStats  `yaml:"cronjobstats" toml:"cronjobstats" xml:"cronjobstats" json:"cronjobstats"`
-	KafkaService  KafkaService  `yaml:"kafka_service" toml:"kafka_service" xml:"kafka_service" json:"kafka_service"`
+	Blockchain             Blockchain             `yaml:"blockchain" toml:"blockchain" xml:"blockchain" json:"blockchain"`
+	IndexService           IndexService           `yaml:"index_service" toml:"index_service" xml:"index_service" json:"index_service"`
+	HTTPService            HTTPService            `yaml:"http_service" toml:"http_service" xml:"http_service" json:"http_service"`
+	TendermintApp          TendermintApp          `yaml:"tendermint_app" toml:"tendermint_app" xml:"tendermint_app" json:"tendermint_app"`
+	CosmosApp              CosmosApp              `yaml:"cosmos_app" toml:"cosmos_app" xml:"cosmos_app" json:"cosmos_app"`
+	BlockscoutApp          BlockscoutApp          `yaml:"blockscout_app" toml:"blockscout_app" xml:"blockscout_app" json:"blockscout_app"`
+	Debug                  Debug                  `yaml:"debug" toml:"debug" xml:"debug" json:"debug"`
+	Postgres               Postgres               `yaml:"postgres" toml:"postgres" xml:"postgres" json:"postgres"`
+	Logger                 Logger                 `yaml:"logger" toml:"logger" xml:"logger" json:"logger"`
+	Prometheus             Prometheus             `yaml:"prometheus" toml:"prometheus" xml:"prometheus" json:"prometheus"`
+	CronjobStats           CronjobStats           `yaml:"cronjob_stats" toml:"cronjob_stats" xml:"cronjob_stats" json:"cronjob_stats"`
+	KafkaService           KafkaService           `yaml:"kafka_service" toml:"kafka_service" xml:"kafka_service" json:"kafka_service"`
+	CronjobReportDashboard CronjobReportDashboard `yaml:"cronjob_report_dashboard" toml:"cronjob_report_dashboard" xml:"cronjob_report_dashboard" json:"cronjob_report_dashboard"`
 }
 
 type IndexService struct {
@@ -127,4 +128,9 @@ type Prometheus struct {
 
 type CronjobStats struct {
 	Enable bool `yaml:"enable" toml:"enable" xml:"enable" json:"enable,omitempty"`
+}
+
+type CronjobReportDashboard struct {
+	Enable      bool   `yaml:"enable" toml:"enable" xml:"enable" json:"enable,omitempty"`
+	TikiAddress string `yaml:"tiki_address" toml:"tiki_address" xml:"tiki_address" json:"tiki_address,omitempty"`
 }

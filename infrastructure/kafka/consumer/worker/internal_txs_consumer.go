@@ -3,7 +3,6 @@ package consumer
 import (
 	"context"
 	"encoding/hex"
-	"math/big"
 	"os"
 	"os/signal"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/bootstrap/config"
+	"github.com/AstraProtocol/astra-indexing/infrastructure/kafka/consumer"
 	"github.com/segmentio/kafka-go"
 
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
@@ -26,9 +26,6 @@ import (
 	"github.com/AstraProtocol/astra-indexing/usecase/model"
 )
 
-const EVM_TXS_TOPIC = "evm-txs"
-const INTERNAL_TXS_TOPIC = "internal-txs"
-
 var rewardType = map[string]bool{
 	"sendReward":        true,
 	"redeemReward":      true,
@@ -36,96 +33,31 @@ var rewardType = map[string]bool{
 	"exchangeWithValue": true,
 }
 
-func RunConsumerEvmTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, sigchan chan os.Signal) error {
-	signal.Notify(sigchan, os.Interrupt)
-
-	rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
-	rdbAccountTransactionDataView := accountTransactionView.NewAccountTransactionData(rdbHandle)
-
-	consumer := Consumer[[]CollectedEvmTx]{
-		TimeOut:            utils.KAFKA_TIME_OUT,
-		Brokers:            config.KafkaService.Brokers,
-		Topic:              EVM_TXS_TOPIC,
-		GroupId:            config.KafkaService.GroupID,
-		User:               config.KafkaService.User,
-		Password:           config.KafkaService.Password,
-		AuthenticationType: config.KafkaService.AuthenticationType,
-		Sigchan:            sigchan,
-	}
-	errConn := consumer.CreateConnection()
-	if errConn != nil {
-		return errConn
-	}
-
-	var mapValues []map[string]interface{}
-	consumer.Fetch(
-		[]CollectedEvmTx{},
-		func(collectedEvmTxs []CollectedEvmTx, message kafka.Message, ctx context.Context, err error) {
-			if err != nil {
-				logger.Infof("Kafka Consumer error: %v", err)
-			} else {
-				mapValues = nil
-				for _, evmTx := range collectedEvmTxs {
-					feeValue := big.NewInt(0).Mul(big.NewInt(evmTx.GasUsed), big.NewInt(evmTx.GasPrice)).String()
-					isSuccess := true
-					if evmTx.Status == "error" {
-						isSuccess = false
-					}
-					mapValue := map[string]interface{}{
-						"evm_hash":  evmTx.TransactionHash,
-						"fee_value": feeValue,
-						"success":   isSuccess,
-					}
-					mapValues = append(mapValues, mapValue)
-				}
-
-				if len(mapValues) > 0 {
-					errUpdate := rdbTransactionView.UpdateAll(mapValues)
-					if errUpdate == nil {
-						errUpdateTxData := rdbAccountTransactionDataView.UpdateAll(mapValues)
-						// Commit offset
-						if errUpdateTxData == nil {
-							if errCommit := consumer.Commit(ctx, message); errCommit != nil {
-								logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", EVM_TXS_TOPIC, message.Partition, errCommit)
-							}
-						} else {
-							logger.Infof("Failed to update account txs data from Consumer partition %d: %v", EVM_TXS_TOPIC, message.Partition, errUpdate)
-						}
-					} else {
-						logger.Infof("Failed to update txs from Consumer partition %d: %v", message.Partition, errUpdate)
-					}
-				}
-			}
-		},
-	)
-	return nil
-}
-
-func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, evmUtil evm.EvmUtils, sigchan chan os.Signal) error {
+func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, evmUtil evm.EvmUtils, sigchan chan os.Signal) error {
 	signal.Notify(sigchan, os.Interrupt)
 
 	rdbAccountTransactionsView := accountTransactionView.NewAccountTransactions(rdbHandle)
 	rdbAccountTransactionDataView := accountTransactionView.NewAccountTransactionData(rdbHandle)
 	rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
 
-	consumer := Consumer[[]CollectedInternalTx]{
+	internalTxsConsumer := consumer.Consumer[[]consumer.CollectedInternalTx]{
 		TimeOut:            utils.KAFKA_TIME_OUT,
 		Brokers:            config.KafkaService.Brokers,
-		Topic:              INTERNAL_TXS_TOPIC,
+		Topic:              utils.INTERNAL_TXS_TOPIC,
 		GroupId:            config.KafkaService.GroupID,
 		User:               config.KafkaService.User,
 		Password:           config.KafkaService.Password,
 		AuthenticationType: config.KafkaService.AuthenticationType,
 		Sigchan:            sigchan,
 	}
-	errConn := consumer.CreateConnection()
+	errConn := internalTxsConsumer.CreateConnection()
 	if errConn != nil {
 		return errConn
 	}
 
-	consumer.Fetch(
-		[]CollectedInternalTx{},
-		func(collectedInternalTxs []CollectedInternalTx, message kafka.Message, ctx context.Context, err error) {
+	internalTxsConsumer.Fetch(
+		[]consumer.CollectedInternalTx{},
+		func(collectedInternalTxs []consumer.CollectedInternalTx, message kafka.Message, ctx context.Context, err error) {
 			if err != nil {
 				logger.Infof("Kafka Consumer error: %v", err)
 			} else {
@@ -266,23 +198,23 @@ func RunConsumerInternalTxs(rdbHandle *rdb.Handle, config *config.Config, logger
 				}
 				if len(txs) == 0 {
 					// Commit offset when no internal txs are valid
-					if errCommit := consumer.Commit(ctx, message); errCommit != nil {
-						logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", INTERNAL_TXS_TOPIC, message.Partition, errCommit)
+					if errCommit := internalTxsConsumer.Commit(ctx, message); errCommit != nil {
+						logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.INTERNAL_TXS_TOPIC, message.Partition, errCommit)
 					}
 				}
-				err = rdbAccountTransactionDataView.InsertAll(txs)
+				err = rdbAccountTransactionsView.InsertAll(accountTransactionRows)
 				if err == nil {
-					err = rdbAccountTransactionsView.InsertAll(accountTransactionRows)
+					err = rdbAccountTransactionDataView.InsertAll(txs)
 					// Commit offset
 					if err == nil {
-						if errCommit := consumer.Commit(ctx, message); errCommit != nil {
-							logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", INTERNAL_TXS_TOPIC, message.Partition, errCommit)
+						if errCommit := internalTxsConsumer.Commit(ctx, message); errCommit != nil {
+							logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.INTERNAL_TXS_TOPIC, message.Partition, errCommit)
 						}
 					} else {
-						logger.Infof("Failed to insert account txs from Consumer partition %d: %v", message.Partition, err)
+						logger.Infof("Failed to insert account txs data from Consumer partition %d: %v", message.Partition, err)
 					}
 				} else {
-					logger.Infof("Failed to insert account txs data from Consumer partition %d: %v", message.Partition, err)
+					logger.Infof("Failed to insert account txs from Consumer partition %d: %v", message.Partition, err)
 				}
 			}
 		},

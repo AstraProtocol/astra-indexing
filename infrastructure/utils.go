@@ -14,3 +14,6 @@ const CA_CERT_PATH = "/certs/chainindexing.kafka.prod/ca.crt"
 const CA_CERT_LOCAL_PATH = "./certs/ca.crt"
 const TLS_CERT_PATH = "/certs/chainindexing.kafka.prod/tls.crt"
 const TLS_KEY_PATH = "/certs/chainindexing.kafka.prod/tls.key"
+
+const EVM_TXS_TOPIC = "evm-txs"
+const INTERNAL_TXS_TOPIC = "internal-txs"
