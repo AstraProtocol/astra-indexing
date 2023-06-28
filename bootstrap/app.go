@@ -249,6 +249,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
+			time.Sleep(1 * time.Second)
 			for i < retry {
 				err = rdbTransactionStatsStore.UpdateTotalAstraOnchainRewardsWithRDbHandle(currentDate)
 				if err == nil {
@@ -265,7 +266,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			tikiAddress := a.config.CronjobReportDashboard.TikiAddress
 			i = 0
 			var err error
-			time.Sleep(2 * time.Second)
+			time.Sleep(3 * time.Second)
 			for i < retry {
 				err = rdbTransactionStatsStore.UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(currentDate, tikiAddress)
 				if err == nil {
@@ -281,7 +282,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
-			time.Sleep(4 * time.Second)
+			time.Sleep(5 * time.Second)
 			for i < retry {
 				err = rdbTransactionStatsStore.UpdateTotalAstraOfRedeemedCouponsWithRDbHandle(currentDate)
 				if err == nil {
@@ -297,7 +298,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
-			time.Sleep(6 * time.Second)
+			time.Sleep(7 * time.Second)
 			for i < retry {
 				err = rdbTransactionStatsStore.UpdateTotalTxsOfRedeemedCouponsWithRDbHandle(currentDate)
 				if err == nil {
@@ -313,7 +314,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
-			time.Sleep(8 * time.Second)
+			time.Sleep(9 * time.Second)
 			for i < retry {
 				err = rdbTransactionStatsStore.UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle(currentDate)
 				if err == nil {
@@ -329,7 +330,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
-			time.Sleep(10 * time.Second)
+			time.Sleep(11 * time.Second)
 			for i < retry {
 				err = rdbTransactionStatsStore.UpdateTotalAstraStakedWithRDbHandle(currentDate)
 				if err == nil {
@@ -345,7 +346,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
-			time.Sleep(12 * time.Second)
+			time.Sleep(13 * time.Second)
 			for i < retry {
 				err = rdbTransactionStatsStore.UpdateTotalStakingTxsWithRDbHandle(currentDate)
 				if err == nil {
@@ -361,13 +362,30 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
-			time.Sleep(14 * time.Second)
+			time.Sleep(15 * time.Second)
 			for i < retry {
 				err = rdbTransactionStatsStore.UpdateTotalStakingAddressesWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
 				a.logger.Infof("failed to run UpdateTotalStakingAddressesWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.AddFunc("59 59 0-23 * * *", func() {
+			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+			prevDate := time.Now().Truncate(24 * time.Hour).Add(-24 * time.Hour).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(17 * time.Second)
+			for i < retry {
+				err = rdbTransactionStatsStore.UpdateTotalNewAddressesWithRDbHandle(currentDate, prevDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalNewAddressesWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}

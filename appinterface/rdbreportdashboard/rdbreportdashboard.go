@@ -441,3 +441,45 @@ func (impl *RDbReportDashboard) UpdateTotalStakingAddressesWithRDbHandle(current
 	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
 	return nil
 }
+
+func (impl *RDbReportDashboard) UpdateTotalNewAddressesWithRDbHandle(currentDate int64, prevDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateTotalNewAddressesWithRDbHandle"
+
+	if err := impl.init(); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error initializing report dashboard %v", err)
+	}
+
+	rawQuery := fmt.Sprintf(
+		"(SELECT total_addresses FROM chain_stats WHERE date_time = %d) - "+
+			"(SELECT total_addresses FROM chain_stats WHERE date_time = %d)",
+		currentDate,
+		prevDate,
+	)
+
+	addressesStakedCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
+	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
+		impl.table,
+	).Set(
+		"total_new_addresses", impl.selectRDbHandle.StmtBuilder.SubQuery(addressesStakedCountSubQuery),
+	).Where(
+		"date_time = ?", currentDate,
+	).ToSql()
+	if err != nil {
+		return fmt.Errorf("error building total new addresses update SQL: %v", err)
+	}
+
+	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
+	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error executing total new addresses update SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return errors.New("error executing total new addresses update SQL: no rows affected")
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
+	return nil
+}
