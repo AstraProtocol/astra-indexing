@@ -313,3 +313,47 @@ func (impl *RDbReportDashboard) UpdateTotalAddressesOfRedeemedCouponsWithRDbHand
 	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
 	return nil
 }
+
+func (impl *RDbReportDashboard) UpdateTotalAstraStakedWithRDbHandle(currentDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateTotalAstraStakedWithRDbHandle"
+
+	if err := impl.init(); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error initializing report dashboard %v", err)
+	}
+
+	rawQuery := fmt.Sprintf(
+		"CAST(SUM(CAST(CAST(CAST(value ->> 'content' AS jsonb) ->> 'amount' AS jsonb) ->>'amount' AS numeric))/pow(10,18) AS VARCHAR) "+
+			"FROM "+
+			"view_transactions, "+
+			"jsonb_array_elements(view_transactions.messages) elems "+
+			"WHERE "+
+			"block_time >= %d AND "+
+			"value->>'type'='%s'", currentDate, "/cosmos.staking.v1beta1.MsgDelegate")
+
+	astraStakedCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
+	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
+		impl.table,
+	).Set(
+		"total_asa_staked", impl.selectRDbHandle.StmtBuilder.SubQuery(astraStakedCountSubQuery),
+	).Where(
+		"date_time = ?", currentDate,
+	).ToSql()
+	if err != nil {
+		return fmt.Errorf("error building total astra staked update SQL: %v", err)
+	}
+
+	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
+	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error executing total astra staked update SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return errors.New("error executing total astra staked update SQL: no rows affected")
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
+	return nil
+}
