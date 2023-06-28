@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
-	"github.com/AstraProtocol/astra-indexing/bootstrap/config"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 )
 
@@ -17,14 +16,12 @@ const FAIL = "fail"
 type RDbReportDashboard struct {
 	selectRDbHandle *rdb.Handle
 	table           string
-	config          *config.Config
 }
 
-func NewRDbReportDashboard(rdbHandle *rdb.Handle, config *config.Config) *RDbReportDashboard {
+func NewRDbReportDashboard(rdbHandle *rdb.Handle) *RDbReportDashboard {
 	return &RDbReportDashboard{
 		selectRDbHandle: rdbHandle,
 		table:           DEFAULT_TABLE,
-		config:          config,
 	}
 }
 
@@ -139,7 +136,7 @@ func (impl *RDbReportDashboard) UpdateTotalAstraOnchainRewardsWithRDbHandle(curr
 	return nil
 }
 
-func (impl *RDbReportDashboard) UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(currentDate int64) error {
+func (impl *RDbReportDashboard) UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(currentDate int64, tikiAddress string) error {
 	startTime := time.Now()
 	recordMethod := "UpdateTotalAstraWithdrawnFromTikiWithRDbHandle"
 
@@ -156,7 +153,7 @@ func (impl *RDbReportDashboard) UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(c
 			"WHERE "+
 			"block_time >= %d AND "+
 			"value->>'type'='/cosmos.bank.v1beta1.MsgSend' AND "+
-			"from_address='%s'", currentDate, impl.config.CronjobReportDashboard.TikiAddress)
+			"from_address='%s'", currentDate, tikiAddress)
 
 	astraWithdrawnFromTikiCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
@@ -412,8 +409,10 @@ func (impl *RDbReportDashboard) UpdateTotalStakingAddressesWithRDbHandle(current
 
 	rawQuery := fmt.Sprintf(
 		"COUNT (*) FROM(SELECT DISTINCT CAST(value ->> 'content' AS jsonb) ->> 'delegatorAddress' "+
-			"FROM view_transactions, "+
+			"FROM "+
+			"view_transactions, "+
 			"jsonb_array_elements(view_transactions.messages) elems "+
+			"WHERE "+
 			"block_time >= %d AND "+
 			"value->>'type'='%s') AS tmp", currentDate, "/cosmos.staking.v1beta1.MsgDelegate")
 
