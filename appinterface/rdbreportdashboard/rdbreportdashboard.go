@@ -375,11 +375,11 @@ func (impl *RDbReportDashboard) UpdateTotalStakingTxsWithRDbHandle(currentDate i
 			"block_time >= %d AND "+
 			"value->>'type'='%s'", currentDate, "/cosmos.staking.v1beta1.MsgDelegate")
 
-	astraStakedCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
+	txsStakedCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
 		impl.table,
 	).Set(
-		"total_asa_staked", impl.selectRDbHandle.StmtBuilder.SubQuery(astraStakedCountSubQuery),
+		"total_staking_transactions", impl.selectRDbHandle.StmtBuilder.SubQuery(txsStakedCountSubQuery),
 	).Where(
 		"date_time = ?", currentDate,
 	).ToSql()
@@ -395,6 +395,48 @@ func (impl *RDbReportDashboard) UpdateTotalStakingTxsWithRDbHandle(currentDate i
 	if execResult.RowsAffected() == 0 {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return errors.New("error executing total staking txs update SQL: no rows affected")
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
+	return nil
+}
+
+func (impl *RDbReportDashboard) UpdateTotalStakingAddressesWithRDbHandle(currentDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateTotalStakingAddressesWithRDbHandle"
+
+	if err := impl.init(); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error initializing report dashboard %v", err)
+	}
+
+	rawQuery := fmt.Sprintf(
+		"COUNT (*) FROM(SELECT DISTINCT CAST(value ->> 'content' AS jsonb) ->> 'delegatorAddress' "+
+			"FROM view_transactions, "+
+			"jsonb_array_elements(view_transactions.messages) elems "+
+			"block_time >= %d AND "+
+			"value->>'type'='%s') AS tmp", currentDate, "/cosmos.staking.v1beta1.MsgDelegate")
+
+	addressesStakedCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
+	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
+		impl.table,
+	).Set(
+		"total_staking_addresses", impl.selectRDbHandle.StmtBuilder.SubQuery(addressesStakedCountSubQuery),
+	).Where(
+		"date_time = ?", currentDate,
+	).ToSql()
+	if err != nil {
+		return fmt.Errorf("error building total staking addresses update SQL: %v", err)
+	}
+
+	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
+	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error executing total staking addresses update SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return errors.New("error executing total staking addresses update SQL: no rows affected")
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
