@@ -138,7 +138,7 @@ func (a *app) Run() {
 
 func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 	if a.config.CronjobStats.Enable {
-		rdbTransactionStatsStore := rdbchainstatsstore.NewRDbChainStatsStore(rdbHandle)
+		rdbChainStatsStore := rdbchainstatsstore.NewRDbChainStatsStore(rdbHandle)
 		s := cron.New()
 
 		delayTime := 60
@@ -154,7 +154,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 			i = 0
 			var err error
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateCountedTransactionsWithRDbHandle(currentDate)
+				err = rdbChainStatsStore.UpdateCountedTransactionsWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -170,7 +170,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(2 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalGasUsedWithRDbHandle(currentDate)
+				err = rdbChainStatsStore.UpdateTotalGasUsedWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -186,7 +186,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(4 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalAddressesWithRDbHandle(currentDate)
+				err = rdbChainStatsStore.UpdateTotalAddressesWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -202,7 +202,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(6 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateActiveAddressesWithRDbHandle(currentDate)
+				err = rdbChainStatsStore.UpdateActiveAddressesWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -218,7 +218,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(8 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalFeeWithRDbHandle(currentDate, a.config)
+				err = rdbChainStatsStore.UpdateTotalFeeWithRDbHandle(currentDate, a.config)
 				if err == nil {
 					break
 				}
@@ -234,7 +234,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 
 func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 	if a.config.CronjobReportDashboard.Enable {
-		rdbTransactionStatsStore := rdbreportdashboard.NewRDbReportDashboard(rdbHandle)
+		rdbReportDashboard := rdbreportdashboard.NewRDbReportDashboard(rdbHandle)
 		s := cron.New()
 
 		delayTime := 60
@@ -251,7 +251,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(1 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalAstraOnchainRewardsWithRDbHandle(currentDate)
+				err = rdbReportDashboard.UpdateTotalAstraOnchainRewardsWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -268,7 +268,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(3 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(currentDate, tikiAddress)
+				err = rdbReportDashboard.UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(currentDate, tikiAddress)
 				if err == nil {
 					break
 				}
@@ -284,7 +284,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(5 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalAstraOfRedeemedCouponsWithRDbHandle(currentDate)
+				err = rdbReportDashboard.UpdateTotalAstraOfRedeemedCouponsWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -300,7 +300,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(7 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalTxsOfRedeemedCouponsWithRDbHandle(currentDate)
+				err = rdbReportDashboard.UpdateTotalTxsOfRedeemedCouponsWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -316,7 +316,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(9 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle(currentDate)
+				err = rdbReportDashboard.UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -332,7 +332,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(11 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalAstraStakedWithRDbHandle(currentDate)
+				err = rdbReportDashboard.UpdateTotalAstraStakedWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -348,7 +348,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(13 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalStakingTxsWithRDbHandle(currentDate)
+				err = rdbReportDashboard.UpdateTotalStakingTxsWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -364,7 +364,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(15 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalStakingAddressesWithRDbHandle(currentDate)
+				err = rdbReportDashboard.UpdateTotalStakingAddressesWithRDbHandle(currentDate)
 				if err == nil {
 					break
 				}
@@ -381,7 +381,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			var err error
 			time.Sleep(17 * time.Second)
 			for i < retry {
-				err = rdbTransactionStatsStore.UpdateTotalNewAddressesWithRDbHandle(currentDate, prevDate)
+				err = rdbReportDashboard.UpdateTotalNewAddressesWithRDbHandle(currentDate, prevDate)
 				if err == nil {
 					break
 				}
