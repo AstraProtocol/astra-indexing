@@ -54,7 +54,7 @@ func NewValidator(
 	}
 }
 
-func (_ *Validator) GetEventsToListen() []string {
+func (*Validator) GetEventsToListen() []string {
 	return []string{
 		event_usecase.GENESIS_CREATED,
 		event_usecase.BLOCK_CREATED,

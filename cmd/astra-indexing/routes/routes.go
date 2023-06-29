@@ -73,6 +73,19 @@ func InitRouteRegistry(
 		},
 	)
 
+	reportDashboardHandlers := httpapi_handlers.NewReportDashboardHandler(
+		logger,
+		rdbConn.ToHandle(),
+		config,
+	)
+	routes = append(routes,
+		Route{
+			Method:  GET,
+			path:    "api/v1/report-dashboard/update",
+			handler: reportDashboardHandlers.UpdateReportDashboardByDate,
+		},
+	)
+
 	accountsHandlers := httpapi_handlers.NewAccounts(
 		logger,
 		rdbConn.ToHandle(),
