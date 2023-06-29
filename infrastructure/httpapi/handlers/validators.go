@@ -3,14 +3,13 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/AstraProtocol/astra-indexing/appinterface/pagination"
 	"github.com/AstraProtocol/astra-indexing/external/cache"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/primptr"
 	"github.com/AstraProtocol/astra-indexing/infrastructure"
-	"github.com/AstraProtocol/astra-indexing/projection/chainstats"
-	"math/big"
-	"strings"
 
 	"github.com/valyala/fasthttp"
 
@@ -32,7 +31,7 @@ import (
 // Then in recent 7 days, number of estimated generated block will be:
 //
 // nRecentBlocks: n (block) = 7(day) * 24(hour/day) * 3600(sec/hour) / 6(sec/block)
-const nRecentBlocksInInt = 100800
+// const nRecentBlocksInInt = 100800
 
 type Validators struct {
 	logger applogger.Logger
@@ -227,6 +226,7 @@ type validatorRowWithAPY struct {
 	validator_view.ListValidatorRow
 }
 
+/*
 func (handler *Validators) getAverageBlockTime() (*big.Float, error) {
 	// Average block time calculation
 	//
@@ -314,6 +314,7 @@ func (handler *Validators) getAverageBlockTime() (*big.Float, error) {
 
 	return averageBlockTime, nil
 }
+*/
 
 type ListValidatorsRowPaginationResult struct {
 	ListValidatorRow []validator_view.ListValidatorRow `json:"listValidatorRow"`
