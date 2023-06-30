@@ -78,7 +78,7 @@ func (handler *ReportDashboardHandler) GetReportDashboardByTimeRange(ctx *fastht
 	err := handler.astraCache.Get(cacheKey, &reportDashboardOverallCache)
 	if err == nil {
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
-		httpapi.Success(ctx, reportDashboardOverallCache)
+		httpapi.SuccessNotWrappedResult(ctx, reportDashboardOverallCache)
 		return
 	}
 
