@@ -13,6 +13,7 @@ import (
 	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
+	account_view "github.com/AstraProtocol/astra-indexing/projection/account/view"
 	report_dashboard_view "github.com/AstraProtocol/astra-indexing/projection/report_dashboard/view"
 	transaction_view "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 	"github.com/valyala/fasthttp"
@@ -22,6 +23,7 @@ type ReportDashboardHandler struct {
 	logger                applogger.Logger
 	reportDashboardView   *report_dashboard_view.ReportDashboard
 	transactionsTotalView transaction_view.TransactionsTotal
+	accountsView          account_view.Accounts
 	astraCache            *cache.AstraCache
 }
 
@@ -36,6 +38,7 @@ func NewReportDashboardHandler(
 		}),
 		report_dashboard_view.NewReportDashboard(rdbHandle, config),
 		transaction_view.NewTransactionsTotalView(rdbHandle),
+		account_view.NewAccountsView(rdbHandle),
 		cache.NewCache(),
 	}
 }
@@ -101,6 +104,15 @@ func (handler *ReportDashboardHandler) GetReportDashboardByTimeRange(ctx *fastht
 		return
 	}
 	reportDashboardOverall.Overall.TotalUpToDateTransactions = totalUpToDateTransactions
+
+	totalUpToDateAddresses, err := handler.accountsView.TotalAccount()
+	if err != nil {
+		handler.logger.Errorf("error get total up-to-date addresses: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+	reportDashboardOverall.Overall.TotalUpToDateAddresses = totalUpToDateAddresses
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	handler.astraCache.Set(cacheKey, reportDashboardOverall, utils.TIME_CACHE_LONG)
