@@ -99,7 +99,7 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 			&result.TotalAsaWithdrawnFromTiki,
 			&result.TotalAsaOnchainRewards,
 			&result.TotalTransactions,
-			&result.TotalAddresses,
+			&result.TotalUpToDateAddresses,
 			&result.TotalActiveAddresses,
 		); err != nil {
 			if errors.Is(err, rdb.ErrNoRows) {
@@ -139,7 +139,7 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 		reportDashboardOverall.Overall.TotalTransactions += reportDashboardData.TotalTransactions
 		reportDashboardOverall.Overall.TotalTxOfRedeemedCoupons += reportDashboardData.TotalTxOfRedeemedCoupons
 
-		reportDashboardOverall.Overall.TotalAddresses = reportDashboardData.TotalAddresses
+		reportDashboardOverall.Overall.TotalUpToDateAddresses = reportDashboardData.TotalUpToDateAddresses
 	}
 	reportDashboardOverall.Overall.TotalAsaOfRedeemedCoupons = fmt.Sprint(totalAsaOfRedeemedCouponsOverall)
 	reportDashboardOverall.Overall.TotalAsaStaked = fmt.Sprint(totalAsaStakedOverall)
@@ -161,8 +161,8 @@ type ReportDashboardData struct {
 	TotalAsaWithdrawnFromTiki    string `json:"totalAsaWithdrawnFromTiki"`
 	TotalAsaOnchainRewards       string `json:"totalAsaOnchainRewards"`
 	TotalTransactions            int64  `json:"totalTransactions"`
-	TotalAddresses               int64  `json:"totalAddresses"`
 	TotalActiveAddresses         int64  `json:"totalActiveAddresses"`
+	TotalUpToDateAddresses       int64  `json:"totalUpToDateAddresses"`
 }
 
 type ReportDashboardOverall struct {
