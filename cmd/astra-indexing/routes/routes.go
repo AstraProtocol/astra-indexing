@@ -84,6 +84,11 @@ func InitRouteRegistry(
 			path:    "api/v1/report-dashboard/update",
 			handler: reportDashboardHandlers.UpdateReportDashboardByDate,
 		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/report-dashboard",
+			handler: reportDashboardHandlers.GetReportDashboardByTimeRange,
+		},
 	)
 
 	accountsHandlers := httpapi_handlers.NewAccounts(

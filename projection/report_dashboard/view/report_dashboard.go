@@ -3,6 +3,7 @@ package view
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -31,8 +32,9 @@ func NewReportDashboard(rdbHandle *rdb.Handle, config *config.Config) *ReportDas
 
 func (view *ReportDashboard) UpdateReportDashboardByDate(date string) (string, error) {
 	//example: currentDate = "2023-06-19"
+	layout := "2006-01-02"
 	tikiAddress := view.config.CronjobReportDashboard.TikiAddress
-	dateTime, err := time.Parse("2006-01-02", date)
+	dateTime, err := time.Parse(layout, date)
 	if err != nil {
 		return "NOK", err
 	}
@@ -85,8 +87,9 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 
 	for rowsResult.Next() {
 		var result ReportDashboardData
+		var unixTime int64
 		if err = rowsResult.Scan(
-			&result.DateTime,
+			&unixTime,
 			&result.TotalTxOfRedeemedCoupons,
 			&result.TotalRedeemedCouponAddresses,
 			&result.TotalAsaOfRedeemedCoupons,
@@ -105,8 +108,14 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 			}
 			return ReportDashboardOverall{}, fmt.Errorf("error scanning get report dashboard by time range row: %v: %w", err, rdb.ErrQuery)
 		}
+		dateTime := time.Unix(0, unixTime).Format(layout)
+		result.DateTime = dateTime
 		reportDashboardDataList = append(reportDashboardDataList, result)
 	}
+
+	sort.Slice(reportDashboardDataList, func(i, j int) bool {
+		return reportDashboardDataList[i].DateTime < reportDashboardDataList[j].DateTime
+	})
 	var reportDashboardOverall ReportDashboardOverall
 	reportDashboardOverall.Data = reportDashboardDataList
 
@@ -127,13 +136,14 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 		totalAsaOnchainRewardsOverall += totalAsaOnchainRewards
 
 		reportDashboardOverall.Overall.TotalActiveAddresses += reportDashboardData.TotalActiveAddresses
-		reportDashboardOverall.Overall.TotalAddresses += reportDashboardData.TotalAddresses
 		reportDashboardOverall.Overall.TotalNewAddresses += reportDashboardData.TotalNewAddresses
 		reportDashboardOverall.Overall.TotalRedeemedCouponAddresses += reportDashboardData.TotalRedeemedCouponAddresses
 		reportDashboardOverall.Overall.TotalStakingAddresses += reportDashboardData.TotalStakingAddresses
 		reportDashboardOverall.Overall.TotalStakingTransactions += reportDashboardData.TotalStakingTransactions
 		reportDashboardOverall.Overall.TotalTransactions += reportDashboardData.TotalTransactions
 		reportDashboardOverall.Overall.TotalTxOfRedeemedCoupons += reportDashboardData.TotalTxOfRedeemedCoupons
+
+		reportDashboardOverall.Overall.TotalAddresses = reportDashboardData.TotalAddresses
 	}
 	reportDashboardOverall.Overall.TotalAsaOfRedeemedCoupons = fmt.Sprint(totalAsaOfRedeemedCouponsOverall)
 	reportDashboardOverall.Overall.TotalAsaStaked = fmt.Sprint(totalAsaStakedOverall)
@@ -144,7 +154,7 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 }
 
 type ReportDashboardData struct {
-	DateTime                     int64  `json:"dateTime,omitempty"`
+	DateTime                     string `json:"dateTime,omitempty"`
 	TotalTxOfRedeemedCoupons     int64  `json:"totalTxOfRedeemedCoupons"`
 	TotalRedeemedCouponAddresses int64  `json:"totalRedeemedCouponAddresses"`
 	TotalAsaOfRedeemedCoupons    string `json:"totalAsaOfRedeemedCoupons"`
