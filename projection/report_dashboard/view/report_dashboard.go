@@ -54,6 +54,40 @@ func (view *ReportDashboard) UpdateReportDashboardByDate(date string) (string, e
 	return "OK", nil
 }
 
+func (impl *ReportDashboard) GetActiveAddressesByTimeRange(from string, to string) (int64, error) {
+	layout := "2006-01-02"
+	fromDateTime, err := time.Parse(layout, from)
+	if err != nil {
+		return -1, err
+	}
+	fromDate := fromDateTime.Truncate(24 * time.Hour).UnixNano()
+
+	toDateTime, err := time.Parse(layout, to)
+	if err != nil {
+		return -1, err
+	}
+	toDate := toDateTime.Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+
+	rawQuery := fmt.Sprintf("SELECT COUNT(from_address) "+
+		"FROM "+
+		"(SELECT DISTINCT (from_address) "+
+		"FROM view_transactions "+
+		"WHERE block_time >= %d "+
+		"AND block_time < %d "+
+		") AS tmp", fromDate, toDate)
+
+	var totalActiveAddresses int64
+	if err = impl.rdbHandle.QueryRow(rawQuery).Scan(
+		&totalActiveAddresses,
+	); err != nil {
+		if errors.Is(err, rdb.ErrNoRows) {
+			return -1, rdb.ErrNoRows
+		}
+		return -1, fmt.Errorf("error scanning active addresses by time range row: %v: %w", err, rdb.ErrQuery)
+	}
+	return totalActiveAddresses, nil
+}
+
 func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to string) (ReportDashboardOverall, error) {
 	layout := "2006-01-02"
 	fromDateTime, err := time.Parse(layout, from)
@@ -71,7 +105,7 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 	rawQuery := fmt.Sprintf("SELECT rd.date_time, rd.total_transaction_of_redeemed_coupons, rd.total_redeemed_coupon_addresses, "+
 		"rd.total_asa_of_redeemed_coupons, rd.total_staking_transactions, rd.total_staking_addresses, "+
 		"rd.total_asa_staked, rd.total_new_addresses, rd.total_asa_withdrawn_from_tiki, rd.total_asa_on_chain_rewards, "+
-		"cs.number_of_transactions, cs.active_addresses "+
+		"cs.number_of_transactions "+
 		"FROM report_dashboard AS rd "+
 		"INNER JOIN chain_stats AS cs ON rd.date_time = cs.date_time "+
 		"WHERE rd.date_time >= %d AND rd.date_time < %d ORDER BY rd.date_time ASC", fromDate, toDate)
@@ -99,7 +133,6 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 			&result.TotalAsaWithdrawnFromTiki,
 			&result.TotalAsaOnchainRewards,
 			&result.TotalTransactions,
-			&result.TotalActiveAddresses,
 		); err != nil {
 			if errors.Is(err, rdb.ErrNoRows) {
 				return ReportDashboardOverall{}, rdb.ErrNoRows
@@ -130,7 +163,6 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 		totalAsaWithdrawnFromTikiOverall += totalAsaWithdrawnFromTiki
 		totalAsaOnchainRewardsOverall += totalAsaOnchainRewards
 
-		reportDashboardOverall.Overall.TotalActiveAddresses += reportDashboardData.TotalActiveAddresses
 		reportDashboardOverall.Overall.TotalNewAddresses += reportDashboardData.TotalNewAddresses
 		reportDashboardOverall.Overall.TotalRedeemedCouponAddresses += reportDashboardData.TotalRedeemedCouponAddresses
 		reportDashboardOverall.Overall.TotalStakingAddresses += reportDashboardData.TotalStakingAddresses
@@ -158,7 +190,7 @@ type ReportDashboardData struct {
 	TotalAsaWithdrawnFromTiki    string `json:"totalAsaWithdrawnFromTiki"`
 	TotalAsaOnchainRewards       string `json:"totalAsaOnchainRewards"`
 	TotalTransactions            int64  `json:"totalTransactions"`
-	TotalActiveAddresses         int64  `json:"totalActiveAddresses"`
+	TotalActiveAddresses         int64  `json:"totalActiveAddresses,omitempty"`
 	TotalUpToDateAddresses       int64  `json:"totalUpToDateAddresses,omitempty"`
 	TotalUpToDateTransactions    int64  `json:"totalUpToDateTransactions,omitempty"`
 }
