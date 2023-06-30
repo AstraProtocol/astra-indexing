@@ -2,12 +2,15 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/bootstrap/config"
+	"github.com/AstraProtocol/astra-indexing/external/cache"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
+	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	report_dashboard_view "github.com/AstraProtocol/astra-indexing/projection/report_dashboard/view"
@@ -17,6 +20,7 @@ import (
 type ReportDashboardHandler struct {
 	logger              applogger.Logger
 	reportDashboardView *report_dashboard_view.ReportDashboard
+	astraCache          *cache.AstraCache
 }
 
 func NewReportDashboardHandler(
@@ -29,6 +33,7 @@ func NewReportDashboardHandler(
 			"module": "ReportDashboardHandler",
 		}),
 		report_dashboard_view.NewReportDashboard(rdbHandle, config),
+		cache.NewCache(),
 	}
 }
 
@@ -68,6 +73,15 @@ func (handler *ReportDashboardHandler) GetReportDashboardByTimeRange(ctx *fastht
 
 	fromDate = string(ctx.QueryArgs().Peek("fromDate"))
 
+	cacheKey := fmt.Sprintf("GetReportDashboardByTimeRange%s%s", fromDate, toDate)
+	var reportDashboardOverallCache interface{}
+	err := handler.astraCache.Get(cacheKey, &reportDashboardOverallCache)
+	if err == nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+		httpapi.Success(ctx, reportDashboardOverallCache)
+		return
+	}
+
 	reportDashboardOverall, err := handler.reportDashboardView.GetReportDashboardByTimeRange(fromDate, toDate)
 	if err != nil {
 		handler.logger.Errorf("error get report dashboard by time range: %v", err)
@@ -77,5 +91,6 @@ func (handler *ReportDashboardHandler) GetReportDashboardByTimeRange(ctx *fastht
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	handler.astraCache.Set(cacheKey, reportDashboardOverall, utils.TIME_CACHE_LONG)
 	httpapi.Success(ctx, reportDashboardOverall)
 }
