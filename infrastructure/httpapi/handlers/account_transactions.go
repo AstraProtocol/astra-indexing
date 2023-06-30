@@ -8,12 +8,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AstraProtocol/astra-indexing/external/cache"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
+	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
 	evm_utils "github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/valyala/fasthttp"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
+	pagination_interface "github.com/AstraProtocol/astra-indexing/appinterface/pagination"
 	"github.com/AstraProtocol/astra-indexing/appinterface/projection/view"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
@@ -31,6 +34,8 @@ type AccountTransactions struct {
 	accountTransactionsTotalView *account_transaction_view.AccountTransactionsTotal
 	accountGasUsedTotalView      *account_transaction_view.AccountGasUsedTotal
 	accountFeesTotalView         *account_transaction_view.AccountFeesTotal
+
+	astraCache *cache.AstraCache
 }
 
 func NewAccountTransactions(
@@ -50,6 +55,7 @@ func NewAccountTransactions(
 		account_transaction_view.NewAccountTransactionsTotal(rdbHandle),
 		account_transaction_view.NewAccountGasUsedTotal(rdbHandle),
 		account_transaction_view.NewAccountFeesTotal(rdbHandle),
+		cache.NewCache(),
 	}
 }
 
@@ -284,6 +290,33 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 		Id: idOrder,
 	}
 
+	cacheKeyResult := fmt.Sprintf(
+		"ListByAccountResult%s%s%s%s%s%s",
+		account,
+		memo,
+		rewardTxType,
+		direction,
+		includingInternalTx,
+		idOrder,
+	)
+	cacheKeyPagination := fmt.Sprintf(
+		"ListByAccountPagination%d%d",
+		pagination.OffsetParams().Page,
+		pagination.OffsetParams().Limit,
+	)
+	var resultCache interface{}
+	var paginationCache *pagination_interface.Result
+
+	err = handler.astraCache.Get(cacheKeyResult, &resultCache)
+	if err == nil {
+		err = handler.astraCache.Get(cacheKeyPagination, &paginationCache)
+		if err == nil {
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+			httpapi.SuccessWithPagination(ctx, resultCache, paginationCache)
+			return
+		}
+	}
+
 	blocks, paginationResult, err := handler.accountTransactionsView.List(
 		filter, order, pagination,
 	)
@@ -295,6 +328,8 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	handler.astraCache.Set(cacheKeyResult, blocks, utils.TIME_CACHE_FAST)
+	handler.astraCache.Set(cacheKeyPagination, paginationResult, utils.TIME_CACHE_FAST)
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)
 }
 
