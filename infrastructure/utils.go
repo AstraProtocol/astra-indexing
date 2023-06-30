@@ -2,6 +2,7 @@ package infrastructure
 
 import "time"
 
+const TIME_CACHE_VERY_FAST = 5 * time.Second
 const TIME_CACHE_FAST = 10 * time.Second
 const TIME_CACHE_MEDIUM = 45 * time.Second
 const TIME_CACHE_LONG = 15 * time.Minute

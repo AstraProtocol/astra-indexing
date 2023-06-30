@@ -171,7 +171,7 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 		paginationResult.Por.TotalPage()
 	}
 
-	handler.astraLocalCache.Set(blockPaginationKey, NewBlocksPaginationResult(blocks, *paginationResult), utils.TIME_CACHE_FAST)
+	handler.astraLocalCache.Set(blockPaginationKey, NewBlocksPaginationResult(blocks, *paginationResult), utils.TIME_CACHE_VERY_FAST)
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, blocks, paginationResult)

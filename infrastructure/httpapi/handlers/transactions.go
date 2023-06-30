@@ -310,7 +310,7 @@ func (handler *Transactions) List(ctx *fasthttp.RequestCtx) {
 	}
 
 	handler.astraLocalCache.Set(transactionPaginationKey,
-		NewTransactionsPaginationResult(txs, *paginationResult), utils.TIME_CACHE_FAST)
+		NewTransactionsPaginationResult(txs, *paginationResult), utils.TIME_CACHE_VERY_FAST)
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.SuccessWithPagination(ctx, txs, paginationResult)
