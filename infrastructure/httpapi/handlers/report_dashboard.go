@@ -14,13 +14,15 @@ import (
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
 	report_dashboard_view "github.com/AstraProtocol/astra-indexing/projection/report_dashboard/view"
+	transaction_view "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 	"github.com/valyala/fasthttp"
 )
 
 type ReportDashboardHandler struct {
-	logger              applogger.Logger
-	reportDashboardView *report_dashboard_view.ReportDashboard
-	astraCache          *cache.AstraCache
+	logger                applogger.Logger
+	reportDashboardView   *report_dashboard_view.ReportDashboard
+	transactionsTotalView transaction_view.TransactionsTotal
+	astraCache            *cache.AstraCache
 }
 
 func NewReportDashboardHandler(
@@ -33,6 +35,7 @@ func NewReportDashboardHandler(
 			"module": "ReportDashboardHandler",
 		}),
 		report_dashboard_view.NewReportDashboard(rdbHandle, config),
+		transaction_view.NewTransactionsTotalView(rdbHandle),
 		cache.NewCache(),
 	}
 }
@@ -74,7 +77,7 @@ func (handler *ReportDashboardHandler) GetReportDashboardByTimeRange(ctx *fastht
 	fromDate = string(ctx.QueryArgs().Peek("fromDate"))
 
 	cacheKey := fmt.Sprintf("GetReportDashboardByTimeRange%s%s", fromDate, toDate)
-	var reportDashboardOverallCache interface{}
+	var reportDashboardOverallCache report_dashboard_view.ReportDashboardOverall
 	err := handler.astraCache.Get(cacheKey, &reportDashboardOverallCache)
 	if err == nil {
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
@@ -86,9 +89,18 @@ func (handler *ReportDashboardHandler) GetReportDashboardByTimeRange(ctx *fastht
 	if err != nil {
 		handler.logger.Errorf("error get report dashboard by time range: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
-		httpapi.BadRequest(ctx, err)
+		httpapi.InternalServerError(ctx)
 		return
 	}
+
+	totalUpToDateTransactions, err := handler.transactionsTotalView.FindBy("-")
+	if err != nil {
+		handler.logger.Errorf("error get total up-to-date transactions: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusInternalServerError), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+	reportDashboardOverall.Overall.TotalUpToDateTransactions = totalUpToDateTransactions
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	handler.astraCache.Set(cacheKey, reportDashboardOverall, utils.TIME_CACHE_LONG)

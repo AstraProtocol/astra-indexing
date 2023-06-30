@@ -163,6 +163,7 @@ type ReportDashboardData struct {
 	TotalTransactions            int64  `json:"totalTransactions"`
 	TotalActiveAddresses         int64  `json:"totalActiveAddresses"`
 	TotalUpToDateAddresses       int64  `json:"totalUpToDateAddresses"`
+	TotalUpToDateTransactions    int64  `json:"totalUpToDateTransactions,omitempty"`
 }
 
 type ReportDashboardOverall struct {
