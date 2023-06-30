@@ -291,13 +291,15 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 	}
 
 	cacheKeyResult := fmt.Sprintf(
-		"ListByAccountResult%s%s%s%s%s%s",
+		"ListByAccountResult%s%s%s%s%s%s%d%d",
 		account,
 		memo,
 		rewardTxType,
 		direction,
 		includingInternalTx,
 		idOrder,
+		pagination.OffsetParams().Page,
+		pagination.OffsetParams().Limit,
 	)
 	cacheKeyPagination := fmt.Sprintf(
 		"ListByAccountPagination%d%d",
