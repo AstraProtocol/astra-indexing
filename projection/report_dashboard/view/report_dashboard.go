@@ -3,7 +3,6 @@ package view
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -75,7 +74,7 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 		"cs.number_of_transactions, cs.total_addresses, cs.active_addresses "+
 		"FROM report_dashboard AS rd "+
 		"INNER JOIN chain_stats AS cs ON rd.date_time = cs.date_time "+
-		"WHERE rd.date_time >= %d AND rd.date_time < %d", fromDate, toDate)
+		"WHERE rd.date_time >= %d AND rd.date_time < %d ORDER BY rd.date_time ASC", fromDate, toDate)
 
 	reportDashboardDataList := make([]ReportDashboardData, 0)
 
@@ -113,9 +112,6 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 		reportDashboardDataList = append(reportDashboardDataList, result)
 	}
 
-	sort.Slice(reportDashboardDataList, func(i, j int) bool {
-		return reportDashboardDataList[i].DateTime < reportDashboardDataList[j].DateTime
-	})
 	var reportDashboardOverall ReportDashboardOverall
 	reportDashboardOverall.Data = reportDashboardDataList
 
