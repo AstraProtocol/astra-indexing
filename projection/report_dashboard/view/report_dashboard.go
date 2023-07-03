@@ -39,17 +39,23 @@ func (view *ReportDashboard) UpdateReportDashboardByDate(date string) (string, e
 	}
 	currentDate := dateTime.Truncate(24 * time.Hour).UnixNano()
 	nextDate := dateTime.Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
-	prevDate := dateTime.Truncate(24 * time.Hour).Add(-24 * time.Hour).UnixNano()
+	//prevDate := dateTime.Truncate(24 * time.Hour).Add(-24 * time.Hour).UnixNano()
 
-	view.rdbReportDashboard.UpdateTotalNewAddressesWithRDbHandle(currentDate, prevDate)
-	view.rdbReportDashboard.UpdateTotalTxsOfRedeemedCouponsWithRDbHandle(currentDate, nextDate)
-	view.rdbReportDashboard.UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle(currentDate, nextDate)
-	view.rdbReportDashboard.UpdateTotalAstraOfRedeemedCouponsWithRDbHandle(currentDate, nextDate)
-	view.rdbReportDashboard.UpdateTotalAstraOnchainRewardsWithRDbHandle(currentDate, nextDate)
-	view.rdbReportDashboard.UpdateTotalAstraStakedWithRDbHandle(currentDate, nextDate)
-	view.rdbReportDashboard.UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(currentDate, nextDate, tikiAddress)
-	view.rdbReportDashboard.UpdateTotalStakingAddressesWithRDbHandle(currentDate, nextDate)
-	view.rdbReportDashboard.UpdateTotalStakingTxsWithRDbHandle(currentDate, nextDate)
+	err = view.rdbReportDashboard.UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(currentDate, nextDate, tikiAddress)
+	if err != nil {
+		return "NOK", err
+	}
+
+	/*
+		view.rdbReportDashboard.UpdateTotalNewAddressesWithRDbHandle(currentDate, prevDate)
+		view.rdbReportDashboard.UpdateTotalTxsOfRedeemedCouponsWithRDbHandle(currentDate, nextDate)
+		view.rdbReportDashboard.UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle(currentDate, nextDate)
+		view.rdbReportDashboard.UpdateTotalAstraOfRedeemedCouponsWithRDbHandle(currentDate, nextDate)
+		view.rdbReportDashboard.UpdateTotalAstraOnchainRewardsWithRDbHandle(currentDate, nextDate)
+		view.rdbReportDashboard.UpdateTotalAstraStakedWithRDbHandle(currentDate, nextDate)
+		view.rdbReportDashboard.UpdateTotalStakingAddressesWithRDbHandle(currentDate, nextDate)
+		view.rdbReportDashboard.UpdateTotalStakingTxsWithRDbHandle(currentDate, nextDate)
+	*/
 
 	return "OK", nil
 }
@@ -118,6 +124,11 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 	}
 	defer rowsResult.Close()
 
+	var totalAsaOfRedeemedCoupons string
+	var totalAsaStaked string
+	var totalAsaWithdrawnFromTiki string
+	var totalAsaOnchainRewards string
+
 	for rowsResult.Next() {
 		var result ReportDashboardData
 		var unixTime int64
@@ -125,13 +136,13 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 			&unixTime,
 			&result.TotalTxOfRedeemedCoupons,
 			&result.TotalRedeemedCouponAddresses,
-			&result.TotalAsaOfRedeemedCoupons,
+			&totalAsaOfRedeemedCoupons,
 			&result.TotalStakingTransactions,
 			&result.TotalStakingAddresses,
-			&result.TotalAsaStaked,
+			&totalAsaStaked,
 			&result.TotalNewAddresses,
-			&result.TotalAsaWithdrawnFromTiki,
-			&result.TotalAsaOnchainRewards,
+			&totalAsaWithdrawnFromTiki,
+			&totalAsaOnchainRewards,
 			&result.TotalTransactions,
 		); err != nil {
 			if errors.Is(err, rdb.ErrNoRows) {
@@ -141,27 +152,30 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 		}
 		dateTime := time.Unix(0, unixTime).Format(layout)
 		result.DateTime = dateTime
+
+		totalAsaOfRedeemedCoupons, _ := strconv.ParseFloat(strings.TrimSpace(totalAsaOfRedeemedCoupons), 64)
+		result.TotalAsaOfRedeemedCoupons = totalAsaOfRedeemedCoupons
+
+		totalAsaStaked, _ := strconv.ParseFloat(strings.TrimSpace(totalAsaStaked), 64)
+		result.TotalAsaStaked = totalAsaStaked
+
+		totalAsaWithdrawnFromTiki, _ := strconv.ParseFloat(strings.TrimSpace(totalAsaWithdrawnFromTiki), 64)
+		result.TotalAsaWithdrawnFromTiki = totalAsaWithdrawnFromTiki
+
+		totalAsaOnchainRewards, _ := strconv.ParseFloat(strings.TrimSpace(totalAsaOnchainRewards), 64)
+		result.TotalAsaOnchainRewards = totalAsaOnchainRewards
+
 		reportDashboardDataList = append(reportDashboardDataList, result)
 	}
 
 	var reportDashboardOverall ReportDashboardOverall
 	reportDashboardOverall.Data = reportDashboardDataList
 
-	totalAsaOfRedeemedCouponsOverall := float64(0)
-	totalAsaStakedOverall := float64(0)
-	totalAsaWithdrawnFromTikiOverall := float64(0)
-	totalAsaOnchainRewardsOverall := float64(0)
-
 	for _, reportDashboardData := range reportDashboardDataList {
-		totalAsaOfRedeemedCoupons, _ := strconv.ParseFloat(strings.TrimSpace(reportDashboardData.TotalAsaOfRedeemedCoupons), 64)
-		totalAsaStaked, _ := strconv.ParseFloat(strings.TrimSpace(reportDashboardData.TotalAsaStaked), 64)
-		totalAsaWithdrawnFromTiki, _ := strconv.ParseFloat(strings.TrimSpace(reportDashboardData.TotalAsaWithdrawnFromTiki), 64)
-		totalAsaOnchainRewards, _ := strconv.ParseFloat(strings.TrimSpace(reportDashboardData.TotalAsaOnchainRewards), 64)
-
-		totalAsaOfRedeemedCouponsOverall += totalAsaOfRedeemedCoupons
-		totalAsaStakedOverall += totalAsaStaked
-		totalAsaWithdrawnFromTikiOverall += totalAsaWithdrawnFromTiki
-		totalAsaOnchainRewardsOverall += totalAsaOnchainRewards
+		reportDashboardOverall.Overall.TotalAsaOfRedeemedCoupons += reportDashboardData.TotalAsaOfRedeemedCoupons
+		reportDashboardOverall.Overall.TotalAsaStaked += reportDashboardData.TotalAsaStaked
+		reportDashboardOverall.Overall.TotalAsaWithdrawnFromTiki += reportDashboardData.TotalAsaWithdrawnFromTiki
+		reportDashboardOverall.Overall.TotalAsaOnchainRewards += reportDashboardData.TotalAsaOnchainRewards
 
 		reportDashboardOverall.Overall.TotalNewAddresses += reportDashboardData.TotalNewAddresses
 		reportDashboardOverall.Overall.TotalRedeemedCouponAddresses += reportDashboardData.TotalRedeemedCouponAddresses
@@ -170,29 +184,25 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 		reportDashboardOverall.Overall.TotalTransactions += reportDashboardData.TotalTransactions
 		reportDashboardOverall.Overall.TotalTxOfRedeemedCoupons += reportDashboardData.TotalTxOfRedeemedCoupons
 	}
-	reportDashboardOverall.Overall.TotalAsaOfRedeemedCoupons = fmt.Sprint(totalAsaOfRedeemedCouponsOverall)
-	reportDashboardOverall.Overall.TotalAsaStaked = fmt.Sprint(totalAsaStakedOverall)
-	reportDashboardOverall.Overall.TotalAsaWithdrawnFromTiki = fmt.Sprint(totalAsaWithdrawnFromTikiOverall)
-	reportDashboardOverall.Overall.TotalAsaOnchainRewards = fmt.Sprint(totalAsaOnchainRewardsOverall)
 
 	return reportDashboardOverall, nil
 }
 
 type ReportDashboardData struct {
-	DateTime                     string `json:"dateTime,omitempty"`
-	TotalTxOfRedeemedCoupons     int64  `json:"totalTxOfRedeemedCoupons"`
-	TotalRedeemedCouponAddresses int64  `json:"totalRedeemedCouponAddresses"`
-	TotalAsaOfRedeemedCoupons    string `json:"totalAsaOfRedeemedCoupons"`
-	TotalStakingTransactions     int64  `json:"totalStakingTransactions"`
-	TotalStakingAddresses        int64  `json:"totalStakingAddresses"`
-	TotalAsaStaked               string `json:"totalAsaStaked"`
-	TotalNewAddresses            int64  `json:"totalNewAddresses"`
-	TotalAsaWithdrawnFromTiki    string `json:"totalAsaWithdrawnFromTiki"`
-	TotalAsaOnchainRewards       string `json:"totalAsaOnchainRewards"`
-	TotalTransactions            int64  `json:"totalTransactions"`
-	TotalActiveAddresses         int64  `json:"totalActiveAddresses,omitempty"`
-	TotalUpToDateAddresses       int64  `json:"totalUpToDateAddresses,omitempty"`
-	TotalUpToDateTransactions    int64  `json:"totalUpToDateTransactions,omitempty"`
+	DateTime                     string  `json:"dateTime,omitempty"`
+	TotalTxOfRedeemedCoupons     int64   `json:"totalTxOfRedeemedCoupons"`
+	TotalRedeemedCouponAddresses int64   `json:"totalRedeemedCouponAddresses"`
+	TotalAsaOfRedeemedCoupons    float64 `json:"totalAsaOfRedeemedCoupons"`
+	TotalStakingTransactions     int64   `json:"totalStakingTransactions"`
+	TotalStakingAddresses        int64   `json:"totalStakingAddresses"`
+	TotalAsaStaked               float64 `json:"totalAsaStaked"`
+	TotalNewAddresses            int64   `json:"totalNewAddresses"`
+	TotalAsaWithdrawnFromTiki    float64 `json:"totalAsaWithdrawnFromTiki"`
+	TotalAsaOnchainRewards       float64 `json:"totalAsaOnchainRewards"`
+	TotalTransactions            int64   `json:"totalTransactions"`
+	TotalActiveAddresses         int64   `json:"totalActiveAddresses,omitempty"`
+	TotalUpToDateAddresses       int64   `json:"totalUpToDateAddresses,omitempty"`
+	TotalUpToDateTransactions    int64   `json:"totalUpToDateTransactions,omitempty"`
 }
 
 type ReportDashboardOverall struct {
