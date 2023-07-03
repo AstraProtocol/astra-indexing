@@ -26,16 +26,16 @@ func NewRDbReportDashboard(rdbHandle *rdb.Handle) *RDbReportDashboard {
 }
 
 // Init initializes report dashboard DB when it is first time running
-func (impl *RDbReportDashboard) init() error {
+func (impl *RDbReportDashboard) init(currentDate int64) error {
 	var err error
 
 	var exist bool
-	if exist, err = impl.isRowExist(); err != nil {
+	if exist, err = impl.isRowExist(currentDate); err != nil {
 		return fmt.Errorf("error checking report dashboard row existence: %v", err)
 	}
 
 	if !exist {
-		if err = impl.initRow(); err != nil {
+		if err = impl.initRow(currentDate); err != nil {
 			return fmt.Errorf("error initializing chain stats row: %v", err)
 		}
 	}
@@ -44,9 +44,7 @@ func (impl *RDbReportDashboard) init() error {
 }
 
 // isRowExist returns true if the row exists
-func (impl *RDbReportDashboard) isRowExist() (bool, error) {
-	currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-
+func (impl *RDbReportDashboard) isRowExist(currentDate int64) (bool, error) {
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Select(
 		"COUNT(*)",
 	).From(
@@ -67,8 +65,7 @@ func (impl *RDbReportDashboard) isRowExist() (bool, error) {
 }
 
 // initRow creates one row for current day report dashboard
-func (impl *RDbReportDashboard) initRow() error {
-	currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
+func (impl *RDbReportDashboard) initRow(currentDate int64) error {
 	// Insert initial current day to the row
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Insert(
 		impl.table,
@@ -90,11 +87,11 @@ func (impl *RDbReportDashboard) initRow() error {
 	return nil
 }
 
-func (impl *RDbReportDashboard) UpdateTotalAstraOnchainRewardsWithRDbHandle(currentDate int64) error {
+func (impl *RDbReportDashboard) UpdateTotalAstraOnchainRewardsWithRDbHandle(currentDate int64, nextDate int64) error {
 	startTime := time.Now()
 	recordMethod := "UpdateTotalAstraOnchainRewardsWithRDbHandle"
 
-	if err := impl.init(); err != nil {
+	if err := impl.init(currentDate); err != nil {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error initializing report dashboard %v", err)
 	}
@@ -108,7 +105,8 @@ func (impl *RDbReportDashboard) UpdateTotalAstraOnchainRewardsWithRDbHandle(curr
 		"jsonb_array_elements(view_account_transaction_data.messages) elems "+
 		"WHERE "+
 		"block_time >= %d AND "+
-		"reward_tx_type = '%s' AND block_hash = '') AS tmp", currentDate, "sendReward")
+		"block_time < %d AND "+
+		"reward_tx_type = '%s' AND block_hash = '') AS tmp", currentDate, nextDate, "sendReward")
 
 	astraOnchainRewardsCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
@@ -136,11 +134,11 @@ func (impl *RDbReportDashboard) UpdateTotalAstraOnchainRewardsWithRDbHandle(curr
 	return nil
 }
 
-func (impl *RDbReportDashboard) UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(currentDate int64, tikiAddress string) error {
+func (impl *RDbReportDashboard) UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(currentDate int64, nextDate int64, tikiAddress string) error {
 	startTime := time.Now()
 	recordMethod := "UpdateTotalAstraWithdrawnFromTikiWithRDbHandle"
 
-	if err := impl.init(); err != nil {
+	if err := impl.init(currentDate); err != nil {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error initializing report dashboard %v", err)
 	}
@@ -152,8 +150,9 @@ func (impl *RDbReportDashboard) UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(c
 			"jsonb_array_elements(view_transactions.messages) elems "+
 			"WHERE "+
 			"block_time >= %d AND "+
+			"block_time < %d AND "+
 			"value->>'type'='/cosmos.bank.v1beta1.MsgSend' AND "+
-			"from_address='%s'", currentDate, tikiAddress)
+			"from_address='%s'", currentDate, nextDate, tikiAddress)
 
 	astraWithdrawnFromTikiCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
@@ -181,11 +180,11 @@ func (impl *RDbReportDashboard) UpdateTotalAstraWithdrawnFromTikiWithRDbHandle(c
 	return nil
 }
 
-func (impl *RDbReportDashboard) UpdateTotalAstraOfRedeemedCouponsWithRDbHandle(currentDate int64) error {
+func (impl *RDbReportDashboard) UpdateTotalAstraOfRedeemedCouponsWithRDbHandle(currentDate int64, nextDate int64) error {
 	startTime := time.Now()
 	recordMethod := "UpdateTotalAstraOfRedeemedCouponsWithRDbHandle"
 
-	if err := impl.init(); err != nil {
+	if err := impl.init(currentDate); err != nil {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error initializing report dashboard %v", err)
 	}
@@ -197,7 +196,8 @@ func (impl *RDbReportDashboard) UpdateTotalAstraOfRedeemedCouponsWithRDbHandle(c
 			"jsonb_array_elements(view_transactions.messages) elems "+
 			"WHERE "+
 			"block_time >= %d AND "+
-			"tx_type = '%s'", currentDate, "exchangeWithValue")
+			"block_time < %d AND "+
+			"tx_type = '%s'", currentDate, nextDate, "exchangeWithValue")
 
 	astraOfRedeemedCouponsCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
@@ -225,11 +225,11 @@ func (impl *RDbReportDashboard) UpdateTotalAstraOfRedeemedCouponsWithRDbHandle(c
 	return nil
 }
 
-func (impl *RDbReportDashboard) UpdateTotalTxsOfRedeemedCouponsWithRDbHandle(currentDate int64) error {
+func (impl *RDbReportDashboard) UpdateTotalTxsOfRedeemedCouponsWithRDbHandle(currentDate int64, nextDate int64) error {
 	startTime := time.Now()
 	recordMethod := "UpdateTotalTxsOfRedeemedCouponsWithRDbHandle"
 
-	if err := impl.init(); err != nil {
+	if err := impl.init(currentDate); err != nil {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error initializing report dashboard %v", err)
 	}
@@ -240,7 +240,8 @@ func (impl *RDbReportDashboard) UpdateTotalTxsOfRedeemedCouponsWithRDbHandle(cur
 			"FROM view_transactions "+
 			"WHERE "+
 			"block_time >= %d AND "+
-			"tx_type = '%s') AS dt", currentDate, "exchangeWithValue")
+			"block_time < %d AND "+
+			"tx_type = '%s') AS dt", currentDate, nextDate, "exchangeWithValue")
 
 	txsOfRedeemedCouponsCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
@@ -268,11 +269,11 @@ func (impl *RDbReportDashboard) UpdateTotalTxsOfRedeemedCouponsWithRDbHandle(cur
 	return nil
 }
 
-func (impl *RDbReportDashboard) UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle(currentDate int64) error {
+func (impl *RDbReportDashboard) UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle(currentDate int64, nextDate int64) error {
 	startTime := time.Now()
 	recordMethod := "UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle"
 
-	if err := impl.init(); err != nil {
+	if err := impl.init(currentDate); err != nil {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error initializing report dashboard %v", err)
 	}
@@ -283,7 +284,8 @@ func (impl *RDbReportDashboard) UpdateTotalAddressesOfRedeemedCouponsWithRDbHand
 			"FROM view_transactions "+
 			"WHERE "+
 			"block_time >= %d AND "+
-			"tx_type = '%s') AS dt", currentDate, "exchangeWithValue")
+			"block_time < %d AND "+
+			"tx_type = '%s') AS dt", currentDate, nextDate, "exchangeWithValue")
 
 	addressesOfRedeemedCouponsCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
@@ -311,11 +313,11 @@ func (impl *RDbReportDashboard) UpdateTotalAddressesOfRedeemedCouponsWithRDbHand
 	return nil
 }
 
-func (impl *RDbReportDashboard) UpdateTotalAstraStakedWithRDbHandle(currentDate int64) error {
+func (impl *RDbReportDashboard) UpdateTotalAstraStakedWithRDbHandle(currentDate int64, nextDate int64) error {
 	startTime := time.Now()
 	recordMethod := "UpdateTotalAstraStakedWithRDbHandle"
 
-	if err := impl.init(); err != nil {
+	if err := impl.init(currentDate); err != nil {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error initializing report dashboard %v", err)
 	}
@@ -327,7 +329,8 @@ func (impl *RDbReportDashboard) UpdateTotalAstraStakedWithRDbHandle(currentDate 
 			"jsonb_array_elements(view_transactions.messages) elems "+
 			"WHERE "+
 			"block_time >= %d AND "+
-			"value->>'type'='%s'", currentDate, "/cosmos.staking.v1beta1.MsgDelegate")
+			"block_time < %d AND "+
+			"value->>'type'='%s'", currentDate, nextDate, "/cosmos.staking.v1beta1.MsgDelegate")
 
 	astraStakedCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
@@ -355,11 +358,11 @@ func (impl *RDbReportDashboard) UpdateTotalAstraStakedWithRDbHandle(currentDate 
 	return nil
 }
 
-func (impl *RDbReportDashboard) UpdateTotalStakingTxsWithRDbHandle(currentDate int64) error {
+func (impl *RDbReportDashboard) UpdateTotalStakingTxsWithRDbHandle(currentDate int64, nextDate int64) error {
 	startTime := time.Now()
 	recordMethod := "UpdateTotalStakingTxsWithRDbHandle"
 
-	if err := impl.init(); err != nil {
+	if err := impl.init(currentDate); err != nil {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error initializing report dashboard %v", err)
 	}
@@ -370,7 +373,8 @@ func (impl *RDbReportDashboard) UpdateTotalStakingTxsWithRDbHandle(currentDate i
 			"jsonb_array_elements(view_transactions.messages) elems "+
 			"WHERE "+
 			"block_time >= %d AND "+
-			"value->>'type'='%s'", currentDate, "/cosmos.staking.v1beta1.MsgDelegate")
+			"block_time < %d AND "+
+			"value->>'type'='%s'", currentDate, nextDate, "/cosmos.staking.v1beta1.MsgDelegate")
 
 	txsStakedCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
@@ -398,11 +402,11 @@ func (impl *RDbReportDashboard) UpdateTotalStakingTxsWithRDbHandle(currentDate i
 	return nil
 }
 
-func (impl *RDbReportDashboard) UpdateTotalStakingAddressesWithRDbHandle(currentDate int64) error {
+func (impl *RDbReportDashboard) UpdateTotalStakingAddressesWithRDbHandle(currentDate int64, nextDate int64) error {
 	startTime := time.Now()
 	recordMethod := "UpdateTotalStakingAddressesWithRDbHandle"
 
-	if err := impl.init(); err != nil {
+	if err := impl.init(currentDate); err != nil {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error initializing report dashboard %v", err)
 	}
@@ -414,7 +418,8 @@ func (impl *RDbReportDashboard) UpdateTotalStakingAddressesWithRDbHandle(current
 			"jsonb_array_elements(view_transactions.messages) elems "+
 			"WHERE "+
 			"block_time >= %d AND "+
-			"value->>'type'='%s') AS tmp", currentDate, "/cosmos.staking.v1beta1.MsgDelegate")
+			"block_time < %d AND "+
+			"value->>'type'='%s') AS tmp", currentDate, nextDate, "/cosmos.staking.v1beta1.MsgDelegate")
 
 	addressesStakedCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
 	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
@@ -446,7 +451,7 @@ func (impl *RDbReportDashboard) UpdateTotalNewAddressesWithRDbHandle(currentDate
 	startTime := time.Now()
 	recordMethod := "UpdateTotalNewAddressesWithRDbHandle"
 
-	if err := impl.init(); err != nil {
+	if err := impl.init(currentDate); err != nil {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return fmt.Errorf("error initializing report dashboard %v", err)
 	}
