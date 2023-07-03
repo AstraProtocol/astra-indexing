@@ -21,6 +21,7 @@ func TestUpdate4Bytes(t *testing.T) {
 	util.UpdateSignature("0xded9382a", "removeLiquidityETHWithPermit(address, uint256, uint256, uint256, address, uint256, bool, uint8, bytes32, bytes32)")
 	util.UpdateSignature("0xa9059cbb", "transfer(address, uint256)")
 	util.UpdateSignature("0x441a3e70", "withdraw(uint256, uint256)")
+	util.UpdateSignature("0x71679309", "zapInEth(address, address, address, uint256, uint256)")
 
 	res, err := util.GetSignature("0xa07aea1c")
 	if err != nil {
@@ -35,6 +36,7 @@ func TestUpdate4Bytes(t *testing.T) {
 	assert.Equal(util.GetMethodNameFromMethodId("0xded9382a"), "removeLiquidityETHWithPermit")
 	assert.Equal(util.GetMethodNameFromMethodId("0xa9059cbb"), "transfer")
 	assert.Equal(util.GetMethodNameFromMethodId("0x441a3e70"), "withdraw")
+	assert.Equal(util.GetMethodNameFromMethodId("0x71679309"), "zapInEth")
 
 	data := "0q7S1gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGSWzhIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQVbZvQpCuU8VUVDSeyAd243bdr5ljiPA3bK7aUm/VuQVdhajtudaHAI7ltLe1GHQeZchiXxaXAq2Ez+6ErCpJRscAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 	signature := util.GetMethodNameFromData(data)
