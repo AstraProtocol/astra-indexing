@@ -114,7 +114,7 @@ func (handler *ReportDashboardHandler) GetReportDashboardByTimeRange(ctx *fastht
 	}
 	reportDashboardOverall.Overall.TotalUpToDateAddresses = totalUpToDateAddresses
 
-	totalActiveAddresses, err := handler.reportDashboardView.GetActiveAddressesByTimeRange(fromDate, toDate)
+	totalActiveAddresses, err := handler.reportDashboardView.GetActiveAddressesByTimeRangeDirectly(fromDate, toDate)
 	if err != nil {
 		handler.logger.Errorf("error get active addresses by time range: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())

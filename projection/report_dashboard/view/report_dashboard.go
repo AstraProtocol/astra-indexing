@@ -60,40 +60,6 @@ func (view *ReportDashboard) UpdateReportDashboardByDate(date string) (string, e
 	return "OK", nil
 }
 
-func (impl *ReportDashboard) GetActiveAddressesByTimeRange(from string, to string) (int64, error) {
-	layout := "2006-01-02"
-	fromDateTime, err := time.Parse(layout, from)
-	if err != nil {
-		return -1, err
-	}
-	fromDate := fromDateTime.Truncate(24 * time.Hour).UnixNano()
-
-	toDateTime, err := time.Parse(layout, to)
-	if err != nil {
-		return -1, err
-	}
-	toDate := toDateTime.Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
-
-	rawQuery := fmt.Sprintf("SELECT COUNT(from_address) "+
-		"FROM "+
-		"(SELECT DISTINCT (from_address) "+
-		"FROM view_transactions "+
-		"WHERE block_time >= %d "+
-		"AND block_time < %d "+
-		") AS tmp", fromDate, toDate)
-
-	var totalActiveAddresses int64
-	if err = impl.rdbHandle.QueryRow(rawQuery).Scan(
-		&totalActiveAddresses,
-	); err != nil {
-		if errors.Is(err, rdb.ErrNoRows) {
-			return -1, rdb.ErrNoRows
-		}
-		return -1, fmt.Errorf("error scanning active addresses by time range row: %v: %w", err, rdb.ErrQuery)
-	}
-	return totalActiveAddresses, nil
-}
-
 func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to string) (ReportDashboardOverall, error) {
 	layout := "2006-01-02"
 	fromDateTime, err := time.Parse(layout, from)
@@ -186,6 +152,75 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 	}
 
 	return reportDashboardOverall, nil
+}
+
+func (impl *ReportDashboard) GetActiveAddressesByTimeRangeDirectly(from string, to string) (int64, error) {
+	layout := "2006-01-02"
+	fromDateTime, err := time.Parse(layout, from)
+	if err != nil {
+		return -1, err
+	}
+	fromDate := fromDateTime.Truncate(24 * time.Hour).UnixNano()
+
+	toDateTime, err := time.Parse(layout, to)
+	if err != nil {
+		return -1, err
+	}
+	toDate := toDateTime.Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+
+	rawQuery := fmt.Sprintf("SELECT COUNT(from_address) "+
+		"FROM "+
+		"(SELECT DISTINCT (from_address) "+
+		"FROM view_transactions "+
+		"WHERE block_time >= %d "+
+		"AND block_time < %d "+
+		") AS tmp", fromDate, toDate)
+
+	var totalActiveAddresses int64
+	if err = impl.rdbHandle.QueryRow(rawQuery).Scan(
+		&totalActiveAddresses,
+	); err != nil {
+		if errors.Is(err, rdb.ErrNoRows) {
+			return -1, rdb.ErrNoRows
+		}
+		return -1, fmt.Errorf("error scanning active addresses by time range row: %v: %w", err, rdb.ErrQuery)
+	}
+	return totalActiveAddresses, nil
+}
+
+func (impl *ReportDashboard) GetStakingAddressesByTimeRangeDirectly(from string, to string) (int64, error) {
+	layout := "2006-01-02"
+	fromDateTime, err := time.Parse(layout, from)
+	if err != nil {
+		return -1, err
+	}
+	fromDate := fromDateTime.Truncate(24 * time.Hour).UnixNano()
+
+	toDateTime, err := time.Parse(layout, to)
+	if err != nil {
+		return -1, err
+	}
+	toDate := toDateTime.Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+
+	rawQuery := fmt.Sprintf("SELECT COUNT (*) FROM(SELECT DISTINCT CAST(value ->> 'content' AS jsonb) ->> 'delegatorAddress' "+
+		"FROM "+
+		"view_transactions, "+
+		"jsonb_array_elements(view_transactions.messages) elems "+
+		"WHERE "+
+		"block_time >= %d AND "+
+		"block_time < %d AND "+
+		"value->>'type'='%s') AS tmp", fromDate, toDate, "/cosmos.staking.v1beta1.MsgDelegate")
+
+	var totalStakingAddresses int64
+	if err = impl.rdbHandle.QueryRow(rawQuery).Scan(
+		&totalStakingAddresses,
+	); err != nil {
+		if errors.Is(err, rdb.ErrNoRows) {
+			return -1, rdb.ErrNoRows
+		}
+		return -1, fmt.Errorf("error scanning staking addresses by time range row: %v: %w", err, rdb.ErrQuery)
+	}
+	return totalStakingAddresses, nil
 }
 
 type ReportDashboardData struct {
