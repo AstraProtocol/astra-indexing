@@ -246,8 +246,9 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 		// @every 0h0m5s
 		// 59 59 0-23 * * *
 		s.AddFunc("59 59 0-23 * * *", func() {
-			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-			nextDate := time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+			currentTime := time.Now().Truncate(24 * time.Hour)
+			currentDate := currentTime.UnixNano()
+			nextDate := currentTime.Add(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
 			time.Sleep(1 * time.Second)
@@ -263,8 +264,9 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 		})
 
 		s.AddFunc("59 59 0-23 * * *", func() {
-			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-			nextDate := time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+			currentTime := time.Now().Truncate(24 * time.Hour)
+			currentDate := currentTime.UnixNano()
+			nextDate := currentTime.Add(24 * time.Hour).UnixNano()
 			tikiAddress := a.config.CronjobReportDashboard.TikiAddress
 			i = 0
 			var err error
@@ -281,8 +283,9 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 		})
 
 		s.AddFunc("59 59 0-23 * * *", func() {
-			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-			nextDate := time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+			currentTime := time.Now().Truncate(24 * time.Hour)
+			currentDate := currentTime.UnixNano()
+			nextDate := currentTime.Add(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
 			time.Sleep(5 * time.Second)
@@ -298,8 +301,9 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 		})
 
 		s.AddFunc("59 59 0-23 * * *", func() {
-			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-			nextDate := time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+			currentTime := time.Now().Truncate(24 * time.Hour)
+			currentDate := currentTime.UnixNano()
+			nextDate := currentTime.Add(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
 			time.Sleep(7 * time.Second)
@@ -315,8 +319,9 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 		})
 
 		s.AddFunc("59 59 0-23 * * *", func() {
-			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-			nextDate := time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+			currentTime := time.Now().Truncate(24 * time.Hour)
+			currentDate := currentTime.UnixNano()
+			nextDate := currentTime.Add(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
 			time.Sleep(9 * time.Second)
@@ -332,8 +337,9 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 		})
 
 		s.AddFunc("59 59 0-23 * * *", func() {
-			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-			nextDate := time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+			currentTime := time.Now().Truncate(24 * time.Hour)
+			currentDate := currentTime.UnixNano()
+			nextDate := currentTime.Add(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
 			time.Sleep(11 * time.Second)
@@ -349,8 +355,9 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 		})
 
 		s.AddFunc("59 59 0-23 * * *", func() {
-			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-			nextDate := time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+			currentTime := time.Now().Truncate(24 * time.Hour)
+			currentDate := currentTime.UnixNano()
+			nextDate := currentTime.Add(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
 			time.Sleep(13 * time.Second)
@@ -366,8 +373,9 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 		})
 
 		s.AddFunc("59 59 0-23 * * *", func() {
-			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-			nextDate := time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+			currentTime := time.Now().Truncate(24 * time.Hour)
+			currentDate := currentTime.UnixNano()
+			nextDate := currentTime.Add(24 * time.Hour).UnixNano()
 			i = 0
 			var err error
 			time.Sleep(15 * time.Second)
@@ -383,8 +391,9 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 		})
 
 		s.AddFunc("59 59 0-23 * * *", func() {
-			currentDate := time.Now().Truncate(24 * time.Hour).UnixNano()
-			prevDate := time.Now().Truncate(24 * time.Hour).Add(-24 * time.Hour).UnixNano()
+			currentTime := time.Now().Truncate(24 * time.Hour)
+			currentDate := currentTime.UnixNano()
+			prevDate := currentTime.Add(-24 * time.Hour).UnixNano()
 			i = 0
 			var err error
 			time.Sleep(17 * time.Second)
@@ -394,6 +403,62 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 					break
 				}
 				a.logger.Infof("failed to run UpdateTotalNewAddressesWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		// Weekly update
+		// At 00:00 on Sunday
+		s.AddFunc("@weekly", func() {
+			endWeekTime := time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour)
+			endWeekDate := endWeekTime.UnixNano()
+			startWeekDate := endWeekTime.Add(-7 * 24 * time.Hour).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(19 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalAddressesOfRedeemedCouponsWeeklyWithRDbHandle(startWeekDate, endWeekDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalAddressesOfRedeemedCouponsWeeklyWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.AddFunc("@weekly", func() {
+			endWeekTime := time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour)
+			endWeekDate := endWeekTime.UnixNano()
+			startWeekDate := endWeekTime.Add(-7 * 24 * time.Hour).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(21 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalStakingAddressesWeeklyWithRDbHandle(startWeekDate, endWeekDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalStakingAddressesWeeklyWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.AddFunc("@weekly", func() {
+			endWeekTime := time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour)
+			endWeekDate := endWeekTime.UnixNano()
+			startWeekDate := endWeekTime.Add(-7 * 24 * time.Hour).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(23 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalActiveAddressesWeeklyWithRDbHandle(startWeekDate, endWeekDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalActiveAddressesWeeklyWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
