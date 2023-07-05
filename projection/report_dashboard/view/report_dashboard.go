@@ -77,7 +77,7 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 	rawQuery := fmt.Sprintf("SELECT rd.date_time, rd.total_transaction_of_redeemed_coupons, rd.total_redeemed_coupon_addresses, "+
 		"rd.total_asa_of_redeemed_coupons, rd.total_staking_transactions, rd.total_staking_addresses, "+
 		"rd.total_asa_staked, rd.total_new_addresses, rd.total_asa_withdrawn_from_tiki, rd.total_asa_on_chain_rewards, "+
-		"cs.number_of_transactions "+
+		"cs.number_of_transactions, cs.active_addresses "+
 		"FROM report_dashboard AS rd "+
 		"INNER JOIN chain_stats AS cs ON rd.date_time = cs.date_time "+
 		"WHERE rd.date_time >= %d AND rd.date_time < %d ORDER BY rd.date_time ASC", fromDate, toDate)
@@ -110,6 +110,7 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 			&totalAsaWithdrawnFromTiki,
 			&totalAsaOnchainRewards,
 			&result.TotalTransactions,
+			&result.TotalActiveAddresses,
 		); err != nil {
 			if errors.Is(err, rdb.ErrNoRows) {
 				return ReportDashboardOverall{}, rdb.ErrNoRows
@@ -144,8 +145,6 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 		reportDashboardOverall.Overall.TotalAsaOnchainRewards += reportDashboardData.TotalAsaOnchainRewards
 
 		reportDashboardOverall.Overall.TotalNewAddresses += reportDashboardData.TotalNewAddresses
-		reportDashboardOverall.Overall.TotalRedeemedCouponAddresses += reportDashboardData.TotalRedeemedCouponAddresses
-		reportDashboardOverall.Overall.TotalStakingAddresses += reportDashboardData.TotalStakingAddresses
 		reportDashboardOverall.Overall.TotalStakingTransactions += reportDashboardData.TotalStakingTransactions
 		reportDashboardOverall.Overall.TotalTransactions += reportDashboardData.TotalTransactions
 		reportDashboardOverall.Overall.TotalTxOfRedeemedCoupons += reportDashboardData.TotalTxOfRedeemedCoupons
@@ -269,7 +268,7 @@ type ReportDashboardData struct {
 	TotalAsaWithdrawnFromTiki    float64 `json:"totalAsaWithdrawnFromTiki"`
 	TotalAsaOnchainRewards       float64 `json:"totalAsaOnchainRewards"`
 	TotalTransactions            int64   `json:"totalTransactions"`
-	TotalActiveAddresses         int64   `json:"totalActiveAddresses,omitempty"`
+	TotalActiveAddresses         int64   `json:"totalActiveAddresses"`
 	TotalUpToDateAddresses       int64   `json:"totalUpToDateAddresses,omitempty"`
 	TotalUpToDateTransactions    int64   `json:"totalUpToDateTransactions,omitempty"`
 }
