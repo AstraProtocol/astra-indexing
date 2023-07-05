@@ -223,6 +223,40 @@ func (impl *ReportDashboard) GetStakingAddressesByTimeRangeDirectly(from string,
 	return totalStakingAddresses, nil
 }
 
+func (impl *ReportDashboard) GetAddressesOfRedeemedCouponsByTimeRangeDirectly(from string, to string) (int64, error) {
+	layout := "2006-01-02"
+	fromDateTime, err := time.Parse(layout, from)
+	if err != nil {
+		return -1, err
+	}
+	fromDate := fromDateTime.Truncate(24 * time.Hour).UnixNano()
+
+	toDateTime, err := time.Parse(layout, to)
+	if err != nil {
+		return -1, err
+	}
+	toDate := toDateTime.Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+
+	rawQuery := fmt.Sprintf("SELECT COUNT(*) "+
+		"FROM (SELECT DISTINCT from_address "+
+		"FROM view_transactions "+
+		"WHERE "+
+		"block_time >= %d AND "+
+		"block_time < %d AND "+
+		"tx_type = '%s') AS dt", fromDate, toDate, "exchangeWithValue")
+
+	var totalAddressesOfRedeemedCoupons int64
+	if err = impl.rdbHandle.QueryRow(rawQuery).Scan(
+		&totalAddressesOfRedeemedCoupons,
+	); err != nil {
+		if errors.Is(err, rdb.ErrNoRows) {
+			return -1, rdb.ErrNoRows
+		}
+		return -1, fmt.Errorf("error scanning addresses of redeemed coupons by time range row: %v: %w", err, rdb.ErrQuery)
+	}
+	return totalAddressesOfRedeemedCoupons, nil
+}
+
 type ReportDashboardData struct {
 	DateTime                     string  `json:"dateTime,omitempty"`
 	TotalTxOfRedeemedCoupons     int64   `json:"totalTxOfRedeemedCoupons"`
