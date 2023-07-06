@@ -635,7 +635,7 @@ func (impl *RDbReportDashboard) UpdateTotalActiveAddressesWeeklyWithRDbHandle(cu
 	}
 
 	rawQuery := "UPDATE report_dashboard " +
-		"SET active_addresses_weekly = (SELECT COUNT(*) FROM (SELECT DISTINCT (from_address) FROM view_transactions WHERE block_time >= $1 AND block_time < $2) AS temp) " +
+		"SET total_active_addresses_weekly = (SELECT COUNT(*) FROM (SELECT DISTINCT (from_address) FROM view_transactions WHERE block_time >= $1 AND block_time < $2) AS temp) " +
 		"WHERE date_time = $1"
 
 	execResult, err := impl.selectRDbHandle.Exec(rawQuery, currentDate, nextDate)
@@ -662,7 +662,7 @@ func (impl *RDbReportDashboard) UpdateTotalActiveAddressesMonthlyWithRDbHandle(c
 	}
 
 	rawQuery := "UPDATE report_dashboard " +
-		"SET active_addresses_monthly = (SELECT COUNT(*) FROM (SELECT DISTINCT (from_address) FROM view_transactions WHERE block_time >= $1 AND block_time < $2) AS temp) " +
+		"SET total_active_addresses_monthly = (SELECT COUNT(*) FROM (SELECT DISTINCT (from_address) FROM view_transactions WHERE block_time >= $1 AND block_time < $2) AS temp) " +
 		"WHERE date_time = $1"
 
 	execResult, err := impl.selectRDbHandle.Exec(rawQuery, currentDate, nextDate)
