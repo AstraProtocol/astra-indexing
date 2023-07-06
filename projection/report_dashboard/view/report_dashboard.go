@@ -144,7 +144,7 @@ func (impl *ReportDashboard) GetReportDashboardByTimeRange(from string, to strin
 		reportDashboardOverall.Overall.TotalAsaWithdrawnFromTiki += reportDashboardData.TotalAsaWithdrawnFromTiki
 		reportDashboardOverall.Overall.TotalAsaOnchainRewards += reportDashboardData.TotalAsaOnchainRewards
 
-		reportDashboardOverall.Overall.TotalStakingAddresses += reportDashboardData.TotalStakingAddresses
+		reportDashboardOverall.Overall.TotalNewAddresses += reportDashboardData.TotalNewAddresses
 		reportDashboardOverall.Overall.TotalStakingTransactions += reportDashboardData.TotalStakingTransactions
 		reportDashboardOverall.Overall.TotalTransactions += reportDashboardData.TotalTransactions
 		reportDashboardOverall.Overall.TotalTxOfRedeemedCoupons += reportDashboardData.TotalTxOfRedeemedCoupons
