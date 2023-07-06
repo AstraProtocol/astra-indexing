@@ -23,7 +23,7 @@ type BlockTransactions interface {
 	Insert(transaction *TransactionRow) error
 	FindByHash(txHash string) (*TransactionRow, error)
 	FindByEvmHash(txEvmHash string) (*TransactionRow, error)
-	GetTxsTypeFromToAddress(evmHashes []string) ([]TransactionTxTypeFromToAddress, error)
+	GetTxsTypeByEvmHashes(evmHashes []string) ([]TransactionTxType, error)
 	List(
 		filter TransactionsListFilter,
 		order TransactionsListOrder,
@@ -410,7 +410,7 @@ func (transactionsView *BlockTransactionsView) FindByEvmHash(txEvmHash string) (
 	return &transaction, nil
 }
 
-func (transactionsView *BlockTransactionsView) GetTxsTypeFromToAddress(evmHashes []string) ([]TransactionTxTypeFromToAddress, error) {
+func (transactionsView *BlockTransactionsView) GetTxsTypeByEvmHashes(evmHashes []string) ([]TransactionTxType, error) {
 	inValue := ""
 	for index, evmHash := range evmHashes {
 		if index == 0 {
@@ -419,32 +419,30 @@ func (transactionsView *BlockTransactionsView) GetTxsTypeFromToAddress(evmHashes
 			inValue += fmt.Sprintf(",'%s'", evmHash)
 		}
 	}
-	rawQuery := fmt.Sprintf("SELECT evm_hash, tx_type, from_address, to_address "+
+	rawQuery := fmt.Sprintf("SELECT evm_hash, tx_type "+
 		"FROM view_transactions "+
 		"WHERE evm_hash IN(%s)", inValue)
 
-	transactionTxTypeFromToAddresses := make([]TransactionTxTypeFromToAddress, 0)
+	transactionTxTypes := make([]TransactionTxType, 0)
 	rowsResult, err := transactionsView.rdb.Query(rawQuery)
 	if err != nil {
-		return nil, fmt.Errorf("error executing get txs type from/to address select SQL: %v: %w", err, rdb.ErrQuery)
+		return nil, fmt.Errorf("error executing get txs type select SQL: %v: %w", err, rdb.ErrQuery)
 	}
 	defer rowsResult.Close()
 	for rowsResult.Next() {
-		var result TransactionTxTypeFromToAddress
+		var result TransactionTxType
 		if err = rowsResult.Scan(
 			&result.EvmHash,
 			&result.TxType,
-			&result.FromAddress,
-			&result.ToAddress,
 		); err != nil {
 			if errors.Is(err, rdb.ErrNoRows) {
 				return nil, rdb.ErrNoRows
 			}
-			return nil, fmt.Errorf("error scanning get txs type from/to address row: %v: %w", err, rdb.ErrQuery)
+			return nil, fmt.Errorf("error scanning get txs type row: %v: %w", err, rdb.ErrQuery)
 		}
-		transactionTxTypeFromToAddresses = append(transactionTxTypeFromToAddresses, result)
+		transactionTxTypes = append(transactionTxTypes, result)
 	}
-	return transactionTxTypeFromToAddresses, nil
+	return transactionTxTypes, nil
 }
 
 func (transactionsView *BlockTransactionsView) List(
@@ -815,9 +813,7 @@ type TransactionRowSignerKeyInfo struct {
 	MaybeThreshold *int     `json:"threshold,omitempty"`
 }
 
-type TransactionTxTypeFromToAddress struct {
-	EvmHash     string `json:"evmHash"`
-	TxType      string `json:"txType"`
-	FromAddress string `json:"fromAddress"`
-	ToAddress   string `json:"toAddress"`
+type TransactionTxType struct {
+	EvmHash string `json:"evmHash"`
+	TxType  string `json:"txType"`
 }

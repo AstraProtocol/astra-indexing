@@ -71,17 +71,13 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 					}
 				}
 				//get evm types from/to address by tx hashes
-				txTypesFromToAddresses, err := rdbTransactionView.GetTxsTypeFromToAddress(evmHashes)
+				evmTxTypes, err := rdbTransactionView.GetTxsTypeByEvmHashes(evmHashes)
 				if err != nil {
 					logger.Infof("get txs type query error: %v", err)
 				}
 				txTypeMapping := make(map[string]string)
-				//txFromAddressMapping := make(map[string]string)
-				//txToAddressMapping := make(map[string]string)
-				for _, transactionTxType := range txTypesFromToAddresses {
+				for _, transactionTxType := range evmTxTypes {
 					txTypeMapping[transactionTxType.EvmHash] = transactionTxType.TxType
-					//txFromAddressMapping[transactionTxType.EvmHash] = strings.ToLower(transactionTxType.FromAddress)
-					//txToAddressMapping[transactionTxType.EvmHash] = strings.ToLower(transactionTxType.ToAddress)
 				}
 
 				accountTransactionRows := make([]accountTransactionView.AccountTransactionBaseRow, 0)
@@ -103,11 +99,9 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 						continue
 					}
 					//ignore if internal tx is same data with parent tx
-					if len(internalTx.Input) > 10 {
-						evmType := evmUtil.GetMethodNameFromMethodId(internalTx.Input[2:10])
-						if evmType == txTypeMapping[internalTx.TransactionHash] {
-							continue
-						}
+					//blockscout approach
+					if internalTx.Index == 0 {
+						continue
 					}
 
 					transactionInfo := account_transaction.NewTransactionInfo(

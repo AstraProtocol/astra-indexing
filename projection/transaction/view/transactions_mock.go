@@ -31,9 +31,9 @@ func (transactionsView *MockTransactionsView) FindByHash(txHash string) (*Transa
 	return row, mockArgs.Error(1)
 }
 
-func (transactionsView *MockTransactionsView) GetTxsTypeFromToAddress(evmHashes []string) ([]TransactionTxTypeFromToAddress, error) {
+func (transactionsView *MockTransactionsView) GetTxsTypeByEvmHashes(evmHashes []string) ([]TransactionTxType, error) {
 	mockArgs := transactionsView.Called(evmHashes)
-	row, _ := mockArgs.Get(0).([]TransactionTxTypeFromToAddress)
+	row, _ := mockArgs.Get(0).([]TransactionTxType)
 	return row, mockArgs.Error(1)
 }
 
