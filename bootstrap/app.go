@@ -464,6 +464,62 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 			}
 		})
 
+		// Monthly update
+		// At 00:00 on the first day-of-month
+		s.AddFunc("@monthly", func() {
+			firstDayOfMonthTime := time.Now().Truncate(24 * time.Hour)
+			startMonthDate := firstDayOfMonthTime.UnixNano()
+			endMonthDate := firstDayOfMonthTime.AddDate(0, 1, 0).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(25 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalAddressesOfRedeemedCouponsMonthlyWithRDbHandle(startMonthDate, endMonthDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalAddressesOfRedeemedCouponsMonthlyWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.AddFunc("@monthly", func() {
+			firstDayOfMonthTime := time.Now().Truncate(24 * time.Hour)
+			startMonthDate := firstDayOfMonthTime.UnixNano()
+			endMonthDate := firstDayOfMonthTime.AddDate(0, 1, 0).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(27 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalStakingAddressesMonthlyWithRDbHandle(startMonthDate, endMonthDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalStakingAddressesMonthlyWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
+		s.AddFunc("@monthly", func() {
+			firstDayOfMonthTime := time.Now().Truncate(24 * time.Hour)
+			startMonthDate := firstDayOfMonthTime.UnixNano()
+			endMonthDate := firstDayOfMonthTime.AddDate(0, 1, 0).UnixNano()
+			i = 0
+			var err error
+			time.Sleep(29 * time.Second)
+			for i < retry {
+				err = rdbReportDashboard.UpdateTotalActiveAddressesMonthlyWithRDbHandle(startMonthDate, endMonthDate)
+				if err == nil {
+					break
+				}
+				a.logger.Infof("failed to run UpdateTotalActiveAddressesMonthlyWithRDbHandle cronjob: %v", err)
+				time.Sleep(time.Duration(delayTime) * time.Second)
+				i += 1
+			}
+		})
+
 		s.Start()
 	}
 }

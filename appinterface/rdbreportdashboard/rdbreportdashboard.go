@@ -315,7 +315,7 @@ func (impl *RDbReportDashboard) UpdateTotalAddressesOfRedeemedCouponsWithRDbHand
 
 func (impl *RDbReportDashboard) UpdateTotalAddressesOfRedeemedCouponsWeeklyWithRDbHandle(currentDate int64, nextDate int64) error {
 	startTime := time.Now()
-	recordMethod := "UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle"
+	recordMethod := "UpdateTotalAddressesOfRedeemedCouponsWeeklyWithRDbHandle"
 
 	if err := impl.init(currentDate); err != nil {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
@@ -351,6 +351,50 @@ func (impl *RDbReportDashboard) UpdateTotalAddressesOfRedeemedCouponsWeeklyWithR
 	if execResult.RowsAffected() == 0 {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return errors.New("error executing total addresses of redeemed coupons weekly update SQL: no rows affected")
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
+	return nil
+}
+
+func (impl *RDbReportDashboard) UpdateTotalAddressesOfRedeemedCouponsMonthlyWithRDbHandle(currentDate int64, nextDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateTotalAddressesOfRedeemedCouponsMonthlyWithRDbHandle"
+
+	if err := impl.init(currentDate); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error initializing report dashboard %v", err)
+	}
+
+	rawQuery := fmt.Sprintf(
+		"COUNT(*) "+
+			"FROM (SELECT DISTINCT from_address "+
+			"FROM view_transactions "+
+			"WHERE "+
+			"block_time >= %d AND "+
+			"block_time < %d AND "+
+			"tx_type = '%s') AS dt", currentDate, nextDate, "exchangeWithValue")
+
+	addressesOfRedeemedCouponsCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
+	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
+		impl.table,
+	).Set(
+		"total_redeemed_coupon_addresses_monthly", impl.selectRDbHandle.StmtBuilder.SubQuery(addressesOfRedeemedCouponsCountSubQuery),
+	).Where(
+		"date_time = ?", currentDate,
+	).ToSql()
+	if err != nil {
+		return fmt.Errorf("error building total addresses of redeemed coupons monthly update SQL: %v", err)
+	}
+
+	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
+	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error executing total addresses of redeemed coupons monthly update SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return errors.New("error executing total addresses of redeemed coupons monthly update SQL: no rows affected")
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
@@ -536,6 +580,51 @@ func (impl *RDbReportDashboard) UpdateTotalStakingAddressesWeeklyWithRDbHandle(c
 	return nil
 }
 
+func (impl *RDbReportDashboard) UpdateTotalStakingAddressesMonthlyWithRDbHandle(currentDate int64, nextDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateTotalStakingAddressesMonthlyWithRDbHandle"
+
+	if err := impl.init(currentDate); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error initializing report dashboard %v", err)
+	}
+
+	rawQuery := fmt.Sprintf(
+		"COUNT (*) FROM(SELECT DISTINCT CAST(value ->> 'content' AS jsonb) ->> 'delegatorAddress' "+
+			"FROM "+
+			"view_transactions, "+
+			"jsonb_array_elements(view_transactions.messages) elems "+
+			"WHERE "+
+			"block_time >= %d AND "+
+			"block_time < %d AND "+
+			"value->>'type'='%s') AS tmp", currentDate, nextDate, "/cosmos.staking.v1beta1.MsgDelegate")
+
+	addressesStakedCountSubQuery := impl.selectRDbHandle.StmtBuilder.Select(rawQuery)
+	sql, args, err := impl.selectRDbHandle.StmtBuilder.Update(
+		impl.table,
+	).Set(
+		"total_staking_addresses_monthly", impl.selectRDbHandle.StmtBuilder.SubQuery(addressesStakedCountSubQuery),
+	).Where(
+		"date_time = ?", currentDate,
+	).ToSql()
+	if err != nil {
+		return fmt.Errorf("error building total staking addresses monthly update SQL: %v", err)
+	}
+
+	execResult, err := impl.selectRDbHandle.Exec(sql, args...)
+	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error executing total staking addresses monthly update SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return errors.New("error executing total staking addresses monthly update SQL: no rows affected")
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
+	return nil
+}
+
 func (impl *RDbReportDashboard) UpdateTotalActiveAddressesWeeklyWithRDbHandle(currentDate int64, nextDate int64) error {
 	startTime := time.Now()
 	recordMethod := "UpdateTotalActiveAddressesWeeklyWithRDbHandle"
@@ -557,6 +646,33 @@ func (impl *RDbReportDashboard) UpdateTotalActiveAddressesWeeklyWithRDbHandle(cu
 	if execResult.RowsAffected() == 0 {
 		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
 		return errors.New("error executing total active addresses weekly update SQL: no rows affected")
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
+	return nil
+}
+
+func (impl *RDbReportDashboard) UpdateTotalActiveAddressesMonthlyWithRDbHandle(currentDate int64, nextDate int64) error {
+	startTime := time.Now()
+	recordMethod := "UpdateTotalActiveAddressesMonthlyWithRDbHandle"
+
+	if err := impl.init(currentDate); err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error initializing report dashboard %v", err)
+	}
+
+	rawQuery := "UPDATE report_dashboard " +
+		"SET active_addresses_monthly = (SELECT COUNT(*) FROM (SELECT DISTINCT (from_address) FROM view_transactions WHERE block_time >= $1 AND block_time < $2) AS temp) " +
+		"WHERE date_time = $1"
+
+	execResult, err := impl.selectRDbHandle.Exec(rawQuery, currentDate, nextDate)
+	if err != nil {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return fmt.Errorf("error executing total active addresses monthly update SQL: %v", err)
+	}
+	if execResult.RowsAffected() == 0 {
+		prometheus.RecordApiExecTime(recordMethod, FAIL, "cronjob", time.Since(startTime).Milliseconds())
+		return errors.New("error executing total active addresses monthly update SQL: no rows affected")
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, SUCCESS, "cronjob", time.Since(startTime).Milliseconds())
