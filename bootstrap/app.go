@@ -122,7 +122,7 @@ func (a *app) Run() {
 	if a.config.KafkaService.EnableConsumer {
 		sigchan := make(chan os.Signal, 1)
 		go func() {
-			if runErr := worker_consumer.RunInternalTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan); runErr != nil {
+			if runErr := worker_consumer.RunInternalTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, sigchan); runErr != nil {
 				a.logger.Panicf("%v", runErr)
 			}
 		}()
