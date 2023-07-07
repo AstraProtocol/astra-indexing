@@ -65,6 +65,9 @@ func (handler *ReportDashboardHandler) GetReportDashboardByTimeRange(ctx *fastht
 
 	var fromDate string
 	var toDate string
+	var groupBy string
+	var reportDashboardOverall report_dashboard_view.ReportDashboardOverall
+	var err error
 
 	if string(ctx.QueryArgs().Peek("fromDate")) == "" {
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
@@ -79,21 +82,32 @@ func (handler *ReportDashboardHandler) GetReportDashboardByTimeRange(ctx *fastht
 
 	fromDate = string(ctx.QueryArgs().Peek("fromDate"))
 
-	cacheKey := fmt.Sprintf("GetReportDashboardByTimeRange%s%s", fromDate, toDate)
+	groupBy = string(ctx.QueryArgs().Peek("groupBy"))
+	if groupBy != "" {
+		if groupBy != "weekly" && groupBy != "monthly" {
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, fmt.Errorf("groupBy %s is not supported", groupBy))
+			return
+		}
+	}
+
+	cacheKey := fmt.Sprintf("GetReportDashboardByTimeRange%s%s%s", fromDate, toDate, groupBy)
 	var reportDashboardOverallCache report_dashboard_view.ReportDashboardOverall
-	err := handler.astraCache.Get(cacheKey, &reportDashboardOverallCache)
+	err = handler.astraCache.Get(cacheKey, &reportDashboardOverallCache)
 	if err == nil {
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 		httpapi.SuccessNotWrappedResult(ctx, reportDashboardOverallCache)
 		return
 	}
 
-	reportDashboardOverall, err := handler.reportDashboardView.GetReportDashboardByTimeRange(fromDate, toDate)
-	if err != nil {
-		handler.logger.Errorf("error get report dashboard by time range: %v", err)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
-		httpapi.InternalServerError(ctx)
-		return
+	if groupBy == "" {
+		reportDashboardOverall, err = handler.reportDashboardView.GetReportDashboardByTimeRange(fromDate, toDate)
+		if err != nil {
+			handler.logger.Errorf("error get report dashboard by time range: %v", err)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.InternalServerError(ctx)
+			return
+		}
 	}
 
 	totalUpToDateTransactions, err := handler.transactionsTotalView.FindBy("-")
@@ -116,7 +130,7 @@ func (handler *ReportDashboardHandler) GetReportDashboardByTimeRange(ctx *fastht
 
 	totalActiveAddresses, err := handler.reportDashboardView.GetActiveAddressesByTimeRangeDirectly(fromDate, toDate)
 	if err != nil {
-		handler.logger.Errorf("error get active addresses by time range: %v", err)
+		handler.logger.Errorf("error get active addresses by time range directly: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
@@ -125,7 +139,7 @@ func (handler *ReportDashboardHandler) GetReportDashboardByTimeRange(ctx *fastht
 
 	totalStakingAddresses, err := handler.reportDashboardView.GetStakingAddressesByTimeRangeDirectly(fromDate, toDate)
 	if err != nil {
-		handler.logger.Errorf("error get staking addresses by time range: %v", err)
+		handler.logger.Errorf("error get staking addresses by time range directly: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
@@ -134,7 +148,7 @@ func (handler *ReportDashboardHandler) GetReportDashboardByTimeRange(ctx *fastht
 
 	totalRedeemedCouponsAddresses, err := handler.reportDashboardView.GetAddressesOfRedeemedCouponsByTimeRangeDirectly(fromDate, toDate)
 	if err != nil {
-		handler.logger.Errorf("error get redeemed coupons addresses by time range: %v", err)
+		handler.logger.Errorf("error get redeemed coupons addresses by time range directly: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.InternalServerError(ctx)
 		return
