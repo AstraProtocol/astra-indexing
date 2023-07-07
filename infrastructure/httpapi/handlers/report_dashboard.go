@@ -114,7 +114,7 @@ func (handler *ReportDashboardHandler) GetReportDashboardByTimeRange(ctx *fastht
 	}
 	reportDashboardOverall.Overall.TotalUpToDateAddresses = totalUpToDateAddresses
 
-	totalActiveAddresses, err := handler.reportDashboardView.GetActiveAddressesByTimeRange(fromDate, toDate)
+	totalActiveAddresses, err := handler.reportDashboardView.GetActiveAddressesByTimeRangeDirectly(fromDate, toDate)
 	if err != nil {
 		handler.logger.Errorf("error get active addresses by time range: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
@@ -122,6 +122,24 @@ func (handler *ReportDashboardHandler) GetReportDashboardByTimeRange(ctx *fastht
 		return
 	}
 	reportDashboardOverall.Overall.TotalActiveAddresses = totalActiveAddresses
+
+	totalStakingAddresses, err := handler.reportDashboardView.GetStakingAddressesByTimeRangeDirectly(fromDate, toDate)
+	if err != nil {
+		handler.logger.Errorf("error get staking addresses by time range: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+	reportDashboardOverall.Overall.TotalStakingAddresses = totalStakingAddresses
+
+	totalRedeemedCouponsAddresses, err := handler.reportDashboardView.GetAddressesOfRedeemedCouponsByTimeRangeDirectly(fromDate, toDate)
+	if err != nil {
+		handler.logger.Errorf("error get redeemed coupons addresses by time range: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.InternalServerError(ctx)
+		return
+	}
+	reportDashboardOverall.Overall.TotalRedeemedCouponAddresses = totalRedeemedCouponsAddresses
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	handler.astraCache.Set(cacheKey, reportDashboardOverall, utils.TIME_CACHE_LONG)
