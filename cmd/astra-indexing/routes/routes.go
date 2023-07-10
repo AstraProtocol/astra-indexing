@@ -68,8 +68,8 @@ func InitRouteRegistry(
 		},
 		Route{
 			Method:  GET,
-			path:    "api/v1/blocks/raw-txs/{height}",
-			handler: blocksHandler.ListRawTxsByHeight,
+			path:    "api/v1/blocks/check-blocks/{height}",
+			handler: blocksHandler.CheckBlocks,
 		},
 	)
 
