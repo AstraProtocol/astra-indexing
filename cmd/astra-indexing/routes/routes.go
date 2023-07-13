@@ -9,12 +9,14 @@ import (
 	cosmosapp_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/cosmosapp"
 	httpapi_handlers "github.com/AstraProtocol/astra-indexing/infrastructure/httpapi/handlers"
 	tendermint_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/tendermint"
+	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 )
 
 func InitRouteRegistry(
 	logger applogger.Logger,
 	rdbConn rdb.Conn,
 	config *config.Config,
+	evmUtil evmUtil.EvmUtils,
 ) bootstrap.RouteRegistry {
 	cosmosAppClient := cosmosapp_infrastructure.NewHTTPClient(
 		config.CosmosApp.HTTPRPCUrl,
@@ -216,9 +218,11 @@ func InitRouteRegistry(
 	)
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(
-		logger, rdbConn.ToHandle(),
+		logger,
+		rdbConn.ToHandle(),
 		cosmosAppClient,
 		*blockscoutClient,
+		evmUtil,
 	)
 	routes = append(routes,
 		Route{
@@ -240,6 +244,11 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/accounts/internal-transactions/{account}",
 			handler: accountTransactionsHandler.GetInternalTxsByAddressHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/internal-transactions/sync/{txhash}",
+			handler: accountTransactionsHandler.SyncAccountInternalTxsByTxHash,
 		},
 		Route{
 			Method:  GET,
