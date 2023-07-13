@@ -603,9 +603,9 @@ func (client *HTTPClient) GetListTokens(queryParams []string, mappingParams map[
 	return &commonPaginationResp, nil
 }
 
-func (client *HTTPClient) GetListInternalTxs(evmTxHash string) (interface{}, error) {
+func (client *HTTPClient) GetListInternalTxs(evmTxHash string) ([]InternalTransaction, error) {
 	cacheKey := fmt.Sprintf("BlockscoutGetListInternalTxs_%s", evmTxHash)
-	var internalTxsTmp *CommonPaginationPathResp
+	var internalTxsTmp InternalTxsResp
 
 	err := client.httpCache.Get(cacheKey, &internalTxsTmp)
 	if err == nil {
@@ -621,7 +621,7 @@ func (client *HTTPClient) GetListInternalTxs(evmTxHash string) (interface{}, err
 	}
 	defer rawRespBody.Close()
 
-	var internalTxsResp *CommonPaginationPathResp
+	var internalTxsResp InternalTxsResp
 	if err := jsoniter.NewDecoder(rawRespBody).Decode(&internalTxsResp); err != nil {
 		client.logger.Errorf("error parsing list internal txs by address hash from blockscout: %v", err)
 		return nil, err

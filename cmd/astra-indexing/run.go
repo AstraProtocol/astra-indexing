@@ -243,7 +243,7 @@ func run(args []string) error {
 				initProjections(logger, app.GetRDbConn(), &config, &customConfig, evmUtil),
 				nil,
 			)
-			app.InitHTTPAPIServer(routes.InitRouteRegistry(logger, app.GetRDbConn(), &config))
+			app.InitHTTPAPIServer(routes.InitRouteRegistry(logger, app.GetRDbConn(), &config, evmUtil))
 
 			app.RunCronJobsStats(app.GetRDbConn().ToHandle())
 
