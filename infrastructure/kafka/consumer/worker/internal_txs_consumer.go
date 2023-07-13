@@ -20,7 +20,6 @@ import (
 	"github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/AstraProtocol/astra-indexing/projection/account_transaction"
 	accountTransactionView "github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
-	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 	"github.com/AstraProtocol/astra-indexing/usecase/event"
 	"github.com/AstraProtocol/astra-indexing/usecase/model"
@@ -38,7 +37,6 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 
 	rdbAccountTransactionsView := accountTransactionView.NewAccountTransactions(rdbHandle)
 	rdbAccountTransactionDataView := accountTransactionView.NewAccountTransactionData(rdbHandle)
-	rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
 
 	internalTxsConsumer := consumer.Consumer[[]consumer.CollectedInternalTx]{
 		TimeOut:            utils.KAFKA_TIME_OUT,
@@ -61,23 +59,14 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 			if err != nil {
 				logger.Infof("Kafka Consumer error: %v", err)
 			} else {
-				checkEvmHash := make(map[string]bool)
-				//get list tx hash
-				evmHashes := make([]string, 0)
-				for _, internalTx := range collectedInternalTxs {
-					if !checkEvmHash[internalTx.TransactionHash] {
-						evmHashes = append(evmHashes, internalTx.TransactionHash)
-						checkEvmHash[internalTx.TransactionHash] = true
-					}
-				}
-				//get evm types from/to address by tx hashes
-				evmTxTypes, err := rdbTransactionView.GetTxsTypeByEvmHashes(evmHashes)
-				if err != nil {
-					logger.Infof("get txs type query error: %v", err)
-				}
 				txTypeMapping := make(map[string]string)
-				for _, transactionTxType := range evmTxTypes {
-					txTypeMapping[transactionTxType.EvmHash] = transactionTxType.TxType
+				for _, internalTx := range collectedInternalTxs {
+					if internalTx.Index == 0 {
+						evmType := evmUtil.GetMethodNameFromMethodId(internalTx.Input[2:10])
+						if rewardType[evmType] {
+							txTypeMapping[internalTx.TransactionHash] = evmType
+						}
+					}
 				}
 
 				accountTransactionRows := make([]accountTransactionView.AccountTransactionBaseRow, 0)
