@@ -90,6 +90,12 @@ type TxResp struct {
 	Status  string         `json:"status"`
 }
 
+type TxsResp struct {
+	Message string           `json:"message"`
+	Result  []TransactionEvm `json:"result"`
+	Status  string           `json:"status"`
+}
+
 type InternalTxsResp struct {
 	Message string                `json:"message"`
 	Result  []InternalTransaction `json:"result"`

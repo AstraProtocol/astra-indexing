@@ -361,3 +361,26 @@ func (handler *Transactions) GetRawTraceByTransactionHash(ctx *fasthttp.RequestC
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, rawTrace)
 }
+
+func (handler *Transactions) GetTxsWithTokenTransfersByTxHashes(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "GetTxsWithTokenTransfersByTxHashes"
+	txParam, txParamOk := URLValueGuard(ctx, handler.logger, "hashes")
+	if !txParamOk {
+		handler.logger.Errorf("invalid %s params", recordMethod)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid tx hashes"))
+		return
+	}
+
+	evmTxsWithTokenTransfers, err := handler.blockscoutClient.GetListTxsWithTokenTransfersByTxHashes(txParam)
+	if err != nil {
+		handler.logger.Errorf("error fetching evm txs with token transfers by tx hashes from blockscout: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, err)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.SuccessNotWrappedResult(ctx, evmTxsWithTokenTransfers.Result)
+}

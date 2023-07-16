@@ -59,6 +59,7 @@ const HARD_HAT_POST_INTERFACE = "/api"
 const VERIFY_FLATTENED = "/verify_smart_contract/contract_verifications"
 const CHECK_VERIFY_STATUS = "/api/v1?module=contract&action=checkverifystatus&guid="
 const GET_SOURCE_CODE_HARD_HAT_INTERFACE = "/api?module=contract&action=getsourcecode&address="
+const GET_LIST_TXS_WITH_TOKEN_TRANSFERS_BY_TX_HASHES = "/api/v1?module=transaction&action=gettxswithtokentransfersbytxhashes&txhash="
 const TX_NOT_FOUND = "transaction not found"
 const ADDRESS_NOT_FOUND = "address not found"
 const BALANCE_UPDATE_FAILED = "balance update failed"
@@ -1535,4 +1536,35 @@ func (client *HTTPClient) Logs(bodyParams interface{}) (interface{}, error) {
 	client.httpCache.Set(cacheKey, commonResp, utils.TIME_CACHE_MEDIUM)
 
 	return commonResp, nil
+}
+
+func (client *HTTPClient) GetListTxsWithTokenTransfersByTxHashes(txHashes string) (*TxsResp, error) {
+	cacheKey := fmt.Sprintf("BlockscoutGetListTxsWithTokenTransfersByTxHashes_%s", txHashes)
+	var txsRespTmp TxsResp
+
+	err := client.httpCache.Get(cacheKey, &txsRespTmp)
+	if err == nil {
+		return &txsRespTmp, nil
+	}
+
+	rawRespBody, err := client.request(
+		client.getUrl(GET_LIST_TXS_WITH_TOKEN_TRANSFERS_BY_TX_HASHES, txHashes), nil, nil,
+	)
+	if err != nil {
+		client.logger.Errorf("error getting list tx with token transfers by tx hashes from blockscout: %v", err)
+		return nil, err
+	}
+	defer rawRespBody.Close()
+
+	var respBody bytes.Buffer
+	respBody.ReadFrom(rawRespBody)
+
+	var txsResp TxsResp
+	if err := json.Unmarshal(respBody.Bytes(), &txsResp); err != nil {
+		client.logger.Errorf("error parsing list tx with token transfers by tx hashes from blockscout: %v", err)
+	}
+
+	client.httpCache.Set(cacheKey, &txsResp, utils.TIME_CACHE_FAST)
+
+	return &txsResp, nil
 }
