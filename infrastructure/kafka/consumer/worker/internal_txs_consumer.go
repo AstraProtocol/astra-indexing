@@ -61,7 +61,7 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 			} else {
 				txTypeMapping := make(map[string]string)
 				for _, internalTx := range collectedInternalTxs {
-					if internalTx.Index == 0 && len(internalTx.Input) > 10 {
+					if internalTx.Index == 0 && len(internalTx.Input) >= 10 {
 						evmType := evmUtil.GetMethodNameFromMethodId(internalTx.Input[2:10])
 						if rewardType[evmType] {
 							txTypeMapping[internalTx.TransactionHash] = evmType
