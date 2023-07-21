@@ -43,7 +43,7 @@ func RunEvmTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger appl
 		[]consumer.CollectedEvmTx{},
 		func(collectedEvmTxs []consumer.CollectedEvmTx, message kafka.Message, ctx context.Context, err error) {
 			if err != nil {
-				logger.Infof("Kafka Consumer error: %v", err)
+				logger.Infof("Kafka Evm Txs Consumer error: %v", err)
 			} else {
 				mapValues = nil
 				for _, evmTx := range collectedEvmTxs {

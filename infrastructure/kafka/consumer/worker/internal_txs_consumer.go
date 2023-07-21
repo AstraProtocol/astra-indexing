@@ -57,7 +57,7 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 		[]consumer.CollectedInternalTx{},
 		func(collectedInternalTxs []consumer.CollectedInternalTx, message kafka.Message, ctx context.Context, err error) {
 			if err != nil {
-				logger.Infof("Kafka Consumer error: %v", err)
+				logger.Infof("Kafka Internal Txs Consumer error: %v", err)
 			} else {
 				txTypeMapping := make(map[string]string)
 				for _, internalTx := range collectedInternalTxs {
