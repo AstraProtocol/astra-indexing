@@ -180,7 +180,7 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 					accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRowsIncludingInternalTx()...)
 				}
 				if len(txs) == 0 {
-					// Commit offset when no internal txs are valid
+					//commit offset when no internal txs are valid
 					if errCommit := internalTxsConsumer.Commit(ctx, message); errCommit != nil {
 						logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.INTERNAL_TXS_TOPIC, message.Partition, errCommit)
 					}
@@ -188,7 +188,7 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 				err = rdbAccountTransactionsView.InsertAll(accountTransactionRows)
 				if err == nil {
 					err = rdbAccountTransactionDataView.InsertAll(txs)
-					// Commit offset
+					//commit offset
 					if err == nil {
 						if errCommit := internalTxsConsumer.Commit(ctx, message); errCommit != nil {
 							logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.INTERNAL_TXS_TOPIC, message.Partition, errCommit)

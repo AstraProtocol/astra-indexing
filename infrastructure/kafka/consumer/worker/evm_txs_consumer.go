@@ -64,7 +64,7 @@ func RunEvmTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger appl
 					errUpdate := rdbTransactionView.UpdateAll(mapValues)
 					if errUpdate == nil {
 						errUpdateTxData := rdbAccountTransactionDataView.UpdateAll(mapValues)
-						// Commit offset
+						//commit offset
 						if errUpdateTxData == nil {
 							if errCommit := evmTxsConsumer.Commit(ctx, message); errCommit != nil {
 								logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.EVM_TXS_TOPIC, message.Partition, errCommit)
