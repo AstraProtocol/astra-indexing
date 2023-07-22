@@ -69,8 +69,6 @@ func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, log
 				if len(evmTxTypes) > 0 {
 					//index token transfer when tx type are valid
 					if transferCouponType[evmTxTypes[0].TxType] {
-						//fmt.Println("Token transfer")
-						//fmt.Println(collectedTokenTransfer)
 						accountTransactionRows := make([]accountTransactionView.AccountTransactionBaseRow, 0)
 						txs := make([]accountTransactionView.TransactionRow, 0)
 						fee := coin.MustNewCoins(coin.MustNewCoinFromString("aastra", "0"))
