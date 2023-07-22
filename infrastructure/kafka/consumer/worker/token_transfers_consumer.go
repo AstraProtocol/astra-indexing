@@ -3,6 +3,7 @@ package consumer
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"os/signal"
 	"strconv"
@@ -168,6 +169,12 @@ func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, log
 							}
 						} else {
 							logger.Infof("Failed to insert account txs from Consumer partition %d: %v", message.Partition, err)
+							//commit offset when duplicated message
+							if strings.Contains(fmt.Sprint(err), "duplicate key value violates unique constraint") {
+								if errCommit := tokenTransfersConsumer.Commit(ctx, message); errCommit != nil {
+									logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.TOKEN_TRANSFERS_TOPIC, message.Partition, errCommit)
+								}
+							}
 						}
 					} else {
 						//commit offset when tx type are not valid
