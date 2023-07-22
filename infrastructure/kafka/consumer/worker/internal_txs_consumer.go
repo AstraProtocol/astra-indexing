@@ -123,7 +123,7 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 					blockTime := utctime.Now()
 					transactionInfo.FillBlockInfo(blockHash, blockTime)
 
-					//parse internal tx message content
+					//parse internal tx to message content
 					legacyTx := model.LegacyTx{
 						Type:  internalTx.CallType,
 						Gas:   strconv.FormatInt(internalTx.GasUsed, 10),
