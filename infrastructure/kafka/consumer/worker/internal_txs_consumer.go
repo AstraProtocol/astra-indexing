@@ -3,6 +3,7 @@ package consumer
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"os/signal"
 	"strconv"
@@ -57,7 +58,7 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 		[]consumer.CollectedInternalTx{},
 		func(collectedInternalTxs []consumer.CollectedInternalTx, message kafka.Message, ctx context.Context, err error) {
 			if err != nil {
-				logger.Infof("Kafka Consumer error: %v", err)
+				logger.Infof("Kafka Internal Txs Consumer error: %v", err)
 			} else {
 				txTypeMapping := make(map[string]string)
 				for _, internalTx := range collectedInternalTxs {
@@ -123,7 +124,7 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 					blockTime := utctime.Now()
 					transactionInfo.FillBlockInfo(blockHash, blockTime)
 
-					//parse internal tx message content
+					//parse internal tx to message content
 					legacyTx := model.LegacyTx{
 						Type:  internalTx.CallType,
 						Gas:   strconv.FormatInt(internalTx.GasUsed, 10),
@@ -180,7 +181,7 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 					accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRowsIncludingInternalTx()...)
 				}
 				if len(txs) == 0 {
-					// Commit offset when no internal txs are valid
+					//commit offset when no internal txs are valid
 					if errCommit := internalTxsConsumer.Commit(ctx, message); errCommit != nil {
 						logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.INTERNAL_TXS_TOPIC, message.Partition, errCommit)
 					}
@@ -188,7 +189,7 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 				err = rdbAccountTransactionsView.InsertAll(accountTransactionRows)
 				if err == nil {
 					err = rdbAccountTransactionDataView.InsertAll(txs)
-					// Commit offset
+					//commit offset
 					if err == nil {
 						if errCommit := internalTxsConsumer.Commit(ctx, message); errCommit != nil {
 							logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.INTERNAL_TXS_TOPIC, message.Partition, errCommit)
@@ -198,6 +199,12 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 					}
 				} else {
 					logger.Infof("Failed to insert account txs from Consumer partition %d: %v", message.Partition, err)
+					//commit offset when duplicated message
+					if strings.Contains(fmt.Sprint(err), "duplicate key value violates unique constraint") {
+						if errCommit := internalTxsConsumer.Commit(ctx, message); errCommit != nil {
+							logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.INTERNAL_TXS_TOPIC, message.Partition, errCommit)
+						}
+					}
 				}
 			}
 		},

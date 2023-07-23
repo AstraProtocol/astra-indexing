@@ -29,3 +29,25 @@ type CollectedInternalTx struct {
 	CallType         string        `json:"call_type"`
 	BlockNumber      int64         `json:"block_number"`
 }
+
+type CollectedTokenTransfer struct {
+	Tokens         []Token         `json:"tokens"`
+	TokenTransfers []TokenTransfer `json:"token_transfers"`
+}
+
+type Token struct {
+	Type                string `json:"type"`
+	ContractAddressHash string `json:"contract_address_hash"`
+}
+
+type TokenTransfer struct {
+	TransactionHash          string `json:"transaction_hash"`
+	TokenType                string `json:"token_type"`
+	TokenId                  int64  `json:"token_id"`
+	TokenContractAddressHash string `json:"token_contract_address_hash"`
+	ToAddressHash            string `json:"to_address_hash"`
+	LogIndex                 int64  `json:"log_index"`
+	FromAddressHash          string `json:"from_address_hash"`
+	BlockNumber              int64  `json:"block_number"`
+	BlockHash                string `json:"block_hash"`
+}

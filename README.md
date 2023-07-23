@@ -9,13 +9,13 @@ Example implementation for [crypto.com/chain-indexing](https://github.com/crypto
 - Crypto.org Chain full node
 - Postgres Database
 
-### 2 Configuration file
+### 2. Configuration file
 
 A sample configuration is available under `config/config.toml`.
 
 **Reminder**
 Please generate your own `Personal access tokens` in Github. And then input your own username and token under `github_api.username` and `github_api.token`. This is for pulling migration files on `crypto.com/chain-indexing`.
-### 3 Example file structure
+### 3. Example file structure
 
 ```
 app/
@@ -82,7 +82,7 @@ projections/
 ```
 
 
-### 4 Run the Service
+### 4. Run the Service
 
 #### Manual build
 

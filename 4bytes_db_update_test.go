@@ -28,6 +28,7 @@ func TestUpdate4Bytes(t *testing.T) {
 	util.UpdateSignature("0x38ed1739", "swapExactTokensForTokens(uint256, uint256, address[], address, uint256)")
 	util.UpdateSignature("0xe8e33700", "addLiquidity(address, address, uint256, uint256, uint256, uint256, address, uint256)")
 	util.UpdateSignature("0x42842e0e", "safeTransferFrom(address, address, uint256)")
+	util.UpdateSignature("0xecd5ff33", "setProgramTime(uint256, uint256)")
 
 	res, err := util.GetSignature("0xa07aea1c")
 	if err != nil {
@@ -49,6 +50,7 @@ func TestUpdate4Bytes(t *testing.T) {
 	assert.Equal(util.GetMethodNameFromMethodId("0x38ed1739"), "swapExactTokensForTokens")
 	assert.Equal(util.GetMethodNameFromMethodId("0xe8e33700"), "addLiquidity")
 	assert.Equal(util.GetMethodNameFromMethodId("0x42842e0e"), "safeTransferFrom")
+	assert.Equal(util.GetMethodNameFromMethodId("0xecd5ff33"), "setProgramTime")
 
 	data := "0q7S1gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGSWzhIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQVbZvQpCuU8VUVDSeyAd243bdr5ljiPA3bK7aUm/VuQVdhajtudaHAI7ltLe1GHQeZchiXxaXAq2Ez+6ErCpJRscAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 	signature := util.GetMethodNameFromData(data)

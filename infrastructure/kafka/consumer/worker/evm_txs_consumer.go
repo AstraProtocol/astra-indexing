@@ -43,7 +43,7 @@ func RunEvmTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger appl
 		[]consumer.CollectedEvmTx{},
 		func(collectedEvmTxs []consumer.CollectedEvmTx, message kafka.Message, ctx context.Context, err error) {
 			if err != nil {
-				logger.Infof("Kafka Consumer error: %v", err)
+				logger.Infof("Kafka Evm Txs Consumer error: %v", err)
 			} else {
 				mapValues = nil
 				for _, evmTx := range collectedEvmTxs {
@@ -64,7 +64,7 @@ func RunEvmTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger appl
 					errUpdate := rdbTransactionView.UpdateAll(mapValues)
 					if errUpdate == nil {
 						errUpdateTxData := rdbAccountTransactionDataView.UpdateAll(mapValues)
-						// Commit offset
+						//commit offset
 						if errUpdateTxData == nil {
 							if errCommit := evmTxsConsumer.Commit(ctx, message); errCommit != nil {
 								logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.EVM_TXS_TOPIC, message.Partition, errCommit)
