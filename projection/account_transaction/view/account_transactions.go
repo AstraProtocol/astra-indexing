@@ -1,8 +1,10 @@
 package view
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/AstraProtocol/astra-indexing/external/json"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
@@ -15,11 +17,15 @@ import (
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 )
 
 const SEND = "send"
 const RECEIVE = "receive"
+const REWARD = "reward"
+const STAKE = "stake"
+const EXCHANGE_COUPON = "exchange_coupon"
 
 // BlockTransactions projection view implemented by relational database
 type AccountTransactions struct {
@@ -125,42 +131,71 @@ func (accountMessagesView *AccountTransactions) List(
 		"view_account_transaction_data ON view_account_transactions.block_height = view_account_transaction_data.block_height AND view_account_transactions.transaction_hash = view_account_transaction_data.hash",
 	)
 
-	if filter.IncludingInternalTx == "true" {
-		if filter.Memo == "" {
-			stmtBuilder = stmtBuilder.Where(
-				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ?) OR "+
-					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
-					"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
-				filter.Account,
-				filter.Account,
-			)
-		}
+	if filter.TxType == "" {
+		if filter.IncludingInternalTx == "true" {
+			if filter.Memo == "" {
+				stmtBuilder = stmtBuilder.Where(
+					"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ?) OR "+
+						"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
+						"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
+					filter.Account,
+					filter.Account,
+				)
+			}
 
-		if filter.Memo != "" {
-			stmtBuilder = stmtBuilder.Where(
-				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?) OR "+
-					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
-					"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
-				filter.Account,
-				filter.Memo,
-				filter.Account,
-			)
+			if filter.Memo != "" {
+				stmtBuilder = stmtBuilder.Where(
+					"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?) OR "+
+						"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
+						"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
+					filter.Account,
+					filter.Memo,
+					filter.Account,
+				)
+			}
+		} else {
+			if filter.Memo == "" {
+				stmtBuilder = stmtBuilder.Where(
+					"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ?",
+					false,
+					filter.Account,
+				)
+			}
+
+			if filter.Memo != "" {
+				stmtBuilder = stmtBuilder.Where(
+					"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?",
+					false,
+					filter.Account,
+					filter.Memo,
+				)
+			}
 		}
 	} else {
-		if filter.Memo == "" {
-			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ?",
-				false,
-				filter.Account,
-			)
+		addressHash := strings.ToLower(filter.Account)
+		if tmcosmosutils.IsValidCosmosAddress(filter.Account) {
+			_, converted, _ := tmcosmosutils.DecodeAddressToHex(filter.Account)
+			addressHash = strings.ToLower("0x" + hex.EncodeToString(converted))
 		}
 
-		if filter.Memo != "" {
+		switch filter.TxType {
+		case SEND:
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?",
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND view_account_transactions.from_address = ? "+
+					"AND (view_account_transaction_data.reward_tx_type = 'send' OR view_account_transaction_data.reward_tx_type = 'transfer')",
 				false,
 				filter.Account,
-				filter.Memo,
+				addressHash,
+			)
+		case RECEIVE:
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND view_account_transactions.to_address = ? "+
+					"AND (view_account_transaction_data.reward_tx_type = 'send' OR view_account_transaction_data.reward_tx_type = 'transfer')",
+				false,
+				filter.Account,
+				addressHash,
 			)
 		}
 	}
@@ -338,6 +373,8 @@ type AccountTransactionsListFilter struct {
 	Memo string
 	// Optional including internal txs filter
 	IncludingInternalTx string
+	// Optional tx type filter
+	TxType string
 }
 
 type AccountTransactionsListOrder struct {

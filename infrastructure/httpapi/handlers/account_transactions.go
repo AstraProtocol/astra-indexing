@@ -278,10 +278,16 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 		includingInternalTx = string(queryArgs.Peek("includingInternalTx"))
 	}
 
+	txType := ""
+	if queryArgs.Has("txType") {
+		txType = string(queryArgs.Peek("txType"))
+	}
+
 	filter := account_transaction_view.AccountTransactionsListFilter{
 		Account:             account,
 		Memo:                memo,
 		IncludingInternalTx: includingInternalTx,
+		TxType:              txType,
 	}
 
 	order := account_transaction_view.AccountTransactionsListOrder{
@@ -289,10 +295,11 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 	}
 
 	cacheKeyResult := fmt.Sprintf(
-		"ListByAccountResult%s%s%s%s%d%d",
+		"ListByAccountResult%s%s%s%s%s%d%d",
 		account,
 		memo,
 		includingInternalTx,
+		txType,
 		idOrder,
 		pagination.OffsetParams().Page,
 		pagination.OffsetParams().Limit,
