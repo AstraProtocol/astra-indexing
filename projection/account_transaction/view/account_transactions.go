@@ -197,6 +197,21 @@ func (accountMessagesView *AccountTransactions) List(
 				filter.Account,
 				addressHash,
 			)
+		case REWARD:
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND view_account_transaction_data.reward_tx_type = 'sendReward' AND"+
+					"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)",
+				true,
+				filter.Account,
+			)
+		case EXCHANGE_COUPON:
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND (view_account_transaction_data.reward_tx_type = 'exchange' OR view_account_transaction_data.reward_tx_type = 'exchangeWithValue')",
+				false,
+				filter.Account,
+			)
 		}
 	}
 
