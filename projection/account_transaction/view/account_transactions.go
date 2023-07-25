@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/AstraProtocol/astra-indexing/external/json"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
@@ -168,48 +169,91 @@ func (accountMessagesView *AccountTransactions) List(
 			addressHash = strings.ToLower("0x" + hex.EncodeToString(converted))
 		}
 
+		//date time filter
+		currentDate := time.Now().Truncate(24 * time.Hour)
+
+		layout := "2006-01-02"
+		fromDateTime, err := time.Parse(layout, filter.FromDate)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		diffHours := currentDate.Sub(fromDateTime.Truncate(24 * time.Hour)).Hours()
+		if diffHours > (24 * 100) {
+			return nil, nil, fmt.Errorf("cannot filter txs which are older than 100 days")
+		}
+
+		fromDate := fromDateTime.Truncate(24 * time.Hour).UnixNano()
+
+		toDateTime, err := time.Parse(layout, filter.ToDate)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		diffHours = currentDate.Sub(toDateTime.Truncate(24 * time.Hour)).Hours()
+		if diffHours > (24 * 100) {
+			return nil, nil, fmt.Errorf("cannot filter txs which are older than 100 days")
+		}
+
+		toDate := toDateTime.Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+
 		switch filter.TxType {
 		case SEND:
 			stmtBuilder = stmtBuilder.Where(
 				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
 					"AND view_account_transactions.from_address = ? "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
 					"AND (view_account_transaction_data.reward_tx_type = 'send' OR view_account_transaction_data.reward_tx_type = 'transfer')",
 				false,
 				filter.Account,
 				addressHash,
+				fromDate,
+				toDate,
 			)
 		case RECEIVE:
 			stmtBuilder = stmtBuilder.Where(
 				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
 					"AND view_account_transactions.to_address = ? "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
 					"AND (view_account_transaction_data.reward_tx_type = 'send' OR view_account_transaction_data.reward_tx_type = 'transfer')",
 				false,
 				filter.Account,
 				addressHash,
+				fromDate,
+				toDate,
 			)
 		case REWARD:
 			stmtBuilder = stmtBuilder.Where(
 				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
-					"AND view_account_transaction_data.reward_tx_type = 'sendReward' AND"+
-					"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)",
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
+					"AND view_account_transaction_data.reward_tx_type = 'sendReward' "+
+					"AND (view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)",
 				true,
 				filter.Account,
+				fromDate,
+				toDate,
 			)
 		case EXCHANGE_COUPON:
 			stmtBuilder = stmtBuilder.Where(
 				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
 					"AND (view_account_transaction_data.reward_tx_type = 'exchange' OR view_account_transaction_data.reward_tx_type = 'exchangeWithValue')",
 				false,
 				filter.Account,
+				fromDate,
+				toDate,
 			)
 		case SAVING:
 			stmtBuilder = stmtBuilder.Where(
 				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
 					"AND CAST(view_account_transactions.message_types AS VARCHAR) LIKE '%"+
 					"elegat"+
 					"%'",
 				false,
 				filter.Account,
+				fromDate,
+				toDate,
 			)
 		}
 	}
@@ -369,6 +413,10 @@ type AccountTransactionsListFilter struct {
 	IncludingInternalTx string
 	// Optional tx type filter
 	TxType string
+	// Optional from date filter
+	FromDate string
+	// Optional to date filter
+	ToDate string
 }
 
 type AccountTransactionsListOrder struct {
