@@ -132,6 +132,7 @@ func (accountMessagesView *AccountTransactions) List(
 	)
 
 	if filter.TxType == "" {
+		//include internal txs and token transfers
 		if filter.IncludingInternalTx == "true" {
 			stmtBuilder = stmtBuilder.Where(
 				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?) OR "+
@@ -160,6 +161,7 @@ func (accountMessagesView *AccountTransactions) List(
 			}
 		}
 	} else {
+		//txs filter
 		addressHash := strings.ToLower(filter.Account)
 		if tmcosmosutils.IsValidCosmosAddress(filter.Account) {
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(filter.Account)
