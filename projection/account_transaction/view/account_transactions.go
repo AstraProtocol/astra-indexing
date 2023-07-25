@@ -133,26 +133,14 @@ func (accountMessagesView *AccountTransactions) List(
 
 	if filter.TxType == "" {
 		if filter.IncludingInternalTx == "true" {
-			if filter.Memo == "" {
-				stmtBuilder = stmtBuilder.Where(
-					"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ?) OR "+
-						"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
-						"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
-					filter.Account,
-					filter.Account,
-				)
-			}
-
-			if filter.Memo != "" {
-				stmtBuilder = stmtBuilder.Where(
-					"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?) OR "+
-						"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
-						"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
-					filter.Account,
-					filter.Memo,
-					filter.Account,
-				)
-			}
+			stmtBuilder = stmtBuilder.Where(
+				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?) OR "+
+					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
+					"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
+				filter.Account,
+				filter.Memo,
+				filter.Account,
+			)
 		} else {
 			if filter.Memo == "" {
 				stmtBuilder = stmtBuilder.Where(
@@ -241,33 +229,13 @@ func (accountMessagesView *AccountTransactions) List(
 			} else {
 				identity = fmt.Sprintf("%s:-", filter.Account)
 			}
-			if filter.IncludingInternalTx == "true" {
-				rawQuery := fmt.Sprintf(
-					"SELECT "+
-						"(SELECT coalesce(COUNT(*), 0) FROM (SELECT DISTINCT view_account_transactions.id FROM view_account_transactions "+
-						"INNER JOIN view_account_transaction_data ON "+
-						"view_account_transactions.block_height = view_account_transaction_data.block_height AND "+
-						"view_account_transactions.transaction_hash = view_account_transaction_data.hash "+
-						"WHERE account = '%s' AND is_internal_tx = true AND "+
-						"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)) AS temp) + "+
-						"(SELECT coalesce(SUM(total), 0) FROM view_account_transactions_total "+
-						"WHERE identity = '%s') "+
-						"AS total", filter.Account, identity)
-				var total int64
-				err := rdbHandle.QueryRow(rawQuery).Scan(&total)
-				if err != nil {
-					return int64(0), fmt.Errorf("error count account txs with reward tx type filter: %v: %w", err, rdb.ErrQuery)
-				}
-				return total, nil
-			} else {
-				totalView := NewAccountTransactionsTotal(rdbHandle)
-				total, err := totalView.FindBy(identity)
-				if err != nil {
-					return int64(0), err
-				}
-				return total, nil
 
+			totalView := NewAccountTransactionsTotal(rdbHandle)
+			total, err := totalView.FindBy(identity)
+			if err != nil {
+				return int64(0), err
 			}
+			return total, nil
 		},
 	).BuildStmt(stmtBuilder)
 
