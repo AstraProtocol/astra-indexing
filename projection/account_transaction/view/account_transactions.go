@@ -24,7 +24,7 @@ import (
 const SEND = "send"
 const RECEIVE = "receive"
 const REWARD = "reward"
-const STAKE = "stake"
+const SAVING = "saving"
 const EXCHANGE_COUPON = "exchange_coupon"
 
 // BlockTransactions projection view implemented by relational database
@@ -209,6 +209,15 @@ func (accountMessagesView *AccountTransactions) List(
 			stmtBuilder = stmtBuilder.Where(
 				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
 					"AND (view_account_transaction_data.reward_tx_type = 'exchange' OR view_account_transaction_data.reward_tx_type = 'exchangeWithValue')",
+				false,
+				filter.Account,
+			)
+		case SAVING:
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND CAST(view_account_transactions.message_types AS VARCHAR) LIKE '%"+
+					"elegat"+
+					"%'",
 				false,
 				filter.Account,
 			)
