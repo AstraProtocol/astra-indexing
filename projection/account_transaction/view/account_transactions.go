@@ -22,6 +22,7 @@ import (
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 )
 
+const ALL = "all"
 const SEND = "send"
 const RECEIVE = "receive"
 const REWARD = "reward"
@@ -196,8 +197,19 @@ func (accountMessagesView *AccountTransactions) List(
 		}
 
 		toDate := toDateTime.Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+		//
 
 		switch filter.TxType {
+		case ALL:
+			//include internal txs and token transfers
+			stmtBuilder = stmtBuilder.Where(
+				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?) OR "+
+					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
+					"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
+				filter.Account,
+				filter.Memo,
+				filter.Account,
+			)
 		case SEND:
 			stmtBuilder = stmtBuilder.Where(
 				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
@@ -254,6 +266,19 @@ func (accountMessagesView *AccountTransactions) List(
 				filter.Account,
 				fromDate,
 				toDate,
+			)
+		}
+
+		//filter by txs status
+		if filter.Status == "success" {
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.success = ?",
+				true,
+			)
+		} else if filter.Status == "failed" {
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.success = ?",
+				false,
 			)
 		}
 	}
@@ -417,6 +442,8 @@ type AccountTransactionsListFilter struct {
 	FromDate string
 	// Optional to date filter
 	ToDate string
+	// Optional status filter
+	Status string
 }
 
 type AccountTransactionsListOrder struct {

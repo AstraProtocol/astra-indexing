@@ -306,6 +306,14 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 		toDate = string(ctx.QueryArgs().Peek("toDate"))
 	}
 
+	status := ""
+	if queryArgs.Has("status") {
+		status = string(queryArgs.Peek("status"))
+	}
+	if status != "success" && status != "failed" {
+		status = "all"
+	}
+
 	filter := account_transaction_view.AccountTransactionsListFilter{
 		Account:             account,
 		Memo:                memo,
@@ -313,6 +321,7 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 		TxType:              txType,
 		FromDate:            fromDate,
 		ToDate:              toDate,
+		Status:              status,
 	}
 
 	order := account_transaction_view.AccountTransactionsListOrder{
@@ -320,7 +329,7 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 	}
 
 	cacheKeyResult := fmt.Sprintf(
-		"ListByAccountResult%s%s%s%s%s%s%s%d%d",
+		"ListByAccountResult%s%s%s%s%s%s%s%s%d%d",
 		account,
 		memo,
 		includingInternalTx,
@@ -328,6 +337,7 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 		idOrder,
 		fromDate,
 		toDate,
+		status,
 		pagination.OffsetParams().Page,
 		pagination.OffsetParams().Limit,
 	)
