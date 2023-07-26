@@ -1,8 +1,11 @@
 package view
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/AstraProtocol/astra-indexing/external/json"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
@@ -15,11 +18,16 @@ import (
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 )
 
+const ALL = "all"
 const SEND = "send"
 const RECEIVE = "receive"
+const REWARD = "reward"
+const SAVING = "saving"
+const EXCHANGE_COUPON = "exchange_coupon"
 
 // BlockTransactions projection view implemented by relational database
 type AccountTransactions struct {
@@ -125,18 +133,9 @@ func (accountMessagesView *AccountTransactions) List(
 		"view_account_transaction_data ON view_account_transactions.block_height = view_account_transaction_data.block_height AND view_account_transactions.transaction_hash = view_account_transaction_data.hash",
 	)
 
-	if filter.IncludingInternalTx == "true" {
-		if filter.Memo == "" {
-			stmtBuilder = stmtBuilder.Where(
-				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ?) OR "+
-					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
-					"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
-				filter.Account,
-				filter.Account,
-			)
-		}
-
-		if filter.Memo != "" {
+	if filter.TxType == "" {
+		//include internal txs and token transfers
+		if filter.IncludingInternalTx == "true" {
 			stmtBuilder = stmtBuilder.Where(
 				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?) OR "+
 					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
@@ -145,22 +144,141 @@ func (accountMessagesView *AccountTransactions) List(
 				filter.Memo,
 				filter.Account,
 			)
+		} else {
+			if filter.Memo == "" {
+				stmtBuilder = stmtBuilder.Where(
+					"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ?",
+					false,
+					filter.Account,
+				)
+			}
+
+			if filter.Memo != "" {
+				stmtBuilder = stmtBuilder.Where(
+					"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?",
+					false,
+					filter.Account,
+					filter.Memo,
+				)
+			}
 		}
 	} else {
-		if filter.Memo == "" {
+		//txs filter
+		addressHash := strings.ToLower(filter.Account)
+		if tmcosmosutils.IsValidCosmosAddress(filter.Account) {
+			_, converted, _ := tmcosmosutils.DecodeAddressToHex(filter.Account)
+			addressHash = strings.ToLower("0x" + hex.EncodeToString(converted))
+		}
+
+		//date time filter
+		currentDate := time.Now().Truncate(24 * time.Hour)
+
+		layout := "2006-01-02"
+		fromDateTime, err := time.Parse(layout, filter.FromDate)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		diffHours := currentDate.Sub(fromDateTime.Truncate(24 * time.Hour)).Hours()
+		if diffHours > (24 * 100) {
+			return nil, nil, fmt.Errorf("cannot filter txs which are older than 100 days")
+		}
+
+		fromDate := fromDateTime.Truncate(24 * time.Hour).UnixNano()
+
+		toDateTime, err := time.Parse(layout, filter.ToDate)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		diffHours = currentDate.Sub(toDateTime.Truncate(24 * time.Hour)).Hours()
+		if diffHours > (24 * 100) {
+			return nil, nil, fmt.Errorf("cannot filter txs which are older than 100 days")
+		}
+
+		toDate := toDateTime.Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+		//
+
+		switch filter.TxType {
+		case ALL:
+			//include internal txs and token transfers
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ?",
+				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?) OR "+
+					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
+					"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
+				filter.Account,
+				filter.Memo,
+				filter.Account,
+			)
+		case SEND:
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND view_account_transactions.from_address = ? "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
+					"AND (view_account_transaction_data.reward_tx_type = 'send' OR view_account_transaction_data.reward_tx_type = 'transfer')",
 				false,
 				filter.Account,
+				addressHash,
+				fromDate,
+				toDate,
+			)
+		case RECEIVE:
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND view_account_transactions.to_address = ? "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
+					"AND (view_account_transaction_data.reward_tx_type = 'send' OR view_account_transaction_data.reward_tx_type = 'transfer')",
+				false,
+				filter.Account,
+				addressHash,
+				fromDate,
+				toDate,
+			)
+		case REWARD:
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
+					"AND view_account_transaction_data.reward_tx_type = 'sendReward' "+
+					"AND (view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)",
+				true,
+				filter.Account,
+				fromDate,
+				toDate,
+			)
+		case EXCHANGE_COUPON:
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
+					"AND (view_account_transaction_data.reward_tx_type = 'exchange' OR view_account_transaction_data.reward_tx_type = 'exchangeWithValue')",
+				false,
+				filter.Account,
+				fromDate,
+				toDate,
+			)
+		case SAVING:
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
+					"AND CAST(view_account_transactions.message_types AS VARCHAR) LIKE '%"+
+					"elegat"+
+					"%'",
+				false,
+				filter.Account,
+				fromDate,
+				toDate,
 			)
 		}
 
-		if filter.Memo != "" {
+		//filter by txs status
+		if filter.Status == "success" {
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?",
+				"view_account_transactions.success = ?",
+				true,
+			)
+		} else if filter.Status == "failed" {
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.success = ?",
 				false,
-				filter.Account,
-				filter.Memo,
 			)
 		}
 	}
@@ -182,33 +300,13 @@ func (accountMessagesView *AccountTransactions) List(
 			} else {
 				identity = fmt.Sprintf("%s:-", filter.Account)
 			}
-			if filter.IncludingInternalTx == "true" {
-				rawQuery := fmt.Sprintf(
-					"SELECT "+
-						"(SELECT coalesce(COUNT(*), 0) FROM (SELECT DISTINCT view_account_transactions.id FROM view_account_transactions "+
-						"INNER JOIN view_account_transaction_data ON "+
-						"view_account_transactions.block_height = view_account_transaction_data.block_height AND "+
-						"view_account_transactions.transaction_hash = view_account_transaction_data.hash "+
-						"WHERE account = '%s' AND is_internal_tx = true AND "+
-						"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)) AS temp) + "+
-						"(SELECT coalesce(SUM(total), 0) FROM view_account_transactions_total "+
-						"WHERE identity = '%s') "+
-						"AS total", filter.Account, identity)
-				var total int64
-				err := rdbHandle.QueryRow(rawQuery).Scan(&total)
-				if err != nil {
-					return int64(0), fmt.Errorf("error count account txs with reward tx type filter: %v: %w", err, rdb.ErrQuery)
-				}
-				return total, nil
-			} else {
-				totalView := NewAccountTransactionsTotal(rdbHandle)
-				total, err := totalView.FindBy(identity)
-				if err != nil {
-					return int64(0), err
-				}
-				return total, nil
 
+			totalView := NewAccountTransactionsTotal(rdbHandle)
+			total, err := totalView.FindBy(identity)
+			if err != nil {
+				return int64(0), err
 			}
+			return total, nil
 		},
 	).BuildStmt(stmtBuilder)
 
@@ -338,6 +436,14 @@ type AccountTransactionsListFilter struct {
 	Memo string
 	// Optional including internal txs filter
 	IncludingInternalTx string
+	// Optional tx type filter
+	TxType string
+	// Optional from date filter
+	FromDate string
+	// Optional to date filter
+	ToDate string
+	// Optional status filter
+	Status string
 }
 
 type AccountTransactionsListOrder struct {

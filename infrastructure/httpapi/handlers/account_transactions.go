@@ -278,10 +278,50 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 		includingInternalTx = string(queryArgs.Peek("includingInternalTx"))
 	}
 
+	txType := ""
+	if queryArgs.Has("txType") {
+		txType = string(queryArgs.Peek("txType"))
+	}
+
+	layout := "2006-01-02"
+
+	fromDate := ""
+	if queryArgs.Has("fromDate") {
+		fromDate = string(queryArgs.Peek("fromDate"))
+	}
+	if fromDate == "" {
+		//can filter from last 100 days
+		fromDate = time.Now().Add(-100 * 24 * time.Hour).Format(layout)
+	} else {
+		fromDate = string(ctx.QueryArgs().Peek("fromDate"))
+	}
+
+	toDate := ""
+	if queryArgs.Has("toDate") {
+		toDate = string(queryArgs.Peek("toDate"))
+	}
+	if toDate == "" {
+		toDate = time.Now().Format(layout)
+	} else {
+		toDate = string(ctx.QueryArgs().Peek("toDate"))
+	}
+
+	status := ""
+	if queryArgs.Has("status") {
+		status = string(queryArgs.Peek("status"))
+	}
+	if status != "success" && status != "failed" {
+		status = "all"
+	}
+
 	filter := account_transaction_view.AccountTransactionsListFilter{
 		Account:             account,
 		Memo:                memo,
 		IncludingInternalTx: includingInternalTx,
+		TxType:              txType,
+		FromDate:            fromDate,
+		ToDate:              toDate,
+		Status:              status,
 	}
 
 	order := account_transaction_view.AccountTransactionsListOrder{
@@ -289,11 +329,15 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 	}
 
 	cacheKeyResult := fmt.Sprintf(
-		"ListByAccountResult%s%s%s%s%d%d",
+		"ListByAccountResult%s%s%s%s%s%s%s%s%d%d",
 		account,
 		memo,
 		includingInternalTx,
+		txType,
 		idOrder,
+		fromDate,
+		toDate,
+		status,
 		pagination.OffsetParams().Page,
 		pagination.OffsetParams().Limit,
 	)
