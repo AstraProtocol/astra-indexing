@@ -203,12 +203,15 @@ func (accountMessagesView *AccountTransactions) List(
 		case ALL:
 			//include internal txs and token transfers
 			stmtBuilder = stmtBuilder.Where(
-				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?) OR "+
-					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
-					"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
+				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?) "+
+					"OR (view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
+					"AND (view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
 				filter.Account,
 				filter.Memo,
 				filter.Account,
+				fromDate,
+				toDate,
 			)
 		case SEND:
 			stmtBuilder = stmtBuilder.Where(
