@@ -132,7 +132,7 @@ func (a *app) Run() {
 			}
 		}()
 		go func() {
-			if runErr := worker_consumer.RunTokenTransfersConsumer(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan); runErr != nil {
+			if runErr := worker_consumer.RunTokenTransfersConsumer(a.rdbConn.ToHandle(), a.config, a.logger, sigchan); runErr != nil {
 				a.logger.Panicf("%v", runErr)
 			}
 		}()

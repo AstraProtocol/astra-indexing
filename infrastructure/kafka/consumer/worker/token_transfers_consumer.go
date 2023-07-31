@@ -16,7 +16,6 @@ import (
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/kafka/consumer"
-	"github.com/AstraProtocol/astra-indexing/internal/evm"
 	"github.com/AstraProtocol/astra-indexing/projection/account_transaction"
 	accountTransactionView "github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
 	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
@@ -30,7 +29,7 @@ var transferCouponType = map[string]bool{
 	"safeTransferFrom": true,
 }
 
-func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, evmUtil evm.EvmUtils, sigchan chan os.Signal) error {
+func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, sigchan chan os.Signal) error {
 	signal.Notify(sigchan, os.Interrupt)
 
 	tokenTransfersConsumer := consumer.Consumer[consumer.CollectedTokenTransfer]{

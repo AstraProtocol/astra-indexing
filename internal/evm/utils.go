@@ -69,7 +69,7 @@ func (utils *EvmUtils) GetMethodNameFromData(base64Data string) string {
 		if err == nil {
 			return strings.Split(value, "(")[0]
 		} else {
-			return ""
+			return "0x" + h[0:8]
 		}
 	}
 }
