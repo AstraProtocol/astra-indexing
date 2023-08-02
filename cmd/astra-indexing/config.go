@@ -29,6 +29,9 @@ type CLIConfig struct {
 	TendermintHTTPRPCUrl string
 	CosmosHTTPRPCUrl     string
 	BlockscoutHTTPRPCUrl string
+	JsonHTTPRPCUrl       string
+
+	SwapLPAddress string
 
 	GithubAPIUsername string
 	GithubAPIToken    string
@@ -86,6 +89,9 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	if cliConfig.BlockscoutHTTPRPCUrl != "" {
 		config.BlockscoutApp.HTTPRPCUrl = cliConfig.BlockscoutHTTPRPCUrl
 	}
+	if cliConfig.JsonHTTPRPCUrl != "" {
+		config.JsonrpcApp.HTTPJSONRPCUrl = cliConfig.JsonHTTPRPCUrl
+	}
 	if cliConfig.GithubAPIUsername != "" {
 		config.IndexService.GithubAPI.Username = cliConfig.GithubAPIUsername
 	}
@@ -124,5 +130,8 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	}
 	if cliConfig.KafkaAuthenticationType != "" {
 		config.KafkaService.AuthenticationType = cliConfig.KafkaAuthenticationType
+	}
+	if cliConfig.SwapLPAddress != "" {
+		config.SwapLPAddress = cliConfig.SwapLPAddress
 	}
 }

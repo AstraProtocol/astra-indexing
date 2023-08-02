@@ -93,6 +93,11 @@ func run(args []string) error {
 				EnvVars: []string{"BLOCKSCOUT_URL"},
 			},
 			&cli.StringFlag{
+				Name:    "JsonRpcURL",
+				Usage:   "Json HTTP RPC URL",
+				EnvVars: []string{"JSONRPC_URL"},
+			},
+			&cli.StringFlag{
 				Name:    "corsAllowedOrigins",
 				Usage:   "Cors Allowed Origins",
 				EnvVars: []string{"CORS_ALLOWED_ORIGINS"},
@@ -116,6 +121,11 @@ func run(args []string) error {
 				Name:    "tikiAddress",
 				Usage:   "Tiki Pool Address",
 				EnvVars: []string{"TIKI_ADDRESS"},
+			},
+			&cli.StringFlag{
+				Name:    "swapLPAddress",
+				Usage:   "Swap Liquidity Pool Address",
+				EnvVars: []string{"SWAP_LP_ADDRESS"},
 			},
 			&cli.BoolFlag{
 				Name:    "enableConsumer",
@@ -179,6 +189,7 @@ func run(args []string) error {
 				TendermintHTTPRPCUrl: ctx.String("tendermintURL"),
 				CosmosHTTPRPCUrl:     ctx.String("cosmosAppURL"),
 				BlockscoutHTTPRPCUrl: ctx.String("blockscoutURL"),
+				JsonHTTPRPCUrl:       ctx.String("JsonRpcURL"),
 
 				GithubAPIUsername: ctx.String("githubAPIUsername"),
 				GithubAPIToken:    ctx.String("githubAPIToken"),
@@ -205,6 +216,9 @@ func run(args []string) error {
 			}
 			if ctx.IsSet("tikiAddress") {
 				cliConfig.TikiAddress = ctx.String("tikiAddress")
+			}
+			if ctx.IsSet("swapLPAddress") {
+				cliConfig.SwapLPAddress = ctx.String("swapLPAddress")
 			}
 			if ctx.IsSet("enableConsumer") {
 				cliConfig.EnableConsumer = primptr.Bool(ctx.Bool("enableConsumer"))

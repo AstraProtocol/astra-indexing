@@ -10,6 +10,7 @@ type Config struct {
 	TendermintApp          TendermintApp          `yaml:"tendermint_app" toml:"tendermint_app" xml:"tendermint_app" json:"tendermint_app"`
 	CosmosApp              CosmosApp              `yaml:"cosmos_app" toml:"cosmos_app" xml:"cosmos_app" json:"cosmos_app"`
 	BlockscoutApp          BlockscoutApp          `yaml:"blockscout_app" toml:"blockscout_app" xml:"blockscout_app" json:"blockscout_app"`
+	JsonrpcApp             JsonrpcApp             `yaml:"jsonrpc_app" toml:"jsonrpc_app" xml:"jsonrpc_app" json:"jsonrpc_app"`
 	Debug                  Debug                  `yaml:"debug" toml:"debug" xml:"debug" json:"debug"`
 	Postgres               Postgres               `yaml:"postgres" toml:"postgres" xml:"postgres" json:"postgres"`
 	Logger                 Logger                 `yaml:"logger" toml:"logger" xml:"logger" json:"logger"`
@@ -17,6 +18,7 @@ type Config struct {
 	CronjobStats           CronjobStats           `yaml:"cronjob_stats" toml:"cronjob_stats" xml:"cronjob_stats" json:"cronjob_stats"`
 	KafkaService           KafkaService           `yaml:"kafka_service" toml:"kafka_service" xml:"kafka_service" json:"kafka_service"`
 	CronjobReportDashboard CronjobReportDashboard `yaml:"cronjob_report_dashboard" toml:"cronjob_report_dashboard" xml:"cronjob_report_dashboard" json:"cronjob_report_dashboard"`
+	SwapLPAddress          string                 `yaml:"swap_lp_address" toml:"swap_lp_address" xml:"swap_lp_address" json:"swap_lp_address,omitempty"`
 }
 
 type IndexService struct {
@@ -78,6 +80,11 @@ type CosmosApp struct {
 type BlockscoutApp struct {
 	HTTPRPCUrl string `yaml:"http_rpc_url" toml:"http_rpc_url" xml:"http_rpc_url" json:"http_rpc_url,omitempty"`
 	Insecure   bool   `yaml:"insecure" toml:"insecure" xml:"insecure" json:"insecure,omitempty"`
+}
+
+type JsonrpcApp struct {
+	HTTPJSONRPCUrl string `yaml:"http_jsonrpc_url" toml:"http_jsonrpc_url" xml:"http_jsonrpc_url" json:"http_jsonrpc_url,omitempty"`
+	Insecure       bool   `yaml:"insecure" toml:"insecure" xml:"insecure" json:"insecure,omitempty"`
 }
 
 type Postgres struct {
