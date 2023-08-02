@@ -8,6 +8,7 @@ import (
 	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	cosmosapp_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/cosmosapp"
 	httpapi_handlers "github.com/AstraProtocol/astra-indexing/infrastructure/httpapi/handlers"
+	jsonrpc_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/jsonrpc"
 	tendermint_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/tendermint"
 	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 )
@@ -33,10 +34,27 @@ func InitRouteRegistry(
 		config.BlockscoutApp.HTTPRPCUrl,
 	)
 
+	jsonrpcClient := jsonrpc_infrastructure.NewHTTPClient(
+		logger,
+		config.JsonrpcApp.HTTPJSONRPCUrl,
+	)
+
 	validatorAddressPrefix := config.Blockchain.ValidatorAddressPrefix
 	conNodeAddressPrefix := config.Blockchain.ConNodeAddressPrefix
 
 	routes := make([]Route, 0)
+	jsonrpcHandler := httpapi_handlers.NewJsonRPC(
+		logger,
+		*jsonrpcClient,
+	)
+	routes = append(routes,
+		Route{
+			Method:  GET,
+			path:    "api/v1/token-price/{selector}/{contractaddress}",
+			handler: jsonrpcHandler.GetTokenPrice,
+		},
+	)
+
 	searchHandler := httpapi_handlers.NewSearch(logger, *blockscoutClient, cosmosAppClient, rdbConn.ToHandle())
 	routes = append(routes,
 		Route{

@@ -93,6 +93,11 @@ func run(args []string) error {
 				EnvVars: []string{"BLOCKSCOUT_URL"},
 			},
 			&cli.StringFlag{
+				Name:    "JsonRpcURL",
+				Usage:   "Json HTTP RPC URL",
+				EnvVars: []string{"JSONRPC_URL"},
+			},
+			&cli.StringFlag{
 				Name:    "corsAllowedOrigins",
 				Usage:   "Cors Allowed Origins",
 				EnvVars: []string{"CORS_ALLOWED_ORIGINS"},
@@ -179,6 +184,7 @@ func run(args []string) error {
 				TendermintHTTPRPCUrl: ctx.String("tendermintURL"),
 				CosmosHTTPRPCUrl:     ctx.String("cosmosAppURL"),
 				BlockscoutHTTPRPCUrl: ctx.String("blockscoutURL"),
+				JsonHTTPRPCUrl:       ctx.String("JsonRpcURL"),
 
 				GithubAPIUsername: ctx.String("githubAPIUsername"),
 				GithubAPIToken:    ctx.String("githubAPIToken"),
