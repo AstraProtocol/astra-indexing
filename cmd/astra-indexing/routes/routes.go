@@ -43,15 +43,15 @@ func InitRouteRegistry(
 	conNodeAddressPrefix := config.Blockchain.ConNodeAddressPrefix
 
 	routes := make([]Route, 0)
-	jsonrpcHandler := httpapi_handlers.NewJsonrpc(
+	jsonrpcHandler := httpapi_handlers.NewJsonRPC(
 		logger,
 		*jsonrpcClient,
 	)
 	routes = append(routes,
 		Route{
 			Method:  GET,
-			path:    "api/v1/token-price/{contractaddress}",
-			handler: jsonrpcHandler.TokenPrice,
+			path:    "api/v1/token-price/{selector}/{contractaddress}",
+			handler: jsonrpcHandler.GetTokenPrice,
 		},
 	)
 

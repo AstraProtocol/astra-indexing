@@ -115,12 +115,7 @@ func NewHTTPClient(logger applogger.Logger, url string) *HTTPClient {
 }
 
 func (client *HTTPClient) EthCall(bodyParams interface{}) (interface{}, error) {
-	m, ok := bodyParams.(map[string]string)
-	if !ok {
-		return nil, fmt.Errorf("EthCall: cannot convert rawBody to map")
-	}
-
-	cacheKey := fmt.Sprintf("JsonrpcEthCall_%s", fmt.Sprint(m))
+	cacheKey := fmt.Sprintf("JsonrpcEthCall_%s", fmt.Sprint(bodyParams))
 
 	var commonRespTmp CommonResp
 	err := client.httpCache.Get(cacheKey, &commonRespTmp)

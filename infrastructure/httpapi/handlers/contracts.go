@@ -563,9 +563,8 @@ func (handler *Contracts) GetSourceCodeOfAContractAddressHash(ctx *fasthttp.Requ
 func (handler *Contracts) GetTokenDetail(ctx *fasthttp.RequestCtx) {
 	startTime := time.Now()
 	recordMethod := "GetTokenDetail"
-	// handle api's params
-	var err error
 
+	// handle api's params
 	addressHash, contractParamOk := URLValueGuard(ctx, handler.logger, "contractaddress")
 	if !contractParamOk {
 		handler.logger.Errorf("invalid %s params", recordMethod)
