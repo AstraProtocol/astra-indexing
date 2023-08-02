@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"errors"
+	"math/big"
 	"strconv"
+	"strings"
 	"time"
 
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
@@ -65,13 +67,31 @@ func (handler *JsonRPC) GetTokenPrice(ctx *fasthttp.RequestCtx) {
 
 	payload["params"] = params
 
-	result, err := handler.jsonrpcClient.EthCall(payload)
+	response, err := handler.jsonrpcClient.EthCall(payload)
 	if err != nil {
 		handler.logger.Errorf("error fetching token price from RPC: %v", err)
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.BadRequest(ctx, err)
 		return
 	}
+
+	//parse token price
+	priceData := strings.Split(response.Result.(string), "x")[1]
+	reserve0 := new(big.Int)
+	reserve0.SetString(priceData[0:64], 16)
+
+	reserve1 := new(big.Int)
+	reserve1.SetString(priceData[64:128], 16)
+
+	blockTimestampLast := new(big.Int)
+	blockTimestampLast.SetString(priceData[128:], 16)
+
+	//price = reserve0/reserve1
+	price := new(big.Float).Quo(big.NewFloat(0).SetInt(reserve0), big.NewFloat(0).SetInt(reserve1))
+
+	result := make(map[string]string)
+	result["price"] = price.String()
+	result["blockTimestampLast"] = blockTimestampLast.String()
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, result)

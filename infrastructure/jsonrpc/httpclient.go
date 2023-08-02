@@ -114,7 +114,7 @@ func NewHTTPClient(logger applogger.Logger, url string) *HTTPClient {
 	}
 }
 
-func (client *HTTPClient) EthCall(bodyParams interface{}) (interface{}, error) {
+func (client *HTTPClient) EthCall(bodyParams interface{}) (CommonResp, error) {
 	cacheKey := fmt.Sprintf("JsonrpcEthCall_%s", fmt.Sprint(bodyParams))
 
 	var commonRespTmp CommonResp
@@ -125,18 +125,18 @@ func (client *HTTPClient) EthCall(bodyParams interface{}) (interface{}, error) {
 
 	postBody, err := json.Marshal(bodyParams)
 	if err != nil {
-		return nil, err
+		return CommonResp{}, err
 	}
 
 	rawRespBody, err := client.requestPost(client.getUrl("", ""), postBody)
 	if err != nil {
-		return nil, err
+		return CommonResp{}, err
 	}
 	defer rawRespBody.Close()
 
 	var commonResp CommonResp
 	if err := jsoniter.NewDecoder(rawRespBody).Decode(&commonResp); err != nil {
-		return nil, err
+		return CommonResp{}, err
 	}
 
 	client.httpCache.Set(cacheKey, commonResp, utils.TIME_CACHE_FAST)
