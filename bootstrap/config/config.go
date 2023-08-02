@@ -18,7 +18,6 @@ type Config struct {
 	CronjobStats           CronjobStats           `yaml:"cronjob_stats" toml:"cronjob_stats" xml:"cronjob_stats" json:"cronjob_stats"`
 	KafkaService           KafkaService           `yaml:"kafka_service" toml:"kafka_service" xml:"kafka_service" json:"kafka_service"`
 	CronjobReportDashboard CronjobReportDashboard `yaml:"cronjob_report_dashboard" toml:"cronjob_report_dashboard" xml:"cronjob_report_dashboard" json:"cronjob_report_dashboard"`
-	SwapLPAddress          string                 `yaml:"swap_lp_address" toml:"swap_lp_address" xml:"swap_lp_address" json:"swap_lp_address,omitempty"`
 }
 
 type IndexService struct {

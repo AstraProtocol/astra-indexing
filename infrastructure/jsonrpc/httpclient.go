@@ -144,7 +144,7 @@ func (client *HTTPClient) EthCall(bodyParams interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	client.httpCache.Set(cacheKey, commonResp, utils.TIME_CACHE_MEDIUM)
+	client.httpCache.Set(cacheKey, commonResp, utils.TIME_CACHE_FAST)
 
 	return commonResp, nil
 }

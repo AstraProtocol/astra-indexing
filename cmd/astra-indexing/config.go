@@ -31,8 +31,6 @@ type CLIConfig struct {
 	BlockscoutHTTPRPCUrl string
 	JsonHTTPRPCUrl       string
 
-	SwapLPAddress string
-
 	GithubAPIUsername string
 	GithubAPIToken    string
 
@@ -130,8 +128,5 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	}
 	if cliConfig.KafkaAuthenticationType != "" {
 		config.KafkaService.AuthenticationType = cliConfig.KafkaAuthenticationType
-	}
-	if cliConfig.SwapLPAddress != "" {
-		config.SwapLPAddress = cliConfig.SwapLPAddress
 	}
 }
