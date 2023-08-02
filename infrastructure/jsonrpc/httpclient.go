@@ -90,7 +90,7 @@ func (client *HTTPClient) requestPost(endpoint string, rawBody interface{}) (io.
 	rawResp, err := client.httpClient.Do(req)
 	if err != nil {
 		prometheus.RecordApiExecTime(endpoint, strconv.Itoa(400), "http", time.Since(startTime).Milliseconds())
-		return nil, fmt.Errorf("error requesting blockscout %s endpoint: %v", endpoint, err)
+		return nil, fmt.Errorf("error requesting RPC %s endpoint: %v", endpoint, err)
 	}
 
 	prometheus.RecordApiExecTime(endpoint, strconv.Itoa(rawResp.StatusCode), "http", time.Since(startTime).Milliseconds())
