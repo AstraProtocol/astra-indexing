@@ -31,6 +31,10 @@ func NewJsonRPC(
 	}
 }
 
+var selectorMapping = map[string]string{
+	"getReserves": "0x0902f1ac",
+}
+
 func (handler *JsonRPC) GetTokenPrice(ctx *fasthttp.RequestCtx) {
 	startTime := time.Now()
 	recordMethod := "GetTokenPrice"
@@ -43,15 +47,9 @@ func (handler *JsonRPC) GetTokenPrice(ctx *fasthttp.RequestCtx) {
 		httpapi.BadRequest(ctx, errors.New("invalid contractaddress param"))
 		return
 	}
-
-	selector, selectorParamOk := URLValueGuard(ctx, handler.logger, "selector")
-	if !selectorParamOk {
-		handler.logger.Errorf("invalid %s params", recordMethod)
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
-		httpapi.BadRequest(ctx, errors.New("invalid selector param"))
-		return
-	}
 	//
+
+	selector := selectorMapping["getReserves"]
 
 	payload := make(map[string]interface{})
 	payload["id"] = 1
