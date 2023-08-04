@@ -74,7 +74,7 @@ func (handler *JsonRPC) GetTokenPrice(ctx *fasthttp.RequestCtx) {
 	}
 
 	if response.Error != nil {
-		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 		httpapi.SuccessNotWrappedResult(ctx, response.Error)
 		return
 	}
