@@ -64,6 +64,13 @@ type TransactionEvm struct {
 	TokenTransfers               []TokenTransfer `json:"tokenTransfers"`
 }
 
+type TxHashWithTokenTransfers struct {
+	Hash           string          `json:"hash"`
+	Success        bool            `json:"success"`
+	Error          string          `json:"error"`
+	TokenTransfers []TokenTransfer `json:"tokenTransfers"`
+}
+
 type InternalTransaction struct {
 	BlockNumber     string `json:"blockNumber"`
 	CallType        string `json:"callType"`
@@ -88,6 +95,12 @@ type TxResp struct {
 	Message string         `json:"message"`
 	Result  TransactionEvm `json:"result"`
 	Status  string         `json:"status"`
+}
+
+type TxsResp struct {
+	Message string                     `json:"message"`
+	Result  []TxHashWithTokenTransfers `json:"result"`
+	Status  string                     `json:"status"`
 }
 
 type InternalTxsResp struct {

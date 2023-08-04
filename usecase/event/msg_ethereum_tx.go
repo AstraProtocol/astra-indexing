@@ -12,6 +12,7 @@ import (
 
 const MSG_ETHEREUM_TX = "/ethermint.evm.v1.MsgEthereumTx"
 const MSG_ETHEREUM_INTERNAL_TX = "/ethermint.evm.v1.MsgEthereumInternalTx"
+const MSG_ETHEREUM_TOKEN_TRANSFER = "/ethermint.evm.v1.MsgEthereumTokenTransfer"
 const MSG_ETHEREUM_TX_CREATED = "/ethermint.evm.v1.MsgEthereumTx.Created"
 const MSG_ETHEREUM_TX_FAILED = "/ethermint.evm.v1.MsgEthereumTx.Failed"
 

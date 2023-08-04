@@ -8,13 +8,16 @@ import (
 	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	cosmosapp_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/cosmosapp"
 	httpapi_handlers "github.com/AstraProtocol/astra-indexing/infrastructure/httpapi/handlers"
+	jsonrpc_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/jsonrpc"
 	tendermint_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/tendermint"
+	evmUtil "github.com/AstraProtocol/astra-indexing/internal/evm"
 )
 
 func InitRouteRegistry(
 	logger applogger.Logger,
 	rdbConn rdb.Conn,
 	config *config.Config,
+	evmUtil evmUtil.EvmUtils,
 ) bootstrap.RouteRegistry {
 	cosmosAppClient := cosmosapp_infrastructure.NewHTTPClient(
 		config.CosmosApp.HTTPRPCUrl,
@@ -31,10 +34,27 @@ func InitRouteRegistry(
 		config.BlockscoutApp.HTTPRPCUrl,
 	)
 
+	jsonrpcClient := jsonrpc_infrastructure.NewHTTPClient(
+		logger,
+		config.JsonrpcApp.HTTPJSONRPCUrl,
+	)
+
 	validatorAddressPrefix := config.Blockchain.ValidatorAddressPrefix
 	conNodeAddressPrefix := config.Blockchain.ConNodeAddressPrefix
 
 	routes := make([]Route, 0)
+	jsonrpcHandler := httpapi_handlers.NewJsonRPC(
+		logger,
+		*jsonrpcClient,
+	)
+	routes = append(routes,
+		Route{
+			Method:  GET,
+			path:    "api/v1/token-price/{selector}/{contractaddress}",
+			handler: jsonrpcHandler.GetTokenPrice,
+		},
+	)
+
 	searchHandler := httpapi_handlers.NewSearch(logger, *blockscoutClient, cosmosAppClient, rdbConn.ToHandle())
 	routes = append(routes,
 		Route{
@@ -68,8 +88,8 @@ func InitRouteRegistry(
 		},
 		Route{
 			Method:  GET,
-			path:    "api/v1/blocks/raw-txs/{height}",
-			handler: blocksHandler.ListRawTxsByHeight,
+			path:    "api/v1/blocks/check-blocks/{height}",
+			handler: blocksHandler.CheckBlocks,
 		},
 	)
 
@@ -216,9 +236,11 @@ func InitRouteRegistry(
 	)
 
 	accountTransactionsHandler := httpapi_handlers.NewAccountTransactions(
-		logger, rdbConn.ToHandle(),
+		logger,
+		rdbConn.ToHandle(),
 		cosmosAppClient,
 		*blockscoutClient,
+		evmUtil,
 	)
 	routes = append(routes,
 		Route{
@@ -240,6 +262,11 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/accounts/internal-transactions/{account}",
 			handler: accountTransactionsHandler.GetInternalTxsByAddressHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/accounts/internal-transactions/sync/{txhash}",
+			handler: accountTransactionsHandler.SyncAccountInternalTxsByTxHash,
 		},
 		Route{
 			Method:  GET,
@@ -361,6 +388,11 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/transactions/getrawtrace/{hash}",
 			handler: transactionHandler.GetRawTraceByTransactionHash,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/transactions/txswithtokentransfers/{hashes}",
+			handler: transactionHandler.GetTxsWithTokenTransfersByTxHashes,
 		},
 	)
 

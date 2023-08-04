@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/AstraProtocol/astra-indexing/external/json"
-	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 
 	sq "github.com/Masterminds/squirrel"
@@ -18,13 +18,16 @@ import (
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
+	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
 	"github.com/AstraProtocol/astra-indexing/external/utctime"
 )
 
-const EXCHANGE = "exchange"
-const EXCHANGE_WITH_VALUE = "exchangeWithValue"
+const ALL = "all"
 const SEND = "send"
 const RECEIVE = "receive"
+const REWARD = "reward"
+const SAVING = "saving"
+const EXCHANGE_COUPON = "exchange_coupon"
 
 // BlockTransactions projection view implemented by relational database
 type AccountTransactions struct {
@@ -130,8 +133,9 @@ func (accountMessagesView *AccountTransactions) List(
 		"view_account_transaction_data ON view_account_transactions.block_height = view_account_transaction_data.block_height AND view_account_transactions.transaction_hash = view_account_transaction_data.hash",
 	)
 
-	if filter.IncludingInternalTx == "true" {
-		if filter.Memo == "" && filter.RewardTxType == "" && filter.Direction == "" {
+	if filter.TxType == "" {
+		//include internal txs and token transfers
+		if filter.IncludingInternalTx == "true" {
 			stmtBuilder = stmtBuilder.Where(
 				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ?) OR "+
 					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
@@ -139,113 +143,144 @@ func (accountMessagesView *AccountTransactions) List(
 				filter.Account,
 				filter.Account,
 			)
-		}
+		} else {
+			if filter.Memo == "" {
+				stmtBuilder = stmtBuilder.Where(
+					"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ?",
+					false,
+					filter.Account,
+				)
+			}
 
-		if filter.Memo != "" {
-			stmtBuilder = stmtBuilder.Where(
-				"(view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?) OR "+
-					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
-					"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))",
-				filter.Account,
-				filter.Memo,
-				filter.Account,
-			)
+			if filter.Memo != "" {
+				stmtBuilder = stmtBuilder.Where(
+					"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?",
+					false,
+					filter.Account,
+					filter.Memo,
+				)
+			}
 		}
 	} else {
-		if filter.Memo == "" && filter.RewardTxType == "" && filter.Direction == "" {
+		//txs filter
+		addressHash := strings.ToLower(filter.Account)
+		if tmcosmosutils.IsValidCosmosAddress(filter.Account) {
+			_, converted, _ := tmcosmosutils.DecodeAddressToHex(filter.Account)
+			addressHash = strings.ToLower("0x" + hex.EncodeToString(converted))
+		}
+
+		//date time filter
+		currentDate := time.Now().Truncate(24 * time.Hour)
+
+		layout := "2006-01-02"
+		fromDateTime, err := time.Parse(layout, filter.FromDate)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		diffHours := currentDate.Sub(fromDateTime.Truncate(24 * time.Hour)).Hours()
+		if diffHours > (24 * 100) {
+			return nil, nil, fmt.Errorf("cannot filter txs which are older than 100 days")
+		}
+
+		fromDate := fromDateTime.Truncate(24 * time.Hour).UnixNano()
+
+		toDateTime, err := time.Parse(layout, filter.ToDate)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		diffHours = currentDate.Sub(toDateTime.Truncate(24 * time.Hour)).Hours()
+		if diffHours > (24 * 100) {
+			return nil, nil, fmt.Errorf("cannot filter txs which are older than 100 days")
+		}
+
+		toDate := toDateTime.Truncate(24 * time.Hour).Add(24 * time.Hour).UnixNano()
+		//
+
+		switch filter.TxType {
+		case ALL:
+			//include internal txs and token transfers
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ?",
+				"((view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ?) OR "+
+					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
+					"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address))) "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?)",
+				filter.Account,
+				filter.Account,
+				fromDate,
+				toDate,
+			)
+		case SEND:
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND view_account_transactions.from_address = ? "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
+					"AND (view_account_transaction_data.reward_tx_type = 'send' OR view_account_transaction_data.reward_tx_type = 'transfer')",
 				false,
 				filter.Account,
+				addressHash,
+				fromDate,
+				toDate,
 			)
-		}
-
-		if filter.Memo != "" {
+		case RECEIVE:
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? AND view_account_transaction_data.memo = ?",
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND view_account_transactions.to_address = ? "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
+					"AND (view_account_transaction_data.reward_tx_type = 'send' OR view_account_transaction_data.reward_tx_type = 'transfer')",
 				false,
 				filter.Account,
-				filter.Memo,
+				addressHash,
+				fromDate,
+				toDate,
+			)
+		case REWARD:
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
+					"AND view_account_transaction_data.reward_tx_type = 'sendReward' "+
+					"AND (view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)",
+				true,
+				filter.Account,
+				fromDate,
+				toDate,
+			)
+		case EXCHANGE_COUPON:
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
+					"AND (view_account_transaction_data.reward_tx_type = 'exchange' OR view_account_transaction_data.reward_tx_type = 'exchangeWithValue')",
+				false,
+				filter.Account,
+				fromDate,
+				toDate,
+			)
+		case SAVING:
+			stmtBuilder = stmtBuilder.Where(
+				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
+					"AND CAST(view_account_transactions.message_types AS VARCHAR) LIKE '%"+
+					"elegat"+
+					"%'",
+				false,
+				filter.Account,
+				fromDate,
+				toDate,
 			)
 		}
-	}
 
-	if filter.RewardTxType != "" && filter.Direction == "" {
-		if filter.RewardTxType == EXCHANGE {
+		//filter by txs status
+		if filter.Status == "success" {
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.account = ? AND (view_account_transaction_data.reward_tx_type = ? OR view_account_transaction_data.reward_tx_type = ?)",
-				filter.Account,
-				EXCHANGE,
-				EXCHANGE_WITH_VALUE,
+				"view_account_transactions.success = ?",
+				true,
 			)
-		} else {
+		} else if filter.Status == "failed" {
 			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.account = ? AND view_account_transaction_data.reward_tx_type = ?",
-				filter.Account,
-				filter.RewardTxType,
+				"view_account_transactions.success = ?",
+				false,
 			)
-		}
-	}
-
-	_, converted, err := tmcosmosutils.DecodeAddressToHex(filter.Account)
-	if err != nil {
-		return nil, nil, fmt.Errorf(
-			"error decode astra address to hex address: %v", err,
-		)
-	}
-	evmAddressHash := strings.ToLower("0x" + hex.EncodeToString(converted))
-
-	if filter.Direction != "" && filter.RewardTxType == "" {
-		if filter.Direction == SEND {
-			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.account = ? AND view_account_transactions.from_address = ?",
-				filter.Account,
-				evmAddressHash,
-			)
-		} else if filter.Direction == RECEIVE {
-			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.account = ? AND view_account_transactions.to_address = ?",
-				filter.Account,
-				evmAddressHash,
-			)
-		}
-	}
-
-	if filter.Direction != "" && filter.RewardTxType != "" {
-		if filter.RewardTxType == EXCHANGE {
-			if filter.Direction == SEND {
-				stmtBuilder = stmtBuilder.Where(
-					"view_account_transactions.account = ? AND view_account_transactions.from_address = ? AND (view_account_transaction_data.reward_tx_type = ? OR view_account_transaction_data.reward_tx_type = ?)",
-					filter.Account,
-					evmAddressHash,
-					EXCHANGE,
-					EXCHANGE_WITH_VALUE,
-				)
-			} else if filter.Direction == RECEIVE {
-				stmtBuilder = stmtBuilder.Where(
-					"view_account_transactions.account = ? AND view_account_transactions.to_address = ? AND (view_account_transaction_data.reward_tx_type = ? OR view_account_transaction_data.reward_tx_type = ?)",
-					filter.Account,
-					evmAddressHash,
-					EXCHANGE,
-					EXCHANGE_WITH_VALUE,
-				)
-			}
-		} else {
-			if filter.Direction == SEND {
-				stmtBuilder = stmtBuilder.Where(
-					"view_account_transactions.account = ? AND view_account_transactions.from_address = ? AND view_account_transaction_data.reward_tx_type = ?",
-					filter.Account,
-					evmAddressHash,
-					filter.RewardTxType,
-				)
-			} else if filter.Direction == RECEIVE {
-				stmtBuilder = stmtBuilder.Where(
-					"view_account_transactions.account = ? AND view_account_transactions.to_address = ? AND view_account_transaction_data.reward_tx_type = ?",
-					filter.Account,
-					evmAddressHash,
-					filter.RewardTxType,
-				)
-			}
 		}
 	}
 
@@ -255,157 +290,46 @@ func (accountMessagesView *AccountTransactions) List(
 		stmtBuilder = stmtBuilder.OrderBy("view_account_transactions.id")
 	}
 
-	var rDbPagination *rdb.RDbPaginationStmtBuilder
-	if filter.Direction == "" && filter.RewardTxType == "" {
-		rDbPagination = rdb.NewRDbPaginationBuilder(
-			pagination,
-			accountMessagesView.rdb,
-		).WithCustomTotalQueryFn(
-			func(rdbHandle *rdb.Handle, _ sq.SelectBuilder) (int64, error) {
-				identity := ""
-				if filter.Memo != "" {
-					identity = fmt.Sprintf("%s/%s:-", filter.Account, filter.Memo)
-				} else {
-					identity = fmt.Sprintf("%s:-", filter.Account)
-				}
-				if filter.IncludingInternalTx == "true" {
-					rawQuery := fmt.Sprintf(
-						"SELECT "+
-							"(SELECT coalesce(COUNT(*), 0) FROM (SELECT DISTINCT view_account_transactions.id FROM view_account_transactions "+
-							"INNER JOIN view_account_transaction_data ON "+
-							"view_account_transactions.block_height = view_account_transaction_data.block_height AND "+
-							"view_account_transactions.transaction_hash = view_account_transaction_data.hash "+
-							"WHERE account = '%s' AND is_internal_tx = true AND "+
-							"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)) AS temp) + "+
-							"(SELECT coalesce(SUM(total), 0) FROM view_account_transactions_total "+
-							"WHERE identity = '%s') "+
-							"AS total", filter.Account, identity)
-					var total int64
-					err := rdbHandle.QueryRow(rawQuery).Scan(&total)
-					if err != nil {
-						return int64(0), fmt.Errorf("error count account txs with reward tx type filter: %v: %w", err, rdb.ErrQuery)
-					}
-					return total, nil
-				} else {
-					totalView := NewAccountTransactionsTotal(rdbHandle)
-					total, err := totalView.FindBy(identity)
-					if err != nil {
-						return int64(0), err
-					}
-					return total, nil
+	rDbPagination := rdb.NewRDbPaginationBuilder(
+		pagination,
+		accountMessagesView.rdb,
+	).WithCustomTotalQueryFn(
+		func(rdbHandle *rdb.Handle, _ sq.SelectBuilder) (int64, error) {
+			identity := ""
+			if filter.Memo != "" {
+				identity = fmt.Sprintf("%s/%s:-", filter.Account, filter.Memo)
+			} else {
+				identity = fmt.Sprintf("%s:-", filter.Account)
+			}
 
+			if filter.TxType == "" && filter.IncludingInternalTx == "true" {
+				rawQuery := fmt.Sprintf(
+					"SELECT "+
+						"(SELECT coalesce(COUNT(*), 0) FROM (SELECT DISTINCT view_account_transactions.id FROM view_account_transactions "+
+						"INNER JOIN view_account_transaction_data ON "+
+						"view_account_transactions.block_height = view_account_transaction_data.block_height AND "+
+						"view_account_transactions.transaction_hash = view_account_transaction_data.hash "+
+						"WHERE account = '%s' AND is_internal_tx = true AND "+
+						"(view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)) AS temp) + "+
+						"(SELECT coalesce(SUM(total), 0) FROM view_account_transactions_total "+
+						"WHERE identity = '%s') "+
+						"AS total", filter.Account, identity)
+				var total int64
+				err := rdbHandle.QueryRow(rawQuery).Scan(&total)
+				if err != nil {
+					return int64(0), fmt.Errorf("error count account txs with reward tx type filter: %v: %w", err, rdb.ErrQuery)
 				}
-			},
-		).BuildStmt(stmtBuilder)
-	} else {
-		rawQuery := fmt.Sprintf("SELECT COUNT(*) "+
-			"FROM view_account_transactions "+
-			"INNER JOIN view_account_transaction_data "+
-			"ON view_account_transactions.block_height = view_account_transaction_data.block_height "+
-			"AND view_account_transactions.transaction_hash = view_account_transaction_data.hash "+
-			"WHERE view_account_transactions.account = '%s' AND ", filter.Account)
-		if filter.RewardTxType != "" && filter.Direction == "" {
-			rDbPagination = rdb.NewRDbPaginationBuilder(
-				pagination,
-				accountMessagesView.rdb,
-			).WithCustomTotalQueryFn(
-				func(rdbHandle *rdb.Handle, _ sq.SelectBuilder) (int64, error) {
-					filterQuery := ""
-					if filter.RewardTxType == EXCHANGE {
-						filterQuery = fmt.Sprintf(
-							"(view_account_transaction_data.reward_tx_type = '%s' OR "+
-								"view_account_transaction_data.reward_tx_type = '%s')",
-							EXCHANGE,
-							EXCHANGE_WITH_VALUE,
-						)
-					} else {
-						filterQuery = fmt.Sprintf(
-							"view_account_transaction_data.reward_tx_type = '%s'",
-							filter.RewardTxType,
-						)
-					}
-					var total int64
-					err := rdbHandle.QueryRow(rawQuery + filterQuery).Scan(&total)
-					if err != nil {
-						return int64(0), fmt.Errorf("error count account txs with reward tx type filter: %v: %w", err, rdb.ErrQuery)
-					}
-					return total, nil
-				},
-			).BuildStmt(stmtBuilder)
-		} else if filter.Direction != "" && filter.RewardTxType == "" {
-			rDbPagination = rdb.NewRDbPaginationBuilder(
-				pagination,
-				accountMessagesView.rdb,
-			).WithCustomTotalQueryFn(
-				func(rdbHandle *rdb.Handle, _ sq.SelectBuilder) (int64, error) {
-					filterQuery := ""
-					if filter.Direction == SEND {
-						filterQuery = fmt.Sprintf(
-							"view_account_transactions.from_address = '%s'",
-							evmAddressHash,
-						)
-					} else if filter.Direction == RECEIVE {
-						filterQuery = fmt.Sprintf(
-							"view_account_transactions.to_address = '%s'",
-							evmAddressHash,
-						)
-					}
-					var total int64
-					err := rdbHandle.QueryRow(rawQuery + filterQuery).Scan(&total)
-					if err != nil {
-						return int64(0), fmt.Errorf("error count account txs with direction filter: %v: %w", err, rdb.ErrQuery)
-					}
-					return total, nil
-				},
-			).BuildStmt(stmtBuilder)
-		} else if filter.Direction != "" && filter.RewardTxType != "" {
-			rDbPagination = rdb.NewRDbPaginationBuilder(
-				pagination,
-				accountMessagesView.rdb,
-			).WithCustomTotalQueryFn(
-				func(rdbHandle *rdb.Handle, _ sq.SelectBuilder) (int64, error) {
-					filterQuery := ""
-					if filter.RewardTxType == EXCHANGE {
-						if filter.Direction == SEND {
-							filterQuery = fmt.Sprintf(
-								"view_account_transactions.from_address = '%s' AND (view_account_transaction_data.reward_tx_type = '%s' OR view_account_transaction_data.reward_tx_type = '%s')",
-								evmAddressHash,
-								EXCHANGE,
-								EXCHANGE_WITH_VALUE,
-							)
-						} else if filter.Direction == RECEIVE {
-							filterQuery = fmt.Sprintf(
-								"view_account_transactions.to_address = '%s' AND (view_account_transaction_data.reward_tx_type = '%s' OR view_account_transaction_data.reward_tx_type = '%s')",
-								evmAddressHash,
-								EXCHANGE,
-								EXCHANGE_WITH_VALUE,
-							)
-						}
-					} else {
-						if filter.Direction == SEND {
-							filterQuery = fmt.Sprintf(
-								"view_account_transactions.from_address = '%s' AND view_account_transaction_data.reward_tx_type = '%s'",
-								evmAddressHash,
-								filter.RewardTxType,
-							)
-						} else if filter.Direction == RECEIVE {
-							filterQuery = fmt.Sprintf(
-								"view_account_transactions.to_address = '%s' AND view_account_transaction_data.reward_tx_type = '%s'",
-								evmAddressHash,
-								filter.RewardTxType,
-							)
-						}
-					}
-					var total int64
-					err := rdbHandle.QueryRow(rawQuery + filterQuery).Scan(&total)
-					if err != nil {
-						return int64(0), fmt.Errorf("error count account txs with reward tx type and direction filter: %v: %w", err, rdb.ErrQuery)
-					}
-					return total, nil
-				},
-			).BuildStmt(stmtBuilder)
-		}
-	}
+				return total, nil
+			} else {
+				totalView := NewAccountTransactionsTotal(rdbHandle)
+				total, err := totalView.FindBy(identity)
+				if err != nil {
+					return int64(0), err
+				}
+				return total, nil
+			}
+		},
+	).BuildStmt(stmtBuilder)
 
 	sql, sqlArgs, err := rDbPagination.ToStmtBuilder().ToSql()
 	if err != nil {
@@ -531,12 +455,16 @@ type AccountTransactionsListFilter struct {
 	Account string
 	// Optional memo filter
 	Memo string
-	// Optional reward tx type filter
-	RewardTxType string
-	// Optional direction filter
-	Direction string
 	// Optional including internal txs filter
 	IncludingInternalTx string
+	// Optional tx type filter
+	TxType string
+	// Optional from date filter
+	FromDate string
+	// Optional to date filter
+	ToDate string
+	// Optional status filter
+	Status string
 }
 
 type AccountTransactionsListOrder struct {

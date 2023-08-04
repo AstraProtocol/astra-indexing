@@ -11,8 +11,12 @@ import (
 	"github.com/AstraProtocol/astra-indexing/external/cache"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/AstraProtocol/astra-indexing/external/tmcosmosutils"
+	"github.com/AstraProtocol/astra-indexing/external/utctime"
 	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
 	evm_utils "github.com/AstraProtocol/astra-indexing/internal/evm"
+	"github.com/AstraProtocol/astra-indexing/usecase/coin"
+	"github.com/AstraProtocol/astra-indexing/usecase/event"
+	"github.com/AstraProtocol/astra-indexing/usecase/model"
 	"github.com/valyala/fasthttp"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
@@ -22,6 +26,7 @@ import (
 	blockscout_infrastructure "github.com/AstraProtocol/astra-indexing/infrastructure/blockscout"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/httpapi"
 	"github.com/AstraProtocol/astra-indexing/infrastructure/metric/prometheus"
+	"github.com/AstraProtocol/astra-indexing/projection/account_transaction"
 	account_transaction_view "github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
 )
 
@@ -31,11 +36,13 @@ type AccountTransactions struct {
 	cosmosClient                 cosmosapp.Client
 	blockscoutClient             blockscout_infrastructure.HTTPClient
 	accountTransactionsView      *account_transaction_view.AccountTransactions
+	accountTransactionDataView   *account_transaction_view.AccountTransactionData
 	accountTransactionsTotalView *account_transaction_view.AccountTransactionsTotal
 	accountGasUsedTotalView      *account_transaction_view.AccountGasUsedTotal
 	accountFeesTotalView         *account_transaction_view.AccountFeesTotal
 
 	astraCache *cache.AstraCache
+	evmUtil    evm_utils.EvmUtils
 }
 
 func NewAccountTransactions(
@@ -43,6 +50,7 @@ func NewAccountTransactions(
 	rdbHandle *rdb.Handle,
 	cosmosClient cosmosapp.Client,
 	blockscoutClient blockscout_infrastructure.HTTPClient,
+	evmUtil evm_utils.EvmUtils,
 ) *AccountTransactions {
 	return &AccountTransactions{
 		logger.WithFields(applogger.LogFields{
@@ -52,10 +60,12 @@ func NewAccountTransactions(
 		cosmosClient,
 		blockscoutClient,
 		account_transaction_view.NewAccountTransactions(rdbHandle),
+		account_transaction_view.NewAccountTransactionData(rdbHandle),
 		account_transaction_view.NewAccountTransactionsTotal(rdbHandle),
 		account_transaction_view.NewAccountGasUsedTotal(rdbHandle),
 		account_transaction_view.NewAccountFeesTotal(rdbHandle),
 		cache.NewCache(),
+		evmUtil,
 	}
 }
 
@@ -263,27 +273,55 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 		memo = string(queryArgs.Peek("memo"))
 	}
 
-	rewardTxType := ""
-	if queryArgs.Has("type") {
-		rewardTxType = string(queryArgs.Peek("type"))
-	}
-
-	direction := ""
-	if queryArgs.Has("direction") {
-		direction = string(queryArgs.Peek("direction"))
-	}
-
 	includingInternalTx := ""
 	if queryArgs.Has("includingInternalTx") {
 		includingInternalTx = string(queryArgs.Peek("includingInternalTx"))
 	}
 
+	txType := ""
+	if queryArgs.Has("txType") {
+		txType = string(queryArgs.Peek("txType"))
+	}
+
+	layout := "2006-01-02"
+
+	fromDate := ""
+	if queryArgs.Has("fromDate") {
+		fromDate = string(queryArgs.Peek("fromDate"))
+	}
+	if fromDate == "" {
+		//can filter from last 100 days
+		fromDate = time.Now().Add(-100 * 24 * time.Hour).Format(layout)
+	} else {
+		fromDate = string(ctx.QueryArgs().Peek("fromDate"))
+	}
+
+	toDate := ""
+	if queryArgs.Has("toDate") {
+		toDate = string(queryArgs.Peek("toDate"))
+	}
+	if toDate == "" {
+		toDate = time.Now().Format(layout)
+	} else {
+		toDate = string(ctx.QueryArgs().Peek("toDate"))
+	}
+
+	status := ""
+	if queryArgs.Has("status") {
+		status = string(queryArgs.Peek("status"))
+	}
+	if status != "success" && status != "failed" {
+		status = "all"
+	}
+
 	filter := account_transaction_view.AccountTransactionsListFilter{
 		Account:             account,
 		Memo:                memo,
-		RewardTxType:        rewardTxType,
-		Direction:           direction,
 		IncludingInternalTx: includingInternalTx,
+		TxType:              txType,
+		FromDate:            fromDate,
+		ToDate:              toDate,
+		Status:              status,
 	}
 
 	order := account_transaction_view.AccountTransactionsListOrder{
@@ -291,13 +329,15 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 	}
 
 	cacheKeyResult := fmt.Sprintf(
-		"ListByAccountResult%s%s%s%s%s%s%d%d",
+		"ListByAccountResult%s%s%s%s%s%s%s%s%d%d",
 		account,
 		memo,
-		rewardTxType,
-		direction,
 		includingInternalTx,
+		txType,
 		idOrder,
+		fromDate,
+		toDate,
+		status,
 		pagination.OffsetParams().Page,
 		pagination.OffsetParams().Limit,
 	)
@@ -413,6 +453,166 @@ func (handler *AccountTransactions) GetInternalTxsByAddressHash(ctx *fasthttp.Re
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, tokensAddressResp)
+}
+
+func (handler *AccountTransactions) SyncAccountInternalTxsByTxHash(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "SyncAccountInternalTxsByTxHash"
+
+	txHash, txHashParamOk := URLValueGuard(ctx, handler.logger, "txhash")
+	if !txHashParamOk {
+		handler.logger.Errorf("invalid %s params", recordMethod)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("invalid txhash param"))
+		return
+	}
+
+	internalTxs, err := handler.blockscoutClient.GetListInternalTxs(txHash)
+	if err != nil {
+		handler.logger.Errorf("error sync account internal txs by tx hash: %v", err)
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, err)
+		return
+	}
+
+	//sync internal txs
+	rewardType := map[string]bool{
+		"sendReward":        true,
+		"redeemReward":      true,
+		"exchange":          true,
+		"exchangeWithValue": true,
+	}
+	accountTransactionRows := make([]account_transaction_view.AccountTransactionBaseRow, 0)
+	txs := make([]account_transaction_view.TransactionRow, 0)
+	fee := coin.MustNewCoins(coin.MustNewCoinFromString("aastra", "0"))
+	evmType := handler.evmUtil.GetMethodNameFromMethodId(internalTxs[0].Input[2:10])
+	for _, internalTx := range internalTxs {
+		if internalTx.CallType != "call" {
+			continue
+		}
+		if internalTx.Value == "0" {
+			continue
+		}
+		if internalTx.From == "" || internalTx.To == "" {
+			continue
+		}
+		//ignore if internal tx is not reward tx
+		if !rewardType[evmType] {
+			continue
+		}
+		//ignore if internal tx is same data with parent tx
+		//blockscout approach
+		if internalTx.Index == "0" {
+			continue
+		}
+
+		blockNumber, _ := strconv.ParseInt(internalTx.BlockNumber, 10, 64)
+		index, _ := strconv.Atoi(internalTx.Index)
+		transactionInfo := account_transaction.NewTransactionInfo(
+			account_transaction_view.AccountTransactionBaseRow{
+				Account:      "",
+				BlockHeight:  blockNumber,
+				BlockHash:    "",
+				BlockTime:    utctime.UTCTime{},
+				Hash:         internalTx.TransactionHash,
+				MessageTypes: []string{},
+				Success:      true,
+			},
+		)
+		converted, _ := hex.DecodeString(internalTx.From[2:])
+		fromAstraAddr, _ := tmcosmosutils.EncodeHexToAddress("astra", converted)
+
+		converted, _ = hex.DecodeString(internalTx.To[2:])
+		toAstraAddr, _ := tmcosmosutils.EncodeHexToAddress("astra", converted)
+
+		transactionInfo.AddAccount(fromAstraAddr)
+		transactionInfo.AddAccount(toAstraAddr)
+
+		transactionInfo.Row.FromAddress = strings.ToLower(internalTx.From)
+		transactionInfo.Row.ToAddress = strings.ToLower(internalTx.To)
+
+		transactionInfo.AddMessageTypes(event.MSG_ETHEREUM_TX)
+
+		blockHash := ""
+		timeStamp, _ := strconv.ParseInt(internalTx.TimeStamp, 10, 64)
+		blockTime := utctime.FromUnixNano(time.Unix(timeStamp, 0).UnixNano())
+		gasWanted, _ := strconv.Atoi(internalTx.Gas)
+		gasUsed, _ := strconv.Atoi(internalTx.GasUsed)
+
+		transactionInfo.FillBlockInfo(blockHash, blockTime)
+
+		//parse internal tx message content
+		legacyTx := model.LegacyTx{
+			Type:  internalTx.CallType,
+			Gas:   internalTx.GasUsed,
+			To:    internalTx.To,
+			Value: internalTx.Value,
+			Data:  internalTx.Input,
+		}
+		rawMsgEthereumTx := model.RawMsgEthereumTx{
+			Type: event.MSG_ETHEREUM_INTERNAL_TX,
+			Size: 0,
+			From: internalTx.From,
+			Hash: internalTx.TransactionHash,
+			Data: legacyTx,
+		}
+		params := model.MsgEthereumTxParams{
+			RawMsgEthereumTx: rawMsgEthereumTx,
+		}
+		evmEvent := event.NewMsgEthereumTx(event.MsgCommonParams{
+			BlockHeight: blockNumber,
+			TxHash:      internalTx.TransactionHash,
+			TxSuccess:   true,
+			MsgIndex:    index,
+		}, params)
+		tmpMessage := account_transaction_view.TransactionRowMessage{
+			Type:    event.MSG_ETHEREUM_TX,
+			EvmType: evmType,
+			Content: evmEvent,
+		}
+
+		tx := account_transaction_view.TransactionRow{
+			BlockHeight:   blockNumber,
+			BlockTime:     blockTime,
+			BlockHash:     blockHash,
+			Hash:          internalTx.TransactionHash,
+			Index:         index,
+			Success:       true,
+			Code:          0,
+			Log:           "",
+			Fee:           fee,
+			FeePayer:      "",
+			FeeGranter:    "",
+			GasWanted:     gasWanted,
+			GasUsed:       gasUsed,
+			Memo:          "",
+			TimeoutHeight: 0,
+			Messages:      make([]account_transaction_view.TransactionRowMessage, 0),
+			EvmHash:       internalTx.TransactionHash,
+			RewardTxType:  evmType,
+			FromAddress:   strings.ToLower(internalTx.From),
+			ToAddress:     strings.ToLower(internalTx.To),
+		}
+		tx.Messages = append(tx.Messages, tmpMessage)
+		txs = append(txs, tx)
+		accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRowsIncludingInternalTx()...)
+	}
+	err = handler.accountTransactionsView.InsertAll(accountTransactionRows)
+	if err == nil {
+		err = handler.accountTransactionDataView.InsertAll(txs)
+		if err != nil {
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, err)
+			return
+		}
+	} else {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, err)
+		return
+	}
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.SuccessNotWrappedResult(ctx, txs)
 }
 
 func (handler *AccountTransactions) GetListTokenTransfersByAddressHash(ctx *fasthttp.RequestCtx) {

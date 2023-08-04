@@ -266,9 +266,9 @@ func (handler *Blocks) ListTransactionsByHeight(ctx *fasthttp.RequestCtx) {
 	httpapi.SuccessWithPagination(ctx, txs, paginationResult)
 }
 
-func (handler *Blocks) ListRawTxsByHeight(ctx *fasthttp.RequestCtx) {
+func (handler *Blocks) CheckBlocks(ctx *fasthttp.RequestCtx) {
 	startTime := time.Now()
-	recordMethod := "ListRawTxsByHeight"
+	recordMethod := "CheckBlocks"
 
 	blockHeightParam, blockHeightParamOk := URLValueGuard(ctx, handler.logger, "height")
 	if !blockHeightParamOk {
@@ -296,5 +296,5 @@ func (handler *Blocks) ListRawTxsByHeight(ctx *fasthttp.RequestCtx) {
 	}
 
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
-	httpapi.Success(ctx, blockInfo.Block.Data)
+	httpapi.Success(ctx, blockInfo)
 }

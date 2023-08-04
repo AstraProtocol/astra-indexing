@@ -3,6 +3,7 @@ package consumer
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"os/signal"
 	"strconv"
@@ -19,7 +20,6 @@ import (
 	utils "github.com/AstraProtocol/astra-indexing/infrastructure"
 	"github.com/AstraProtocol/astra-indexing/projection/account_transaction"
 	accountTransactionView "github.com/AstraProtocol/astra-indexing/projection/account_transaction/view"
-	transactionView "github.com/AstraProtocol/astra-indexing/projection/transaction/view"
 	"github.com/AstraProtocol/astra-indexing/usecase/coin"
 	"github.com/AstraProtocol/astra-indexing/usecase/event"
 	"github.com/AstraProtocol/astra-indexing/usecase/model"
@@ -37,7 +37,6 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 
 	rdbAccountTransactionsView := accountTransactionView.NewAccountTransactions(rdbHandle)
 	rdbAccountTransactionDataView := accountTransactionView.NewAccountTransactionData(rdbHandle)
-	rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
 
 	internalTxsConsumer := consumer.Consumer[[]consumer.CollectedInternalTx]{
 		TimeOut:            utils.KAFKA_TIME_OUT,
@@ -58,25 +57,16 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 		[]consumer.CollectedInternalTx{},
 		func(collectedInternalTxs []consumer.CollectedInternalTx, message kafka.Message, ctx context.Context, err error) {
 			if err != nil {
-				logger.Infof("Kafka Consumer error: %v", err)
+				logger.Infof("Kafka Internal Txs Consumer error: %v", err)
 			} else {
-				checkEvmHash := make(map[string]bool)
-				//get list tx hash
-				evmHashes := make([]string, 0)
-				for _, internalTx := range collectedInternalTxs {
-					if !checkEvmHash[internalTx.TransactionHash] {
-						evmHashes = append(evmHashes, internalTx.TransactionHash)
-						checkEvmHash[internalTx.TransactionHash] = true
-					}
-				}
-				//get evm types from/to address by tx hashes
-				evmTxTypes, err := rdbTransactionView.GetTxsTypeByEvmHashes(evmHashes)
-				if err != nil {
-					logger.Infof("get txs type query error: %v", err)
-				}
 				txTypeMapping := make(map[string]string)
-				for _, transactionTxType := range evmTxTypes {
-					txTypeMapping[transactionTxType.EvmHash] = transactionTxType.TxType
+				for _, internalTx := range collectedInternalTxs {
+					if internalTx.Index == 0 && len(internalTx.Input) >= 10 {
+						evmType := evmUtil.GetMethodNameFromMethodId(internalTx.Input[2:10])
+						if rewardType[evmType] {
+							txTypeMapping[internalTx.TransactionHash] = evmType
+						}
+					}
 				}
 
 				accountTransactionRows := make([]accountTransactionView.AccountTransactionBaseRow, 0)
@@ -133,7 +123,7 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 					blockTime := utctime.Now()
 					transactionInfo.FillBlockInfo(blockHash, blockTime)
 
-					//parse internal tx message content
+					//parse internal tx to message content
 					legacyTx := model.LegacyTx{
 						Type:  internalTx.CallType,
 						Gas:   strconv.FormatInt(internalTx.GasUsed, 10),
@@ -190,7 +180,7 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 					accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRowsIncludingInternalTx()...)
 				}
 				if len(txs) == 0 {
-					// Commit offset when no internal txs are valid
+					//commit offset when no internal txs are valid
 					if errCommit := internalTxsConsumer.Commit(ctx, message); errCommit != nil {
 						logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.INTERNAL_TXS_TOPIC, message.Partition, errCommit)
 					}
@@ -198,7 +188,7 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 				err = rdbAccountTransactionsView.InsertAll(accountTransactionRows)
 				if err == nil {
 					err = rdbAccountTransactionDataView.InsertAll(txs)
-					// Commit offset
+					//commit offset
 					if err == nil {
 						if errCommit := internalTxsConsumer.Commit(ctx, message); errCommit != nil {
 							logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.INTERNAL_TXS_TOPIC, message.Partition, errCommit)
@@ -208,6 +198,12 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 					}
 				} else {
 					logger.Infof("Failed to insert account txs from Consumer partition %d: %v", message.Partition, err)
+					//commit offset when duplicated message
+					if strings.Contains(fmt.Sprint(err), "duplicate key value violates unique constraint") {
+						if errCommit := internalTxsConsumer.Commit(ctx, message); errCommit != nil {
+							logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.INTERNAL_TXS_TOPIC, message.Partition, errCommit)
+						}
+					}
 				}
 			}
 		},

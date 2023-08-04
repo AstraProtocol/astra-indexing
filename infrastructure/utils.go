@@ -18,3 +18,4 @@ const TLS_KEY_PATH = "/certs/chainindexing.kafka.prod/tls.key"
 
 const EVM_TXS_TOPIC = "evm-txs"
 const INTERNAL_TXS_TOPIC = "internal-txs"
+const TOKEN_TRANSFERS_TOPIC = "token-transfers"

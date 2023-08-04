@@ -23,6 +23,12 @@ func TestUpdate4Bytes(t *testing.T) {
 	util.UpdateSignature("0x441a3e70", "withdraw(uint256, uint256)")
 	util.UpdateSignature("0x71679309", "zapInEth(address, address, address, uint256, uint256)")
 	util.UpdateSignature("0xf305d719", "addLiquidityETH(address, uint256, uint256, uint256, address, uint256)")
+	util.UpdateSignature("0x2195995c", "removeLiquidityWithPermit(address, address, uint256, uint256, uint256, address, uint256, bool, uint8, bytes32, bytes32)")
+	util.UpdateSignature("0xb6f9de95", "swapExactETHForTokensSupportingFeeOnTransferTokens(uint256, address[], address, uint256)")
+	util.UpdateSignature("0x38ed1739", "swapExactTokensForTokens(uint256, uint256, address[], address, uint256)")
+	util.UpdateSignature("0xe8e33700", "addLiquidity(address, address, uint256, uint256, uint256, uint256, address, uint256)")
+	util.UpdateSignature("0x42842e0e", "safeTransferFrom(address, address, uint256)")
+	util.UpdateSignature("0xecd5ff33", "setProgramTime(uint256, uint256)")
 
 	res, err := util.GetSignature("0xa07aea1c")
 	if err != nil {
@@ -39,6 +45,12 @@ func TestUpdate4Bytes(t *testing.T) {
 	assert.Equal(util.GetMethodNameFromMethodId("0x441a3e70"), "withdraw")
 	assert.Equal(util.GetMethodNameFromMethodId("0x71679309"), "zapInEth")
 	assert.Equal(util.GetMethodNameFromMethodId("0xf305d719"), "addLiquidityETH")
+	assert.Equal(util.GetMethodNameFromMethodId("0x2195995c"), "removeLiquidityWithPermit")
+	assert.Equal(util.GetMethodNameFromMethodId("0xb6f9de95"), "swapExactETHForTokensSupportingFeeOnTransferTokens")
+	assert.Equal(util.GetMethodNameFromMethodId("0x38ed1739"), "swapExactTokensForTokens")
+	assert.Equal(util.GetMethodNameFromMethodId("0xe8e33700"), "addLiquidity")
+	assert.Equal(util.GetMethodNameFromMethodId("0x42842e0e"), "safeTransferFrom")
+	assert.Equal(util.GetMethodNameFromMethodId("0xecd5ff33"), "setProgramTime")
 
 	data := "0q7S1gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGSWzhIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQVbZvQpCuU8VUVDSeyAd243bdr5ljiPA3bK7aUm/VuQVdhajtudaHAI7ltLe1GHQeZchiXxaXAq2Ez+6ErCpJRscAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 	signature := util.GetMethodNameFromData(data)
