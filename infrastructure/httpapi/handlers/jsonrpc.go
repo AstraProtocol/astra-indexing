@@ -73,6 +73,12 @@ func (handler *JsonRPC) GetTokenPrice(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	if response.Error != nil {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.SuccessNotWrappedResult(ctx, response.Error)
+		return
+	}
+
 	//parse token price
 	priceData := strings.Split(response.Result.(string), "x")[1]
 	reserve0 := new(big.Int)
