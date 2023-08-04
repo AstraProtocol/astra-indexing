@@ -50,7 +50,7 @@ func InitRouteRegistry(
 	routes = append(routes,
 		Route{
 			Method:  GET,
-			path:    "api/v1/token-price/{selector}/{contractaddress}",
+			path:    "api/v1/token-price/{contractaddress}",
 			handler: jsonrpcHandler.GetTokenPrice,
 		},
 	)
