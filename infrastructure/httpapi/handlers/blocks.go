@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -132,12 +133,14 @@ func (handler *Blocks) List(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// limited page and limit number
-	if paginationInput.OffsetParams().Page > 2500 {
-		paginationInput.OffsetParams().Page = 2500
+	//limit pagination
+	if paginationInput.OffsetParams().Limit > pagination.MAX_LIMIT {
+		paginationInput.OffsetParams().Limit = pagination.MAX_LIMIT
 	}
-	if paginationInput.OffsetParams().Limit > 20 {
-		paginationInput.OffsetParams().Limit = 20
+
+	maxPage := int64(math.Ceil(float64(pagination.MAX_ELEMENTS) / float64(paginationInput.OffsetParams().Limit)))
+	if paginationInput.OffsetParams().Page > maxPage {
+		paginationInput.OffsetParams().Page = maxPage
 	}
 
 	heightOrder := view.ORDER_ASC

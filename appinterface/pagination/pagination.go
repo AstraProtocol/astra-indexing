@@ -102,3 +102,7 @@ const (
 const (
 	MAX_ELEMENTS int64 = 50000
 )
+
+const (
+	MAX_LIMIT int64 = 20
+)
