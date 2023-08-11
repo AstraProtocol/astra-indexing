@@ -203,13 +203,6 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	// searching blocks in case of blockscout is slower than chainindexing
-	if search.isResultsEmpty(results) {
-		blocks, err := search.blocksView.Search(keyword)
-		if err == nil {
-			results.Blocks = search.parseBlocks(blocks)
-		}
-	}
 	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
 	httpapi.Success(ctx, results)
 }
