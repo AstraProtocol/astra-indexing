@@ -91,6 +91,9 @@ func SearchResultsToContracts(data []SearchResult) []ContractResult {
 func SearchResultsToTokens(data []SearchResult) []TokenResult {
 	var tokens []TokenResult
 	for _, token_data := range data {
+		if token_data.AddressHash == "" {
+			continue
+		}
 		var token TokenResult
 		token.AddressHash = token_data.AddressHash
 		token.HolderCount = token_data.HolderCount

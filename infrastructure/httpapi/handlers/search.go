@@ -195,6 +195,14 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
+	// searching blocks in case of keyword is number
+	if _, err := strconv.Atoi(keyword); err == nil {
+		blocks, err := search.blocksView.Search(keyword)
+		if err == nil {
+			results.Blocks = search.parseBlocks(blocks)
+		}
+	}
+
 	// searching blocks in case of blockscout is slower than chainindexing
 	if search.isResultsEmpty(results) {
 		blocks, err := search.blocksView.Search(keyword)
