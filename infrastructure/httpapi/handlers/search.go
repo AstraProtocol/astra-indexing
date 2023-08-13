@@ -131,7 +131,9 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 			// Merge blockscout and chainindexing search results
 			results.Addresses = search.parseAddresses(*accounts, blockscoutAddressResults)
 		} else {
-			results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutAddressResults)
+			for _, result := range blockscoutAddressResults {
+				results.Addresses = append(results.Addresses, result.ToAddress())
+			}
 		}
 
 		if accounts == nil {
@@ -178,19 +180,23 @@ func (search *Search) Search(ctx *fasthttp.RequestCtx) {
 	// mostly using for token, contract, block search or in case of keyword is hex type
 	if search.isResultsEmpty(results) {
 		if len(blockscoutSearchResults) > 0 {
-			switch blockscoutSearchResults[0].Type {
-			case "token":
-				results.Tokens = blockscout_infrastructure.SearchResultsToTokens(blockscoutSearchResults)
-			case "block":
-				results.Blocks = blockscout_infrastructure.SearchResultsToBlocks(blockscoutSearchResults)
-			case "address":
-				results.Addresses = blockscout_infrastructure.SearchResultsToAddresses(blockscoutSearchResults)
-			case "contract":
-				results.Contracts = blockscout_infrastructure.SearchResultsToContracts(blockscoutSearchResults)
-			case "transaction":
-				results.Transactions = blockscout_infrastructure.SearchResultsToTransactions(blockscoutSearchResults)
-			case "transaction_cosmos":
-				results.Transactions = blockscout_infrastructure.SearchResultsToTransactions(blockscoutSearchResults)
+			for _, result := range blockscoutSearchResults {
+				switch blockscoutSearchResults[0].Type {
+				case "token":
+					if result.AddressHash != "" {
+						results.Tokens = append(results.Tokens, result.ToToken())
+					}
+				case "block":
+					results.Blocks = append(results.Blocks, result.ToBlock())
+				case "address":
+					results.Addresses = append(results.Addresses, result.ToAddress())
+				case "contract":
+					results.Contracts = append(results.Contracts, result.ToContract())
+				case "transaction":
+					results.Transactions = append(results.Transactions, result.ToTransaction())
+				case "transaction_cosmos":
+					results.Transactions = append(results.Transactions, result.ToTransaction())
+				}
 			}
 		}
 	}

@@ -62,69 +62,46 @@ type ContractResult struct {
 	InsertedAt  utctime.UTCTime `json:"insertedAt"`
 }
 
-func SearchResultsToAddresses(data []SearchResult) []AddressResult {
-	var addresses []AddressResult
-	for _, address_data := range data {
-		var address AddressResult
-		converted, _ := hex.DecodeString(address_data.AddressHash[2:])
-		astraAddress, _ := tmcosmosutils.EncodeHexToAddress("astra", converted)
-		address.Address = astraAddress
-		address.AddressHash = address_data.AddressHash
-		address.Name = address_data.Name
-		addresses = append(addresses, address)
-	}
-	return addresses
+func (result *SearchResult) ToAddress() AddressResult {
+	var address AddressResult
+	converted, _ := hex.DecodeString(result.AddressHash[2:])
+	astraAddress, _ := tmcosmosutils.EncodeHexToAddress("astra", converted)
+	address.Address = astraAddress
+	address.AddressHash = result.AddressHash
+	address.Name = result.Name
+	return address
 }
 
-func SearchResultsToContracts(data []SearchResult) []ContractResult {
-	var contracts []ContractResult
-	for _, contract_data := range data {
-		var contract ContractResult
-		contract.AddressHash = contract_data.AddressHash
-		contract.Name = contract_data.Name
-		contract.InsertedAt = contract_data.InsertedAt
-		contracts = append(contracts, contract)
-	}
-	return contracts
+func (result *SearchResult) ToContract() ContractResult {
+	var contract ContractResult
+	contract.AddressHash = result.AddressHash
+	contract.Name = result.Name
+	contract.InsertedAt = result.InsertedAt
+	return contract
 }
 
-func SearchResultsToTokens(data []SearchResult) []TokenResult {
-	var tokens []TokenResult
-	for _, token_data := range data {
-		if token_data.AddressHash == "" {
-			continue
-		}
-		var token TokenResult
-		token.AddressHash = token_data.AddressHash
-		token.HolderCount = token_data.HolderCount
-		token.Name = token_data.Name
-		token.Symbol = token_data.Symbol
-		token.InsertedAt = token_data.InsertedAt
-		tokens = append(tokens, token)
-	}
-	return tokens
+func (result *SearchResult) ToToken() TokenResult {
+	var token TokenResult
+	token.AddressHash = result.AddressHash
+	token.HolderCount = result.HolderCount
+	token.Name = result.Name
+	token.Symbol = result.Symbol
+	token.InsertedAt = result.InsertedAt
+	return token
 }
 
-func SearchResultsToTransactions(data []SearchResult) []TransactionResult {
-	var transactions []TransactionResult
-	for _, transaction_data := range data {
-		var transaction TransactionResult
-		transaction.EvmHash = transaction_data.TxHash
-		transaction.CosmosHash = transaction_data.CosmosHash
-		transaction.InsertedAt = transaction_data.InsertedAt
-		transactions = append(transactions, transaction)
-	}
-	return transactions
+func (result *SearchResult) ToTransaction() TransactionResult {
+	var transaction TransactionResult
+	transaction.EvmHash = result.TxHash
+	transaction.CosmosHash = result.CosmosHash
+	transaction.InsertedAt = result.InsertedAt
+	return transaction
 }
 
-func SearchResultsToBlocks(data []SearchResult) []BlockResult {
-	var blocks []BlockResult
-	for _, block_data := range data {
-		var block BlockResult
-		block.BlockHash = block_data.BlockHash
-		block.BlockNumber = block_data.BlockNumber
-		block.InsertedAt = block_data.InsertedAt
-		blocks = append(blocks, block)
-	}
-	return blocks
+func (result *SearchResult) ToBlock() BlockResult {
+	var block BlockResult
+	block.BlockHash = result.BlockHash
+	block.BlockNumber = result.BlockNumber
+	block.InsertedAt = result.InsertedAt
+	return block
 }
