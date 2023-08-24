@@ -83,7 +83,6 @@ func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 	err := handler.astraCache.Get(proposalKey, &tmpProposal)
 	if err == nil {
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
-		httpapi.BadRequest(ctx, errors.New("id param is invalid"))
 		httpapi.Success(ctx, tmpProposal)
 		return
 	}
