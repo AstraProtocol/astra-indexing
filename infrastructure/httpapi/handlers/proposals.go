@@ -107,10 +107,13 @@ func (handler *Proposals) FindById(ctx *fasthttp.RequestCtx) {
 		tally.Abstain = tallyMap["abstain"].(string)
 		tally.NoWithVeto = tallyMap["no_with_veto"].(string)
 	} else {
-		tally.No = "0"
-		tally.Yes = "0"
-		tally.Abstain = "0"
-		tally.NoWithVeto = "0"
+		tally, err = handler.cosmosClient.ProposalTally(idParam)
+		if err != nil {
+			tally.No = "0"
+			tally.Yes = "0"
+			tally.Abstain = "0"
+			tally.NoWithVeto = "0"
+		}
 	}
 
 	if handler.totalBondedLastUpdatedAt.Add(1 * time.Hour).Before(time.Now()) {
