@@ -81,6 +81,10 @@ func (handler *JsonRPC) GetTokenPrice(ctx *fasthttp.RequestCtx) {
 
 	//parse token price
 	priceData := strings.Split(response.Result.(string), "x")[1]
+	if len(priceData) < 128 {
+		httpapi.NotFound(ctx)
+		return
+	}
 	reserve0 := new(big.Int)
 	reserve0.SetString(priceData[0:64], 16)
 
