@@ -326,7 +326,7 @@ func (client *HTTPClient) Balances(accountAddress string) (coin.Coins, error) {
 }
 
 func (client *HTTPClient) BalancesAsync(accountAddress string, balancesChan chan coin.Coins) {
-	cacheKey := fmt.Sprintf("CosmosBalancesAsync_%s", accountAddress)
+	cacheKey := fmt.Sprintf("CosmosBalances_%s", accountAddress)
 	var coinsTmp coin.Coins
 
 	err := client.httpCache.Get(cacheKey, &coinsTmp)
@@ -448,7 +448,7 @@ func (client *HTTPClient) BondedBalance(accountAddress string) (coin.Coins, erro
 }
 
 func (client *HTTPClient) BondedBalanceAsync(accountAddress string, bondedBalancesChan chan coin.Coins) {
-	cacheKey := fmt.Sprintf("CosmosBondedBalanceAsync_%s", accountAddress)
+	cacheKey := fmt.Sprintf("CosmosBondedBalance_%s", accountAddress)
 	var coinsTmp coin.Coins
 
 	err := client.httpCache.Get(cacheKey, &coinsTmp)
@@ -577,7 +577,7 @@ func (client *HTTPClient) RedelegatingBalance(accountAddress string) (coin.Coins
 }
 
 func (client *HTTPClient) RedelegatingBalanceAsync(accountAddress string, redelegatingBalancesChan chan coin.Coins) {
-	cacheKey := fmt.Sprintf("CosmosRedelegatingBalanceAsync_%s", accountAddress)
+	cacheKey := fmt.Sprintf("CosmosRedelegatingBalance_%s", accountAddress)
 	var coinsTmp coin.Coins
 
 	err := client.httpCache.Get(cacheKey, &coinsTmp)
@@ -698,7 +698,7 @@ func (client *HTTPClient) UnbondingBalance(accountAddress string) (coin.Coins, e
 }
 
 func (client *HTTPClient) UnbondingBalanceAsync(accountAddress string, unbondingBalancesChan chan coin.Coins) {
-	cacheKey := fmt.Sprintf("CosmosUnbondingBalanceAsync_%s", accountAddress)
+	cacheKey := fmt.Sprintf("CosmosUnbondingBalance_%s", accountAddress)
 	var coinsTmp coin.Coins
 
 	err := client.httpCache.Get(cacheKey, &coinsTmp)
@@ -803,7 +803,7 @@ func (client *HTTPClient) TotalRewards(accountAddress string) (coin.DecCoins, er
 }
 
 func (client *HTTPClient) TotalRewardsAsync(accountAddress string, rewardBalanceChan chan coin.DecCoins) {
-	cacheKey := fmt.Sprintf("CosmosTotalRewardsAsync_%s", accountAddress)
+	cacheKey := fmt.Sprintf("CosmosTotalRewards_%s", accountAddress)
 	var decCoinsTmp coin.DecCoins
 
 	err := client.httpCache.Get(cacheKey, &decCoinsTmp)
@@ -919,7 +919,7 @@ func (client *HTTPClient) Commission(validatorAddress string) (coin.DecCoins, er
 }
 
 func (client *HTTPClient) CommissionAsync(validatorAddress string, commissionBalanceChan chan coin.DecCoins) {
-	cacheKey := fmt.Sprintf("CosmosCommissionAsync_%s", validatorAddress)
+	cacheKey := fmt.Sprintf("CosmosCommission_%s", validatorAddress)
 	var decCoinsTmp coin.DecCoins
 
 	err := client.httpCache.Get(cacheKey, &decCoinsTmp)
@@ -1277,6 +1277,194 @@ func (client *HTTPClient) DepositParams() (cosmosapp_interface.Params, error) {
 	return params, nil
 }
 
+func (client *HTTPClient) DepositParamsAsync(depositParamsChan chan cosmosapp_interface.Params) {
+	cacheKey := "CosmosDepositParams"
+	var depositParamsTmp cosmosapp_interface.Params
+
+	err := client.httpCache.Get(cacheKey, &depositParamsTmp)
+	if err == nil {
+		depositParamsChan <- depositParamsTmp
+		return
+	}
+
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(depositParamsChan)
+	}()
+
+	method := fmt.Sprintf(
+		"%s/%s/%s/%s/%s",
+		"cosmos", "gov", "v1beta1", "params", "deposit",
+	)
+	rawRespBody, statusCode, err := client.rawRequest(
+		method,
+	)
+
+	if err != nil {
+		depositParamsChan <- cosmosapp_interface.Params{}
+		return
+	}
+	if statusCode == 404 {
+		depositParamsChan <- cosmosapp_interface.Params{}
+		return
+	}
+	if statusCode != 200 {
+		depositParamsChan <- cosmosapp_interface.Params{}
+		return
+	}
+	defer rawRespBody.Close()
+
+	var depositParams cosmosapp_interface.Params
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&depositParams); err != nil {
+		depositParamsChan <- cosmosapp_interface.Params{}
+		return
+	}
+
+	client.httpCache.Set(cacheKey, depositParams, utils.TIME_CACHE_FAST)
+	depositParamsChan <- depositParams
+}
+
+func (client *HTTPClient) TallyParamsAsync(tallyParamsChan chan cosmosapp_interface.Params) {
+	cacheKey := "CosmosTallyParams"
+	var tallyParamsTmp cosmosapp_interface.Params
+
+	err := client.httpCache.Get(cacheKey, &tallyParamsTmp)
+	if err == nil {
+		tallyParamsChan <- tallyParamsTmp
+		return
+	}
+
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(tallyParamsChan)
+	}()
+
+	method := fmt.Sprintf(
+		"%s/%s/%s/%s/%s",
+		"cosmos", "gov", "v1beta1", "params", "tallying",
+	)
+	rawRespBody, statusCode, err := client.rawRequest(
+		method,
+	)
+
+	if err != nil {
+		tallyParamsChan <- cosmosapp_interface.Params{}
+		return
+	}
+	if statusCode == 404 {
+		tallyParamsChan <- cosmosapp_interface.Params{}
+		return
+	}
+	if statusCode != 200 {
+		tallyParamsChan <- cosmosapp_interface.Params{}
+		return
+	}
+	defer rawRespBody.Close()
+
+	var tallyParams cosmosapp_interface.Params
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&tallyParams); err != nil {
+		tallyParamsChan <- cosmosapp_interface.Params{}
+		return
+	}
+
+	client.httpCache.Set(cacheKey, tallyParams, utils.TIME_CACHE_FAST)
+	tallyParamsChan <- tallyParams
+}
+
+func (client *HTTPClient) FeeMarketParamsAsync(feeParamsChan chan cosmosapp_interface.FeeParams) {
+	cacheKey := "CosmosFeeMarketParams"
+	var feeParamsTmp cosmosapp_interface.FeeParams
+
+	err := client.httpCache.Get(cacheKey, &feeParamsTmp)
+	if err == nil {
+		feeParamsChan <- feeParamsTmp
+		return
+	}
+
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(feeParamsChan)
+	}()
+
+	method := fmt.Sprintf(
+		"%s/%s/%s/%s",
+		"evmos", "feemarket", "v1", "params",
+	)
+	rawRespBody, statusCode, err := client.rawRequest(
+		method,
+	)
+
+	if err != nil {
+		feeParamsChan <- cosmosapp_interface.FeeParams{}
+		return
+	}
+	if statusCode == 404 {
+		feeParamsChan <- cosmosapp_interface.FeeParams{}
+		return
+	}
+	if statusCode != 200 {
+		feeParamsChan <- cosmosapp_interface.FeeParams{}
+		return
+	}
+	defer rawRespBody.Close()
+
+	var feeParams cosmosapp_interface.FeeParams
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&feeParams); err != nil {
+		feeParamsChan <- cosmosapp_interface.FeeParams{}
+		return
+	}
+
+	client.httpCache.Set(cacheKey, feeParams, utils.TIME_CACHE_FAST)
+	feeParamsChan <- feeParams
+}
+
+func (client *HTTPClient) StakingParamsAsync(stakingParamsChan chan cosmosapp_interface.StakingParams) {
+	cacheKey := "CosmosStakingParams"
+	var stakingParamsTmp cosmosapp_interface.StakingParams
+
+	err := client.httpCache.Get(cacheKey, &stakingParamsTmp)
+	if err == nil {
+		stakingParamsChan <- stakingParamsTmp
+		return
+	}
+
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(stakingParamsChan)
+	}()
+
+	method := fmt.Sprintf(
+		"%s/%s/%s/%s",
+		"cosmos", "staking", "v1beta1", "params",
+	)
+	rawRespBody, statusCode, err := client.rawRequest(
+		method,
+	)
+
+	if err != nil {
+		stakingParamsChan <- cosmosapp_interface.StakingParams{}
+		return
+	}
+	if statusCode == 404 {
+		stakingParamsChan <- cosmosapp_interface.StakingParams{}
+		return
+	}
+	if statusCode != 200 {
+		stakingParamsChan <- cosmosapp_interface.StakingParams{}
+		return
+	}
+	defer rawRespBody.Close()
+
+	var stakingParams cosmosapp_interface.StakingParams
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&stakingParams); err != nil {
+		stakingParamsChan <- cosmosapp_interface.StakingParams{}
+		return
+	}
+
+	client.httpCache.Set(cacheKey, stakingParams, utils.TIME_CACHE_FAST)
+	stakingParamsChan <- stakingParams
+}
+
 func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	cacheKey := fmt.Sprintf("CosmosTx_%s", hash)
 	var txTmp *model.Tx
@@ -1389,7 +1577,7 @@ func (client *HTTPClient) VestingBalances(account string) (cosmosapp_interface.V
 }
 
 func (client *HTTPClient) VestingBalancesAsync(account string, vestingBalancesChan chan cosmosapp_interface.VestingBalances) {
-	cacheKey := fmt.Sprintf("CosmosVestingBalancesAsync_%s", account)
+	cacheKey := fmt.Sprintf("CosmosVestingBalances_%s", account)
 	var vestingBalancesTmp cosmosapp_interface.VestingBalances
 
 	err := client.httpCache.Get(cacheKey, &vestingBalancesTmp)
