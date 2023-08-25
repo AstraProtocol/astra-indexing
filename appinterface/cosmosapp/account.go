@@ -28,35 +28,35 @@ type ModuleAccount struct {
 }
 
 type DelayedVestingAccount struct {
-	OriginalVesting  []VestingBalance `json:"original_vesting"`
-	DelegatedFree    []VestingBalance `json:"delegated_free"`
-	DelegatedVesting []VestingBalance `json:"delegated_vesting"`
-	EndTime          string           `json:"end_time"`
+	OriginalVesting  []Balance `json:"original_vesting"`
+	DelegatedFree    []Balance `json:"delegated_free"`
+	DelegatedVesting []Balance `json:"delegated_vesting"`
+	EndTime          string    `json:"end_time"`
 }
 
 type ContinuousVestingAccount struct {
-	OriginalVesting  []VestingBalance `json:"original_vesting"`
-	DelegatedFree    []VestingBalance `json:"delegated_free"`
-	DelegatedVesting []VestingBalance `json:"delegated_vesting"`
-	StartTime        string           `json:"start_time"`
-	EndTime          string           `json:"end_time"`
+	OriginalVesting  []Balance `json:"original_vesting"`
+	DelegatedFree    []Balance `json:"delegated_free"`
+	DelegatedVesting []Balance `json:"delegated_vesting"`
+	StartTime        string    `json:"start_time"`
+	EndTime          string    `json:"end_time"`
 }
 
 type PeriodicVestingAccount struct {
-	OriginalVesting  []VestingBalance `json:"original_vesting"`
-	DelegatedFree    []VestingBalance `json:"delegated_free"`
-	DelegatedVesting []VestingBalance `json:"delegated_vesting"`
-	StartTime        string           `json:"start_time"`
-	EndTime          string           `json:"end_time"`
-	VestingPeriods   []VestingPeriod  `json:"vesting_periods"`
+	OriginalVesting  []Balance       `json:"original_vesting"`
+	DelegatedFree    []Balance       `json:"delegated_free"`
+	DelegatedVesting []Balance       `json:"delegated_vesting"`
+	StartTime        string          `json:"start_time"`
+	EndTime          string          `json:"end_time"`
+	VestingPeriods   []VestingPeriod `json:"vesting_periods"`
 }
 
 type VestingPeriod struct {
-	Amount []VestingBalance `json:"amount"`
-	Length string           `json:"length"`
+	Amount []Balance `json:"amount"`
+	Length string    `json:"length"`
 }
 
-type VestingBalance struct {
+type Balance struct {
 	Denom  string `json:"denom"`
 	Amount string `json:"amount"`
 }
@@ -69,7 +69,7 @@ type ClawbackVestingAccount struct {
 }
 
 type VestingBalances struct {
-	Locked   []VestingBalance `json:"locked"`
-	Unvested []VestingBalance `json:"unvested"`
-	Vested   []VestingBalance `json:"vested"`
+	Locked   []Balance `json:"locked"`
+	Unvested []Balance `json:"unvested"`
+	Vested   []Balance `json:"vested"`
 }

@@ -25,19 +25,6 @@ type Params struct {
 	TallyParams   TallyParams   `json:"tally_params"`
 }
 
-type Staking struct {
-	UnbondingTime     string `json:"unbonding_time"`
-	MaxValidators     uint   `json:"max_validators"`
-	MaxEntries        uint   `json:"max_entries"`
-	HistoricalEntries uint   `json:"historical_entries"`
-	BondDenom         string `json:"bond_denom"`
-	MinCommissionRate string `json:"min_commission_rate"`
-}
-
-type StakingParams struct {
-	Params Staking `json:"params"`
-}
-
 type FeeMarket struct {
 	NoBaseFee                bool   `json:"no_base_fee"`
 	BaseFeeChangeDenominator uint64 `json:"base_fee_change_denominator"`

@@ -1465,6 +1465,100 @@ func (client *HTTPClient) StakingParamsAsync(stakingParamsChan chan cosmosapp_in
 	stakingParamsChan <- stakingParams
 }
 
+func (client *HTTPClient) StakingPoolAsync(stakingPoolChan chan cosmosapp_interface.StakingPool) {
+	cacheKey := "CosmosStakingPool"
+	var stakingPoolTmp cosmosapp_interface.StakingPool
+
+	err := client.httpCache.Get(cacheKey, &stakingPoolTmp)
+	if err == nil {
+		stakingPoolChan <- stakingPoolTmp
+		return
+	}
+
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(stakingPoolChan)
+	}()
+
+	method := fmt.Sprintf(
+		"%s/%s/%s/%s",
+		"cosmos", "staking", "v1beta1", "pool",
+	)
+	rawRespBody, statusCode, err := client.rawRequest(
+		method,
+	)
+
+	if err != nil {
+		stakingPoolChan <- cosmosapp_interface.StakingPool{}
+		return
+	}
+	if statusCode == 404 {
+		stakingPoolChan <- cosmosapp_interface.StakingPool{}
+		return
+	}
+	if statusCode != 200 {
+		stakingPoolChan <- cosmosapp_interface.StakingPool{}
+		return
+	}
+	defer rawRespBody.Close()
+
+	var stakingPool cosmosapp_interface.StakingPool
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&stakingPool); err != nil {
+		stakingPoolChan <- cosmosapp_interface.StakingPool{}
+		return
+	}
+
+	client.httpCache.Set(cacheKey, stakingPool, utils.TIME_CACHE_FAST)
+	stakingPoolChan <- stakingPool
+}
+
+func (client *HTTPClient) BlockProvisionAsync(blockProvisionChan chan cosmosapp_interface.BlockProvision) {
+	cacheKey := "CosmosBlockProvision"
+	var blockProvisionTmp cosmosapp_interface.BlockProvision
+
+	err := client.httpCache.Get(cacheKey, &blockProvisionTmp)
+	if err == nil {
+		blockProvisionChan <- blockProvisionTmp
+		return
+	}
+
+	// Make sure we close these channels when we're done with them
+	defer func() {
+		close(blockProvisionChan)
+	}()
+
+	method := fmt.Sprintf(
+		"%s/%s/%s/%s",
+		"cosmos", "staking", "v1beta1", "pool",
+	)
+	rawRespBody, statusCode, err := client.rawRequest(
+		method,
+	)
+
+	if err != nil {
+		blockProvisionChan <- cosmosapp_interface.BlockProvision{}
+		return
+	}
+	if statusCode == 404 {
+		blockProvisionChan <- cosmosapp_interface.BlockProvision{}
+		return
+	}
+	if statusCode != 200 {
+		blockProvisionChan <- cosmosapp_interface.BlockProvision{}
+		return
+	}
+	defer rawRespBody.Close()
+
+	var blockProvision cosmosapp_interface.BlockProvision
+	if err := jsoniter.NewDecoder(rawRespBody).Decode(&blockProvision); err != nil {
+		blockProvisionChan <- cosmosapp_interface.BlockProvision{}
+		return
+	}
+
+	client.httpCache.Set(cacheKey, blockProvision, utils.TIME_CACHE_FAST)
+	blockProvisionChan <- blockProvision
+}
+
 func (client *HTTPClient) Tx(hash string) (*model.Tx, error) {
 	cacheKey := fmt.Sprintf("CosmosTx_%s", hash)
 	var txTmp *model.Tx
@@ -1551,9 +1645,9 @@ func (client *HTTPClient) VestingBalances(account string) (cosmosapp_interface.V
 	)
 
 	vestingBalancesEmpty := cosmosapp_interface.VestingBalances{}
-	vestingBalancesEmpty.Locked = []cosmosapp_interface.VestingBalance{}
-	vestingBalancesEmpty.Unvested = []cosmosapp_interface.VestingBalance{}
-	vestingBalancesEmpty.Vested = []cosmosapp_interface.VestingBalance{}
+	vestingBalancesEmpty.Locked = []cosmosapp_interface.Balance{}
+	vestingBalancesEmpty.Unvested = []cosmosapp_interface.Balance{}
+	vestingBalancesEmpty.Vested = []cosmosapp_interface.Balance{}
 
 	if err != nil {
 		return vestingBalancesEmpty, err
@@ -1600,9 +1694,9 @@ func (client *HTTPClient) VestingBalancesAsync(account string, vestingBalancesCh
 	)
 
 	vestingBalancesEmpty := cosmosapp_interface.VestingBalances{}
-	vestingBalancesEmpty.Locked = []cosmosapp_interface.VestingBalance{}
-	vestingBalancesEmpty.Unvested = []cosmosapp_interface.VestingBalance{}
-	vestingBalancesEmpty.Vested = []cosmosapp_interface.VestingBalance{}
+	vestingBalancesEmpty.Locked = []cosmosapp_interface.Balance{}
+	vestingBalancesEmpty.Unvested = []cosmosapp_interface.Balance{}
+	vestingBalancesEmpty.Vested = []cosmosapp_interface.Balance{}
 
 	if err != nil {
 		vestingBalancesChan <- vestingBalancesEmpty

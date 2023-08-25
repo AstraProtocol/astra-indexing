@@ -43,6 +43,8 @@ type Client interface {
 	TallyParamsAsync(tallyParamsChan chan Params)
 	FeeMarketParamsAsync(feeParamsChan chan FeeParams)
 	StakingParamsAsync(stakingParamsChan chan StakingParams)
+	StakingPoolAsync(stakingPoolChan chan StakingPool)
+	BlockProvisionAsync(blockProvisionChan chan BlockProvision)
 
 	Tx(txHash string) (*model.Tx, error)
 
