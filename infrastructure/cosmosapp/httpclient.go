@@ -1529,7 +1529,7 @@ func (client *HTTPClient) BlockProvisionAsync(blockProvisionChan chan cosmosapp_
 
 	method := fmt.Sprintf(
 		"%s/%s/%s/%s",
-		"cosmos", "staking", "v1beta1", "pool",
+		"astra", "mint", "v1", "block_provision",
 	)
 	rawRespBody, statusCode, err := client.rawRequest(
 		method,

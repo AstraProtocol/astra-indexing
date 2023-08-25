@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/AstraProtocol/astra-indexing/appinterface/cosmosapp"
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	applogger "github.com/AstraProtocol/astra-indexing/external/logger"
 	"github.com/valyala/fasthttp"
@@ -23,6 +24,7 @@ import (
 type StatsHandler struct {
 	logger applogger.Logger
 
+	cosmosClient          cosmosapp.Client
 	blockscoutClient      blockscout_infrastructure.HTTPClient
 	blocksView            *block_view.Blocks
 	accountsView          account_view.Accounts
@@ -32,6 +34,7 @@ type StatsHandler struct {
 
 func NewStatsHandler(
 	logger applogger.Logger,
+	cosmosClient cosmosapp.Client,
 	blockscoutClient blockscout_infrastructure.HTTPClient,
 	rdbHandle *rdb.Handle,
 ) *StatsHandler {
@@ -40,6 +43,7 @@ func NewStatsHandler(
 			"module": "StatsHandler",
 		}),
 
+		cosmosClient,
 		blockscoutClient,
 		block_view.NewBlocks(rdbHandle),
 		account_view.NewAccountsView(rdbHandle),
@@ -797,6 +801,72 @@ func (handler *StatsHandler) CompilerVersions(ctx *fasthttp.RequestCtx) {
 	httpapi.Success(ctx, compilerVersions)
 }
 
+func (handler *StatsHandler) ChainConfigs(ctx *fasthttp.RequestCtx) {
+	startTime := time.Now()
+	recordMethod := "ChainConfigs"
+
+	depositParamsChan := make(chan cosmosapp.Params)
+	tallyParamsChan := make(chan cosmosapp.Params)
+	feeMarketParamsChan := make(chan cosmosapp.FeeParams)
+	stakingParamsChan := make(chan cosmosapp.StakingParams)
+	stakingPoolChan := make(chan cosmosapp.StakingPool)
+	blockProvisionChan := make(chan cosmosapp.BlockProvision)
+
+	go handler.cosmosClient.DepositParamsAsync(depositParamsChan)
+	go handler.cosmosClient.TallyParamsAsync(tallyParamsChan)
+	go handler.cosmosClient.FeeMarketParamsAsync(feeMarketParamsChan)
+	go handler.cosmosClient.StakingParamsAsync(stakingParamsChan)
+	go handler.cosmosClient.StakingPoolAsync(stakingPoolChan)
+	go handler.cosmosClient.BlockProvisionAsync(blockProvisionChan)
+
+	depositParams := <-depositParamsChan
+	tallyParams := <-tallyParamsChan
+	feeMarketParams := <-feeMarketParamsChan
+	stakingParams := <-stakingParamsChan
+	stakingPool := <-stakingPoolChan
+	blockProvision := <-blockProvisionChan
+
+	blockProvisionAmount, ok := new(big.Float).SetString(blockProvision.Provision.Amount)
+	if !ok {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("cannot convert block provision amount"))
+		return
+	}
+
+	bondedAmount, ok := new(big.Float).SetString(stakingPool.Pool.BondedTokens)
+	if !ok {
+		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+		httpapi.BadRequest(ctx, errors.New("cannot convert block bonded amount"))
+		return
+	}
+
+	// chainApr := blockProvision * 0.88 * 10519200 / bondedTokens
+	alpha := new(big.Float).Mul(big.NewFloat(0).SetInt64(10519200), big.NewFloat(0).SetFloat64(0.88))
+	chainApr, _ := new(big.Float).Quo(new(big.Float).Mul(blockProvisionAmount, alpha), bondedAmount).Float64()
+
+	var configs Configs
+	configs.Config.BaseFee.BaseFee = feeMarketParams.Params.BaseFee
+	configs.Config.BaseFee.MinGasPrice = feeMarketParams.Params.MinGasPrice
+
+	configs.Config.Staking.BondDenom = stakingParams.Params.BondDenom
+	configs.Config.Staking.HistoricalEntries = stakingParams.Params.HistoricalEntries
+	configs.Config.Staking.MaxEntries = stakingParams.Params.MaxEntries
+	configs.Config.Staking.MaxValidators = stakingParams.Params.MaxValidators
+	configs.Config.Staking.UnbondingTime = stakingParams.Params.UnbondingTime
+
+	configs.Config.Deposit.MaxDepositPeriod = depositParams.DepositParams.MaxDepositPeriod
+	configs.Config.Deposit.MinDeposit = depositParams.DepositParams.MinDeposit[0].Amount
+
+	configs.Config.Tallying.Quorum = tallyParams.TallyParams.Quorum
+	configs.Config.Tallying.VetoThreshold = tallyParams.TallyParams.VetoThreshold
+	configs.Config.Tallying.Threshold = tallyParams.TallyParams.Threshold
+
+	configs.Config.ChainApr = chainApr
+
+	prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(200), "GET", time.Since(startTime).Milliseconds())
+	httpapi.SuccessNotWrappedResult(ctx, configs)
+}
+
 type EstimateCountedInfo struct {
 	TotalBlocks       int64 `json:"total_blocks"`
 	TotalTransactions int64 `json:"total_transactions"`
@@ -846,4 +916,40 @@ type TotalFeesHistoryDaily struct {
 type TotalFeesHistoryMonthly struct {
 	TotalFeesHistory []chainstats_view.TotalFeeHistory `json:"totalFeesHistory"`
 	MonthlyAverage   *big.Int                          `json:"monthlyAverage"`
+}
+
+type BaseFee struct {
+	BaseFee     string `json:"baseFee"`
+	MinGasPrice string `json:"minGasPrice"`
+}
+
+type Staking struct {
+	UnbondingTime     string `json:"unbondingTime"`
+	MaxValidators     uint   `json:"maxValidators"`
+	MaxEntries        uint   `json:"maxEntries"`
+	HistoricalEntries uint   `json:"historicalEntries"`
+	BondDenom         string `json:"bondDenom"`
+}
+
+type Deposit struct {
+	MinDeposit       string `json:"minDeposit"`
+	MaxDepositPeriod string `json:"maxDepositPeriod"`
+}
+
+type Tallying struct {
+	Quorum        string `json:"quorum"`
+	Threshold     string `json:"threshold"`
+	VetoThreshold string `json:"vetoThreshold"`
+}
+
+type Config struct {
+	BaseFee  BaseFee  `json:"baseFee"`
+	Staking  Staking  `json:"staking"`
+	Deposit  Deposit  `json:"deposit"`
+	Tallying Tallying `json:"tallying"`
+	ChainApr float64  `json:"chainApr"`
+}
+
+type Configs struct {
+	Config Config `json:"configs"`
 }
