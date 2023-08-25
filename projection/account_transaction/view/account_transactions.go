@@ -162,14 +162,14 @@ func (accountMessagesView *AccountTransactions) List(
 			}
 		}
 	} else {
-		//txs filter
+		// txs filter
 		addressHash := strings.ToLower(filter.Account)
 		if tmcosmosutils.IsValidCosmosAddress(filter.Account) {
 			_, converted, _ := tmcosmosutils.DecodeAddressToHex(filter.Account)
 			addressHash = strings.ToLower("0x" + hex.EncodeToString(converted))
 		}
 
-		//date time filter
+		// date time filter
 		currentDate := time.Now().Truncate(24 * time.Hour)
 
 		layout := "2006-01-02"
@@ -200,7 +200,7 @@ func (accountMessagesView *AccountTransactions) List(
 
 		switch filter.TxType {
 		case ALL:
-			//include internal txs and token transfers
+			// include internal txs and token transfers
 			stmtBuilder = stmtBuilder.Where(
 				"((view_account_transactions.is_internal_tx = false AND view_account_transactions.account = ?) OR "+
 					"(view_account_transactions.account = ? AND view_account_transactions.is_internal_tx = true AND "+
@@ -270,7 +270,7 @@ func (accountMessagesView *AccountTransactions) List(
 			)
 		}
 
-		//filter by txs status
+		// filter by txs status
 		if filter.Status == "success" {
 			stmtBuilder = stmtBuilder.Where(
 				"view_account_transactions.success = ?",

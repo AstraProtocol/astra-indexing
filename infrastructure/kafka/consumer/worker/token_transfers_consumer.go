@@ -57,7 +57,7 @@ func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, log
 			if err != nil {
 				logger.Infof("Kafka Token Transfer Consumer error: %v", err)
 			} else {
-				//get evm types by tx hashes
+				// get evm types by tx hashes
 				tokenTransfer := collectedTokenTransfer.TokenTransfers[0]
 				txHashes := []string{tokenTransfer.TransactionHash}
 				evmTxTypes, err := rdbTransactionView.GetTxsTypeByEvmHashes(txHashes)
@@ -65,9 +65,9 @@ func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, log
 					logger.Infof("get txs type query error: %v", err)
 				}
 
-				//handle when tx was indexed to chainindexing db
+				// handle when tx was indexed to chainindexing db
 				if len(evmTxTypes) > 0 {
-					//index token transfer when tx type are valid
+					// index token transfer when tx type are valid
 					if transferCouponType[evmTxTypes[0].TxType] {
 						accountTransactionRows := make([]accountTransactionView.AccountTransactionBaseRow, 0)
 						txs := make([]accountTransactionView.TransactionRow, 0)
@@ -99,7 +99,7 @@ func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, log
 						blockTime := utctime.Now()
 						transactionInfo.FillBlockInfo(blockHash, blockTime)
 
-						//parse token transfer to message content
+						// parse token transfer to message content
 						legacyTx := model.LegacyTx{
 							Type:  tokenTransfer.TokenType,
 							Gas:   "0",
@@ -158,7 +158,7 @@ func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, log
 						err = rdbAccountTransactionsView.InsertAll(accountTransactionRows)
 						if err == nil {
 							err = rdbAccountTransactionDataView.InsertAll(txs)
-							//commit offset
+							// commit offset
 							if err == nil {
 								if errCommit := tokenTransfersConsumer.Commit(ctx, message); errCommit != nil {
 									logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.TOKEN_TRANSFERS_TOPIC, message.Partition, errCommit)
@@ -168,7 +168,7 @@ func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, log
 							}
 						} else {
 							logger.Infof("Failed to insert account txs from Consumer partition %d: %v", message.Partition, err)
-							//commit offset when duplicated message
+							// commit offset when duplicated message
 							if strings.Contains(fmt.Sprint(err), "duplicate key value violates unique constraint") {
 								if errCommit := tokenTransfersConsumer.Commit(ctx, message); errCommit != nil {
 									logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.TOKEN_TRANSFERS_TOPIC, message.Partition, errCommit)
@@ -176,7 +176,7 @@ func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, log
 							}
 						}
 					} else {
-						//commit offset when tx type are not valid
+						// commit offset when tx type are not valid
 						if errCommit := tokenTransfersConsumer.Commit(ctx, message); errCommit != nil {
 							logger.Infof("Topic: %s. Consumer partition %d failed to commit messages: %v", utils.TOKEN_TRANSFERS_TOPIC, message.Partition, errCommit)
 						}

@@ -836,7 +836,7 @@ func (handler *StatsHandler) ChainConfigs(ctx *fasthttp.RequestCtx) {
 	bondedAmount, ok := new(big.Float).SetString(stakingPool.Pool.BondedTokens)
 	if !ok {
 		prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
-		httpapi.BadRequest(ctx, errors.New("cannot convert block bonded amount"))
+		httpapi.BadRequest(ctx, errors.New("cannot convert bonded amount"))
 		return
 	}
 
