@@ -15,3 +15,7 @@ type BlockData struct {
 type RawTxs struct {
 	Txs []string `json:"txs"`
 }
+
+type BlockProvision struct {
+	Provision Balance `json:"provision"`
+}

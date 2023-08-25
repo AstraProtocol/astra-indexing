@@ -39,6 +39,13 @@ type Client interface {
 	ProposalTally(id string) (Tally, error)
 	DepositParams() (Params, error)
 
+	DepositParamsAsync(depositParamsChan chan Params)
+	TallyParamsAsync(tallyParamsChan chan Params)
+	FeeMarketParamsAsync(feeParamsChan chan FeeParams)
+	StakingParamsAsync(stakingParamsChan chan StakingParams)
+	StakingPoolAsync(stakingPoolChan chan StakingPool)
+	BlockProvisionAsync(blockProvisionChan chan BlockProvision)
+
 	Tx(txHash string) (*model.Tx, error)
 
 	TotalFeeBurn() (TotalFeeBurn, error)

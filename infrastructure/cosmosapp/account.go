@@ -32,11 +32,11 @@ type Account struct {
 }
 
 type BaseVestingAccount struct {
-	BaseAccount      BaseAccount                          `json:"base_account"`
-	OriginalVesting  []cosmosapp_interface.VestingBalance `json:"original_vesting"`
-	DelegatedFree    []cosmosapp_interface.VestingBalance `json:"delegated_free"`
-	DelegatedVesting []cosmosapp_interface.VestingBalance `json:"delegated_vesting"`
-	EndTime          string                               `json:"end_time"`
+	BaseAccount      BaseAccount                   `json:"base_account"`
+	OriginalVesting  []cosmosapp_interface.Balance `json:"original_vesting"`
+	DelegatedFree    []cosmosapp_interface.Balance `json:"delegated_free"`
+	DelegatedVesting []cosmosapp_interface.Balance `json:"delegated_vesting"`
+	EndTime          string                        `json:"end_time"`
 }
 
 type BaseAccount struct {

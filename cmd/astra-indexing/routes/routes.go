@@ -277,6 +277,7 @@ func InitRouteRegistry(
 
 	statsHandlers := httpapi_handlers.NewStatsHandler(
 		logger,
+		cosmosAppClient,
 		*blockscoutClient,
 		rdbConn.ToHandle(),
 	)
@@ -340,6 +341,11 @@ func InitRouteRegistry(
 			Method:  GET,
 			path:    "api/v1/compiler-versions/{compiler}",
 			handler: statsHandlers.CompilerVersions,
+		},
+		Route{
+			Method:  GET,
+			path:    "api/v1/configs",
+			handler: statsHandlers.ChainConfigs,
 		},
 	)
 
