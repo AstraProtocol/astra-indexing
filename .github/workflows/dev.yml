@@ -16,8 +16,5 @@ jobs:
     uses: AstraProtocol/github-actions-workflows/.github/workflows/stella-deployment.yml@main
     with:
       workloadName: astra-indexing-worker-dev
-      ingressEnabled: "yes"
-      ingressHost: "chainindexing-worker.dev.astranet.services"
       replicas: "1"
-      servicePort: "8080"
     secrets: inherit
