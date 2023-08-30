@@ -1,9 +1,10 @@
-name: Chainindexing development deployment
+name: Development deployment
 on:
   push:
     branches: ['dev']
+
 jobs:
-  build-image:
+  build-chainindexing:
     uses: AstraProtocol/github-actions-workflows/.github/workflows/stella-deployment.yml@main
     with:
       ingressEnabled: "yes"
@@ -11,15 +12,12 @@ jobs:
       replicas: "1"
       servicePort: "8080"
     secrets: inherit  
-
-name: Chainindexing-worker development deployment
-on:
-  push:
-    branches: ['dev']
-jobs:
-  build-image:
+  build-chainindexing-worker:    
     uses: AstraProtocol/github-actions-workflows/.github/workflows/stella-deployment.yml@main
     with:
+      workloadName: astra-indexing-worker-dev
       ingressEnabled: "yes"
+      ingressHost: "chainindexing-worker.dev.astranet.services"
       replicas: "1"
-    secrets: inherit  
+      servicePort: "8080"
+    secrets: inherit
