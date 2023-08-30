@@ -12,6 +12,7 @@ jobs:
       replicas: "1"
       servicePort: "8080"
     secrets: inherit
+jobs:    
   build-image:
     uses: AstraProtocol/github-actions-workflows/.github/workflows/stella-deployment.yml@main
     with:
