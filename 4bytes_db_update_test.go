@@ -16,11 +16,7 @@ func TestUpdate4Bytes(t *testing.T) {
 	}
 
 	util.UpdateSignature("0x18cbafe5", "swapExactTokensForETH(uint256, uint256, address[], address, uint256)")
-	util.UpdateSignature("0x095ea7b3", "approve(address, uint256)")
-	util.UpdateSignature("0xe2bbb158", "deposit(uint256, uint256)")
 	util.UpdateSignature("0xded9382a", "removeLiquidityETHWithPermit(address, uint256, uint256, uint256, address, uint256, bool, uint8, bytes32, bytes32)")
-	util.UpdateSignature("0xa9059cbb", "transfer(address, uint256)")
-	util.UpdateSignature("0x441a3e70", "withdraw(uint256, uint256)")
 	util.UpdateSignature("0x71679309", "zapInEth(address, address, address, uint256, uint256)")
 	util.UpdateSignature("0xf305d719", "addLiquidityETH(address, uint256, uint256, uint256, address, uint256)")
 	util.UpdateSignature("0x2195995c", "removeLiquidityWithPermit(address, address, uint256, uint256, uint256, address, uint256, bool, uint8, bytes32, bytes32)")
