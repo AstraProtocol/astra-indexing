@@ -27,6 +27,7 @@ import (
 
 var transferCouponType = map[string]bool{
 	"safeTransferFrom": true,
+	"mintCoupons":      true,
 }
 
 func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, sigchan chan os.Signal) error {
