@@ -38,6 +38,8 @@ func TestUpdate4Bytes(t *testing.T) {
 	assert.Equal(util.GetMethodNameFromMethodId("0xe8e33700"), "addLiquidity")
 	assert.Equal(util.GetMethodNameFromMethodId("0x42842e0e"), "safeTransferFrom")
 	assert.Equal(util.GetMethodNameFromMethodId("0xecd5ff33"), "setProgramTime")
+	assert.Equal(util.GetMethodNameFromMethodId("0xbe739356"), "sendReward")
+	assert.Equal(util.GetMethodNameFromMethodId("0x743cec2d"), "exchangeWithValue")
 
 	data := "0q7S1gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGSWzhIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQVbZvQpCuU8VUVDSeyAd243bdr5ljiPA3bK7aUm/VuQVdhajtudaHAI7ltLe1GHQeZchiXxaXAq2Ez+6ErCpJRscAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 	signature := util.GetMethodNameFromData(data)

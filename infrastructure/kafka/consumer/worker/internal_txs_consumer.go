@@ -27,10 +27,10 @@ import (
 )
 
 var rewardType = map[string]bool{
-	"sendReward":        true,
-	"redeemReward":      true,
-	"exchange":          true,
-	"exchangeWithValue": true,
+	"sendReward": true,
+	//"redeemReward":      true,
+	//"exchange":          true,
+	//"exchangeWithValue": true,
 }
 
 func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, evmUtil evm.EvmUtils, sigchan chan os.Signal) error {
