@@ -54,6 +54,10 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 		return errConn
 	}
 
+	logger = logger.WithFields(applogger.LogFields{
+		"module": "InternalTxsConsumer",
+	})
+
 	internalTxsConsumer.Fetch(
 		[]consumer.CollectedInternalTx{},
 		func(collectedInternalTxs []consumer.CollectedInternalTx, message kafka.Message, ctx context.Context, err error) {

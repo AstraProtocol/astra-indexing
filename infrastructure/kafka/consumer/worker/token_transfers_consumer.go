@@ -48,6 +48,10 @@ func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, log
 		return errConn
 	}
 
+	logger = logger.WithFields(applogger.LogFields{
+		"module": "TokenTransfersConsumer",
+	})
+
 	rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
 	rdbAccountTransactionsView := accountTransactionView.NewAccountTransactions(rdbHandle)
 	rdbAccountTransactionDataView := accountTransactionView.NewAccountTransactionData(rdbHandle)

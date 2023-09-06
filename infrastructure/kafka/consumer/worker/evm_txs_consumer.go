@@ -38,6 +38,10 @@ func RunEvmTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger appl
 		return errConn
 	}
 
+	logger = logger.WithFields(applogger.LogFields{
+		"module": "EvmTxsConsumer",
+	})
+
 	var mapValues []map[string]interface{}
 	evmTxsConsumer.Fetch(
 		[]consumer.CollectedEvmTx{},
