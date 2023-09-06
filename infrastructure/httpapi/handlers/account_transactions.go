@@ -595,7 +595,7 @@ func (handler *AccountTransactions) SyncAccountInternalTxsByTxHash(ctx *fasthttp
 		}
 		tx.Messages = append(tx.Messages, tmpMessage)
 		txs = append(txs, tx)
-		accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRowsIncludingInternalTx()...)
+		accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRowsIncludingInternalTxOrTokenTransfer(index)...)
 	}
 	err = handler.accountTransactionsView.InsertAll(accountTransactionRows)
 	if err == nil {

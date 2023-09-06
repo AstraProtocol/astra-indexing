@@ -62,6 +62,7 @@ func (accountMessagesView *AccountTransactions) InsertAll(
 				"from_address",
 				"to_address",
 				"is_internal_tx",
+				"tx_index",
 			)
 		}
 
@@ -77,6 +78,7 @@ func (accountMessagesView *AccountTransactions) InsertAll(
 			row.FromAddress,
 			row.ToAddress,
 			row.IsInternalTx,
+			row.TxIndex,
 		)
 		pendingRowCount += 1
 
@@ -433,6 +435,7 @@ type AccountTransactionBaseRow struct {
 	FromAddress  string          `json:"from_address,omitempty"`
 	ToAddress    string          `json:"to_address,omitempty"`
 	IsInternalTx bool            `json:"is_internal_tx,omitempty"`
+	TxIndex      int             `json:"tx_index,omitempty"`
 }
 
 type AccountTransactionReadRow struct {
