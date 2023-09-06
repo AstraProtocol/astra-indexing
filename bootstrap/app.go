@@ -163,7 +163,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Infof("failed to run UpdateCountedTransactionsWithRDbHandle cronjob: %v", err)
+				fmt.Printf("failed to run UpdateCountedTransactionsWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -179,7 +179,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Infof("failed to run UpdateTotalGasUsedWithRDbHandle cronjob: %v", err)
+				fmt.Printf("failed to run UpdateTotalGasUsedWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -195,7 +195,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Infof("failed to run UpdateTotalAddressesWithRDbHandle cronjob: %v", err)
+				fmt.Printf("failed to run UpdateTotalAddressesWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -211,7 +211,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Infof("failed to run UpdateActiveAddressesWithRDbHandle cronjob: %v", err)
+				fmt.Printf("failed to run UpdateActiveAddressesWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -227,7 +227,7 @@ func (a *app) RunCronJobsStats(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Infof("failed to run UpdateTotalFeeWithRDbHandle cronjob: %v", err)
+				fmt.Printf("failed to run UpdateTotalFeeWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -261,7 +261,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Infof("failed to run UpdateTotalAstraOnchainRewardsWithRDbHandle cronjob: %v", err)
+				fmt.Printf("failed to run UpdateTotalAstraOnchainRewardsWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -279,7 +279,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Infof("failed to run UpdateTotalAstraWithdrawnFromTikiWithRDbHandle cronjob: %v", err)
+				fmt.Printf("failed to run UpdateTotalAstraWithdrawnFromTikiWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -296,7 +296,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Infof("failed to run UpdateTotalAstraOfRedeemedCouponsWithRDbHandle cronjob: %v", err)
+				fmt.Printf("failed to run UpdateTotalAstraOfRedeemedCouponsWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -313,7 +313,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Infof("failed to run UpdateTotalTxsOfRedeemedCouponsWithRDbHandle cronjob: %v", err)
+				fmt.Printf("failed to run UpdateTotalTxsOfRedeemedCouponsWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -330,7 +330,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Infof("failed to run UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle cronjob: %v", err)
+				fmt.Printf("failed to run UpdateTotalAddressesOfRedeemedCouponsWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -347,7 +347,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Infof("failed to run UpdateTotalAstraStakedWithRDbHandle cronjob: %v", err)
+				fmt.Printf("failed to run UpdateTotalAstraStakedWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -364,7 +364,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Infof("failed to run UpdateTotalStakingTxsWithRDbHandle cronjob: %v", err)
+				fmt.Printf("failed to run UpdateTotalStakingTxsWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -381,7 +381,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Infof("failed to run UpdateTotalStakingAddressesWithRDbHandle cronjob: %v", err)
+				fmt.Printf("failed to run UpdateTotalStakingAddressesWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
@@ -398,7 +398,7 @@ func (a *app) RunCronJobsReportDashboard(rdbHandle *rdb.Handle) {
 				if err == nil {
 					break
 				}
-				a.logger.Infof("failed to run UpdateTotalNewAddressesWithRDbHandle cronjob: %v", err)
+				fmt.Printf("failed to run UpdateTotalNewAddressesWithRDbHandle cronjob: %v", err)
 				time.Sleep(time.Duration(delayTime) * time.Second)
 				i += 1
 			}
