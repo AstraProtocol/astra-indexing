@@ -477,10 +477,10 @@ func (handler *AccountTransactions) SyncAccountInternalTxsByTxHash(ctx *fasthttp
 
 	//sync internal txs
 	rewardType := map[string]bool{
-		"sendReward":        true,
-		"redeemReward":      true,
-		"exchange":          true,
-		"exchangeWithValue": true,
+		"sendReward": true,
+		//"redeemReward":      true,
+		//"exchange":          true,
+		//"exchangeWithValue": true,
 	}
 	accountTransactionRows := make([]account_transaction_view.AccountTransactionBaseRow, 0)
 	txs := make([]account_transaction_view.TransactionRow, 0)
