@@ -182,7 +182,7 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 					}
 					tx.Messages = append(tx.Messages, tmpMessage)
 					txs = append(txs, tx)
-					accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRowsIncludingInternalTx()...)
+					accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRowsIncludingInternalTxOrTokenTransfer(int(internalTx.Index))...)
 				}
 				if len(txs) == 0 {
 					// commit offset when no internal txs are valid

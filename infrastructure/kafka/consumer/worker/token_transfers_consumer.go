@@ -158,7 +158,7 @@ func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, log
 						}
 						tx.Messages = append(tx.Messages, tmpMessage)
 						txs = append(txs, tx)
-						accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRowsIncludingInternalTx()...)
+						accountTransactionRows = append(accountTransactionRows, transactionInfo.ToRowsIncludingInternalTxOrTokenTransfer(int(tokenTransfer.LogIndex))...)
 
 						err = rdbAccountTransactionsView.InsertAll(accountTransactionRows)
 						if err == nil {

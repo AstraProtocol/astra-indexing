@@ -628,13 +628,14 @@ func (info *TransactionInfo) ToRows() []view.AccountTransactionBaseRow {
 		clonedRow := info.Row
 		clonedRow.Account = account
 		clonedRow.IsInternalTx = false
+		clonedRow.TxIndex = 0
 		rows = append(rows, clonedRow)
 	}
 
 	return rows
 }
 
-func (info *TransactionInfo) ToRowsIncludingInternalTx() []view.AccountTransactionBaseRow {
+func (info *TransactionInfo) ToRowsIncludingInternalTxOrTokenTransfer(index int) []view.AccountTransactionBaseRow {
 	info.FillMessageTypes()
 
 	rows := make([]view.AccountTransactionBaseRow, 0)
@@ -642,6 +643,7 @@ func (info *TransactionInfo) ToRowsIncludingInternalTx() []view.AccountTransacti
 		clonedRow := info.Row
 		clonedRow.Account = account
 		clonedRow.IsInternalTx = true
+		clonedRow.TxIndex = index
 		rows = append(rows, clonedRow)
 	}
 
