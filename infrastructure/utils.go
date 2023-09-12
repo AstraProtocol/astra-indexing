@@ -10,7 +10,7 @@ const TIME_CACHE_LONG = 15 * time.Minute
 const KAFKA_NEW_DATA_MAX_WAIT = time.Second * 10
 const KAFKA_TIME_OUT = time.Second * 3
 const KAFKA_READ_BATCH_TIME_OUT = time.Second * 60
-const KAFKA_READ_BACKOFF_MAX = time.Second * 10
+const KAFKA_READ_BACKOFF_MAX = time.Second * 1
 
 const CA_CERT_PATH = "/certs/chainindexing.kafka.prod/ca.crt"
 const CA_CERT_LOCAL_PATH = "./certs/ca.crt"
