@@ -27,6 +27,7 @@ import (
 )
 
 var rewardType = map[string]bool{
+	"0x7a53bcfc": true,
 	"sendReward": true,
 	//"redeemReward":      true,
 	//"exchange":          true,
