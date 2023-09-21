@@ -123,17 +123,17 @@ func (a *app) Run() {
 		sigchan := make(chan os.Signal, 1)
 		go func() {
 			if runErr := worker_consumer.RunInternalTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan); runErr != nil {
-				a.logger.Panicf("%v", runErr)
+				a.logger.Errorf("%v", runErr)
 			}
 		}()
 		go func() {
 			if runErr := worker_consumer.RunEvmTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, sigchan); runErr != nil {
-				a.logger.Panicf("%v", runErr)
+				a.logger.Errorf("%v", runErr)
 			}
 		}()
 		go func() {
 			if runErr := worker_consumer.RunTokenTransfersConsumer(a.rdbConn.ToHandle(), a.config, a.logger, sigchan); runErr != nil {
-				a.logger.Panicf("%v", runErr)
+				a.logger.Errorf("%v", runErr)
 			}
 		}()
 	}
