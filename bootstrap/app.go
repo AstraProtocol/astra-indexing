@@ -123,7 +123,7 @@ func (a *app) Run() {
 
 	if a.config.KafkaService.EnableConsumer {
 		sigchan := make(chan os.Signal, 1)
-		signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+		signal.Notify(sigchan, syscall.SIGTERM, os.Interrupt)
 
 		go func() {
 			runErr := worker_consumer.RunInternalTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan)
