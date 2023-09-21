@@ -4,7 +4,6 @@ import (
 	"context"
 	"math/big"
 	"os"
-	"os/signal"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
 	"github.com/AstraProtocol/astra-indexing/bootstrap/config"
@@ -18,8 +17,6 @@ import (
 )
 
 func RunEvmTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, sigchan chan os.Signal) error {
-	signal.Notify(sigchan, os.Interrupt)
-
 	rdbTransactionView := transactionView.NewTransactionsView(rdbHandle)
 	rdbAccountTransactionDataView := accountTransactionView.NewAccountTransactionData(rdbHandle)
 
