@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/AstraProtocol/astra-indexing/appinterface/rdb"
@@ -121,6 +122,8 @@ func (a *app) Run() {
 
 	if a.config.KafkaService.EnableConsumer {
 		sigchan := make(chan os.Signal, 1)
+		signal.Notify(sigchan, os.Interrupt)
+
 		go func() {
 			if runErr := worker_consumer.RunInternalTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan); runErr != nil {
 				a.logger.Errorf("%v", runErr)
