@@ -125,7 +125,6 @@ func (a *app) Run() {
 			for {
 				runErr := worker_consumer.RunInternalTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan)
 				if runErr != nil {
-					runErr = worker_consumer.RunInternalTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan)
 					a.logger.Errorf("%v", runErr)
 				}
 			}
@@ -134,7 +133,6 @@ func (a *app) Run() {
 			for {
 				runErr := worker_consumer.RunEvmTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, sigchan)
 				if runErr != nil {
-					runErr = worker_consumer.RunEvmTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, sigchan)
 					a.logger.Errorf("%v", runErr)
 				}
 			}
@@ -143,7 +141,6 @@ func (a *app) Run() {
 			for {
 				runErr := worker_consumer.RunTokenTransfersConsumer(a.rdbConn.ToHandle(), a.config, a.logger, sigchan)
 				if runErr != nil {
-					runErr = worker_consumer.RunTokenTransfersConsumer(a.rdbConn.ToHandle(), a.config, a.logger, sigchan)
 					a.logger.Errorf("%v", runErr)
 				}
 			}

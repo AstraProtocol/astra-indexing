@@ -45,7 +45,7 @@ func (c *Consumer[T]) CreateConnection() error {
 		WatchPartitionChanges: true,
 		ReadBackoffMax:        utils.KAFKA_READ_BACKOFF_MAX,
 		ErrorLogger:           kafka.LoggerFunc(logf),
-		//Logger:                kafka.LoggerFunc(logf),
+		Logger:                kafka.LoggerFunc(logf),
 	})
 	return nil
 }
