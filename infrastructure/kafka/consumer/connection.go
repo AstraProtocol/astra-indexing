@@ -57,6 +57,7 @@ func (c *Consumer[T]) Read(model T, callback func(T, error)) {
 		select {
 		case <-c.Sigchan:
 			run = false
+			c.Close()
 		default:
 			ctx := context.Background()
 			message, err := c.reader.ReadMessage(ctx)
@@ -76,7 +77,6 @@ func (c *Consumer[T]) Read(model T, callback func(T, error)) {
 			callback(model, nil)
 		}
 	}
-	c.Close()
 }
 
 func (c *Consumer[T]) Fetch(model T, callback func(T, kafka.Message, context.Context, error)) {
@@ -85,6 +85,7 @@ func (c *Consumer[T]) Fetch(model T, callback func(T, kafka.Message, context.Con
 		select {
 		case <-c.Sigchan:
 			run = false
+			c.Close()
 		default:
 			ctx := context.Background()
 			message, err := c.reader.FetchMessage(ctx)
@@ -104,7 +105,6 @@ func (c *Consumer[T]) Fetch(model T, callback func(T, kafka.Message, context.Con
 			callback(model, message, ctx, nil)
 		}
 	}
-	c.Close()
 }
 
 // Commit offset manual

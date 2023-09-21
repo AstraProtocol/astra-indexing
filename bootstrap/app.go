@@ -122,27 +122,21 @@ func (a *app) Run() {
 	if a.config.KafkaService.EnableConsumer {
 		sigchan := make(chan os.Signal, 1)
 		go func() {
-			for {
-				runErr := worker_consumer.RunInternalTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan)
-				if runErr != nil {
-					a.logger.Errorf("%v", runErr)
-				}
+			runErr := worker_consumer.RunInternalTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, a.evmUtil, sigchan)
+			if runErr != nil {
+				a.logger.Errorf("%v", runErr)
 			}
 		}()
 		go func() {
-			for {
-				runErr := worker_consumer.RunEvmTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, sigchan)
-				if runErr != nil {
-					a.logger.Errorf("%v", runErr)
-				}
+			runErr := worker_consumer.RunEvmTxsConsumer(a.rdbConn.ToHandle(), a.config, a.logger, sigchan)
+			if runErr != nil {
+				a.logger.Errorf("%v", runErr)
 			}
 		}()
 		go func() {
-			for {
-				runErr := worker_consumer.RunTokenTransfersConsumer(a.rdbConn.ToHandle(), a.config, a.logger, sigchan)
-				if runErr != nil {
-					a.logger.Errorf("%v", runErr)
-				}
+			runErr := worker_consumer.RunTokenTransfersConsumer(a.rdbConn.ToHandle(), a.config, a.logger, sigchan)
+			if runErr != nil {
+				a.logger.Errorf("%v", runErr)
 			}
 		}()
 	}
