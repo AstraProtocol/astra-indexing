@@ -238,16 +238,31 @@ func (accountMessagesView *AccountTransactions) List(
 				toDate,
 			)
 		case REWARD:
-			stmtBuilder = stmtBuilder.Where(
-				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
-					"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
-					"AND view_account_transaction_data.reward_tx_type = 'sendReward' "+
-					"AND (view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)",
-				true,
-				filter.Account,
-				fromDate,
-				toDate,
-			)
+			if filter.FromAddress == "" {
+				stmtBuilder = stmtBuilder.Where(
+					"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+						"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
+						"AND view_account_transaction_data.reward_tx_type = 'sendReward' "+
+						"AND (view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)",
+					true,
+					filter.Account,
+					fromDate,
+					toDate,
+				)
+			} else {
+				stmtBuilder = stmtBuilder.Where(
+					"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
+						"AND (view_account_transactions.block_time >= ? AND view_account_transactions.block_time < ?) "+
+						"AND view_account_transaction_data.reward_tx_type = 'sendReward' "+
+						"AND view_account_transactions.from_address = ? "+
+						"AND (view_account_transactions.from_address = view_account_transaction_data.from_address AND view_account_transactions.to_address = view_account_transaction_data.to_address)",
+					true,
+					filter.Account,
+					fromDate,
+					toDate,
+					filter.FromAddress,
+				)
+			}
 		case EXCHANGE_COUPON:
 			stmtBuilder = stmtBuilder.Where(
 				"view_account_transactions.is_internal_tx = ? AND view_account_transactions.account = ? "+
@@ -457,6 +472,8 @@ type AccountTransactionReadRow struct {
 type AccountTransactionsListFilter struct {
 	// Required account filter
 	Account string
+	// Optional from address filter
+	FromAddress string
 	// Optional memo filter
 	Memo string
 	// Optional including internal txs filter

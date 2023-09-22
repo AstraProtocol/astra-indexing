@@ -283,6 +283,17 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 		txType = string(queryArgs.Peek("txType"))
 	}
 
+	fromAddress := ""
+	if queryArgs.Has("fromAddress") {
+		fromAddress = strings.ToLower(string(queryArgs.Peek("fromAddress")))
+		if !evm_utils.IsHexAddress(fromAddress) {
+			handler.logger.Errorf("invalid %s fromAddress param", fromAddress)
+			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
+			httpapi.BadRequest(ctx, errors.New("invalid fromAddress param"))
+			return
+		}
+	}
+
 	layout := "2006-01-02"
 
 	fromDate := ""
@@ -322,6 +333,7 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 		FromDate:            fromDate,
 		ToDate:              toDate,
 		Status:              status,
+		FromAddress:         fromAddress,
 	}
 
 	order := account_transaction_view.AccountTransactionsListOrder{
