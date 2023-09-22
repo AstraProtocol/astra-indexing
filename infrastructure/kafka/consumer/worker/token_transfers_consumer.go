@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
-	"os/signal"
 	"strconv"
 	"strings"
 
@@ -31,8 +30,6 @@ var transferCouponType = map[string]bool{
 }
 
 func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, logger applogger.Logger, sigchan chan os.Signal) error {
-	signal.Notify(sigchan, os.Interrupt)
-
 	tokenTransfersConsumer := consumer.Consumer[consumer.CollectedTokenTransfer]{
 		TimeOut:            utils.KAFKA_TIME_OUT,
 		Brokers:            config.KafkaService.Brokers,

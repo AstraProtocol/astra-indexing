@@ -52,18 +52,18 @@ func (c *Consumer[T]) CreateConnection() error {
 
 // Auto commit offset
 func (c *Consumer[T]) Read(model T, callback func(T, error)) {
-	run := true
-	for run {
+	for {
 		select {
 		case <-c.Sigchan:
-			run = false
+			c.Close()
+			return
 		default:
 			ctx := context.Background()
 			message, err := c.reader.ReadMessage(ctx)
 
 			if err != nil {
 				callback(model, err)
-				return
+				continue
 			}
 
 			err = json.Unmarshal(message.Value, &model)
@@ -76,22 +76,21 @@ func (c *Consumer[T]) Read(model T, callback func(T, error)) {
 			callback(model, nil)
 		}
 	}
-	c.Close()
 }
 
 func (c *Consumer[T]) Fetch(model T, callback func(T, kafka.Message, context.Context, error)) {
-	run := true
-	for run {
+	for {
 		select {
 		case <-c.Sigchan:
-			run = false
+			c.Close()
+			return
 		default:
 			ctx := context.Background()
 			message, err := c.reader.FetchMessage(ctx)
 
 			if err != nil {
 				callback(model, message, ctx, err)
-				return
+				continue
 			}
 
 			err = json.Unmarshal(message.Value, &model)
@@ -104,7 +103,6 @@ func (c *Consumer[T]) Fetch(model T, callback func(T, kafka.Message, context.Con
 			callback(model, message, ctx, nil)
 		}
 	}
-	c.Close()
 }
 
 // Commit offset manual
