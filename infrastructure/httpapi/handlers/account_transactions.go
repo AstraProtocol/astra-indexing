@@ -286,7 +286,7 @@ func (handler *AccountTransactions) ListByAccount(ctx *fasthttp.RequestCtx) {
 	fromAddress := ""
 	if queryArgs.Has("fromAddress") {
 		fromAddress = strings.ToLower(string(queryArgs.Peek("fromAddress")))
-		if !evm_utils.IsHexAddress(fromAddress) {
+		if fromAddress != "" && !evm_utils.IsHexAddress(fromAddress) {
 			handler.logger.Errorf("invalid %s fromAddress param", fromAddress)
 			prometheus.RecordApiExecTime(recordMethod, strconv.Itoa(fasthttp.StatusBadRequest), "GET", time.Since(startTime).Milliseconds())
 			httpapi.BadRequest(ctx, errors.New("invalid fromAddress param"))
