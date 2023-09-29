@@ -16,8 +16,8 @@ func TestUpdate4Bytes(t *testing.T) {
 	}
 
 	util.UpdateSignature("0x18cbafe5", "swapExactTokensForETH(uint256, uint256, address[], address, uint256)")
-	util.UpdateSignature("0xcea08621", "changeDailyLimit(uint256 _dailyLimit)")
-	util.UpdateSignature("0x2fafb7c2", "changeRewardBudget(uint256 _maxBudget)")
+	util.UpdateSignature("0xcea08621", "changeDailyLimit(uint256)")
+	util.UpdateSignature("0x2fafb7c2", "changeRewardBudget(uint256)")
 
 	res, err := util.GetSignature("0xa07aea1c")
 	if err != nil {
