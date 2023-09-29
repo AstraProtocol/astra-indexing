@@ -16,6 +16,8 @@ func TestUpdate4Bytes(t *testing.T) {
 	}
 
 	util.UpdateSignature("0x18cbafe5", "swapExactTokensForETH(uint256, uint256, address[], address, uint256)")
+	util.UpdateSignature("0xcea08621", "changeDailyLimit(uint256 _dailyLimit)")
+	util.UpdateSignature("0x2fafb7c2", "changeRewardBudget(uint256 _maxBudget)")
 
 	res, err := util.GetSignature("0xa07aea1c")
 	if err != nil {
@@ -41,6 +43,8 @@ func TestUpdate4Bytes(t *testing.T) {
 	assert.Equal(util.GetMethodNameFromMethodId("0xbe739356"), "sendReward")
 	assert.Equal(util.GetMethodNameFromMethodId("0x743cec2d"), "exchangeWithValue")
 	assert.Equal(util.GetMethodNameFromMethodId("0x1482dcda"), "mintCoupons")
+	assert.Equal(util.GetMethodNameFromMethodId("0xcea08621"), "changeDailyLimit")
+	assert.Equal(util.GetMethodNameFromMethodId("0x2fafb7c2"), "changeRewardBudget")
 
 	data := "0q7S1gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGSWzhIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQVbZvQpCuU8VUVDSeyAd243bdr5ljiPA3bK7aUm/VuQVdhajtudaHAI7ltLe1GHQeZchiXxaXAq2Ez+6ErCpJRscAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 	signature := util.GetMethodNameFromData(data)
