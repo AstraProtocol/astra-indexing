@@ -157,6 +157,11 @@ func run(args []string) error {
 				Usage:   "Kafka Authentication Type",
 				EnvVars: []string{"KAFKA_AUTHEN_TYPE"},
 			},
+			&cli.StringFlag{
+				Name:    "kafkaEnv",
+				Usage:   "Kafka Env",
+				EnvVars: []string{"KAFKA_ENV"},
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			if args := ctx.Args(); args.Len() > 0 {
@@ -237,6 +242,9 @@ func run(args []string) error {
 			}
 			if ctx.IsSet("kafkaAuthenticationType") {
 				cliConfig.KafkaAuthenticationType = ctx.String("kafkaAuthenticationType")
+			}
+			if ctx.IsSet("kafkaEnv") {
+				cliConfig.KafkaEnv = ctx.String("kafkaEnv")
 			}
 
 			OverrideByCLIConfig(&config, &cliConfig)
