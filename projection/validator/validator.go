@@ -151,7 +151,8 @@ func (projection *Validator) HandleEvents(height int64, events []event_entity.Ev
 			for _, signature := range blockCreatedEvent.Block.Signatures {
 				signedValidator, exist := validatorMap[signature.ValidatorAddress]
 				if !exist {
-					return errors.New("error looking for signing validator details: not found")
+					projection.logger.Info("cannot looking for signing validator details: not found")
+					continue
 				}
 				commitmentMap[signedValidator.ConsensusNodeAddress] = true
 			}
