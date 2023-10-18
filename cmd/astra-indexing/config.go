@@ -38,6 +38,8 @@ type CLIConfig struct {
 
 	IndexService *bool
 
+	StartingBlockHeight *int64
+
 	CronjobStats *bool
 
 	CronjobReportDashboard *bool
@@ -110,6 +112,9 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	}
 	if cliConfig.TikiAddress != "" {
 		config.CronjobReportDashboard.TikiAddress = cliConfig.TikiAddress
+	}
+	if cliConfig.StartingBlockHeight != nil {
+		config.IndexService.StartingBlockHeight = *cliConfig.StartingBlockHeight
 	}
 	if cliConfig.EnableConsumer != nil {
 		config.KafkaService.EnableConsumer = *cliConfig.EnableConsumer

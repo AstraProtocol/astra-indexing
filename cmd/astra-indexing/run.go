@@ -122,6 +122,11 @@ func run(args []string) error {
 				Usage:   "Tiki Pool Address",
 				EnvVars: []string{"TIKI_ADDRESS"},
 			},
+			&cli.StringFlag{
+				Name:    "startingBlockHeight",
+				Usage:   "Starting Block Height",
+				EnvVars: []string{"STARTING_BLOCK_HEIGHT"},
+			},
 			&cli.BoolFlag{
 				Name:    "enableConsumer",
 				Usage:   "Enable Consumer",
@@ -211,6 +216,9 @@ func run(args []string) error {
 			}
 			if ctx.IsSet("tikiAddress") {
 				cliConfig.TikiAddress = ctx.String("tikiAddress")
+			}
+			if ctx.IsSet("startingBlockHeight") {
+				cliConfig.StartingBlockHeight = primptr.Int64(int64(ctx.Int("startingBlockHeight")))
 			}
 			if ctx.IsSet("enableConsumer") {
 				cliConfig.EnableConsumer = primptr.Bool(ctx.Bool("enableConsumer"))
