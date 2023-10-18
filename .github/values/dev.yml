@@ -1,0 +1,11 @@
+volumes:
+  - name: kafka-cert
+    secret:
+    secretName: chainindexing.kafka.dev.tls.astranet.services
+volumeMounts:
+  - name: kafka-cert
+    mountPath: /certs/chainindexing.kafka.dev
+specAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8081"
+serviceAccount: astra-indexing
