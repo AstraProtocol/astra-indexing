@@ -48,6 +48,7 @@ type KafkaService struct {
 	User               string   `yaml:"user" toml:"user" xml:"user" json:"user,omitempty"`
 	Password           string   `yaml:"password" toml:"password" xml:"password" json:"password,omitempty"`
 	AuthenticationType string   `yaml:"authentication_type" toml:"authentication_type" xml:"authentication_type" json:"authentication_type,omitempty"`
+	Env                string   `yaml:"env" toml:"env" xml:"env" json:"env,omitempty"`
 }
 
 type Blockchain struct {

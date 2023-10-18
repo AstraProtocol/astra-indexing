@@ -12,10 +12,15 @@ const KAFKA_TIME_OUT = time.Second * 3
 const KAFKA_READ_BATCH_TIME_OUT = time.Second * 60
 const KAFKA_READ_BACKOFF_MAX = time.Second * 1
 
-const CA_CERT_PATH = "/certs/chainindexing.kafka.prod/ca.crt"
 const CA_CERT_LOCAL_PATH = "./certs/ca.crt"
+
+const CA_CERT_PATH = "/certs/chainindexing.kafka.prod/ca.crt"
 const TLS_CERT_PATH = "/certs/chainindexing.kafka.prod/tls.crt"
 const TLS_KEY_PATH = "/certs/chainindexing.kafka.prod/tls.key"
+
+const CA_CERT_PATH_DEV = "/certs/chainindexing.kafka.dev/ca.crt"
+const TLS_CERT_PATH_DEV = "/certs/chainindexing.kafka.dev/tls.crt"
+const TLS_KEY_PATH_DEV = "/certs/chainindexing.kafka.dev/tls.key"
 
 const EVM_TXS_TOPIC = "evm-txs"
 const INTERNAL_TXS_TOPIC = "internal-txs"
