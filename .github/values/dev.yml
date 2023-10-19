@@ -1,7 +1,7 @@
 volumes:
   - name: kafka-cert
     secret:
-    secretName: tls-chainindexing-worker.dev.astranet.services
+    secretName: /certs/astra-indexing-dev.kafka.prod.tls.astranet.services
 volumeMounts:
   - name: kafka-cert
     mountPath: /certs/chainindexing.kafka.dev
