@@ -17,4 +17,6 @@ jobs:
     with:
       workloadName: astra-indexing-worker-dev
       replicas: "1"
+      kafkaCert: "true"
+      kafkaEnv: "dev"
     secrets: inherit
