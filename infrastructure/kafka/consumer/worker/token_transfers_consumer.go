@@ -39,6 +39,7 @@ func RunTokenTransfersConsumer(rdbHandle *rdb.Handle, config *config.Config, log
 		Password:           config.KafkaService.Password,
 		AuthenticationType: config.KafkaService.AuthenticationType,
 		Sigchan:            sigchan,
+		Env:                config.KafkaService.Env,
 	}
 	errConn := tokenTransfersConsumer.CreateConnection()
 	if errConn != nil {
