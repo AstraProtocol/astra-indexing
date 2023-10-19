@@ -51,7 +51,9 @@ type CLIConfig struct {
 	KafkaUser               string
 	KafkaPassword           string
 	KafkaAuthenticationType string
-	KafkaEnv                string
+	CaCertPath              string
+	TlsCertPath             string
+	TlsKeyPath              string
 }
 
 func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
@@ -135,7 +137,13 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	if cliConfig.KafkaAuthenticationType != "" {
 		config.KafkaService.AuthenticationType = cliConfig.KafkaAuthenticationType
 	}
-	if cliConfig.KafkaEnv != "" {
-		config.KafkaService.Env = cliConfig.KafkaEnv
+	if cliConfig.CaCertPath != "" {
+		config.KafkaService.CaCertPath = cliConfig.CaCertPath
+	}
+	if cliConfig.TlsCertPath != "" {
+		config.KafkaService.TlsCertPath = cliConfig.TlsCertPath
+	}
+	if cliConfig.TlsKeyPath != "" {
+		config.KafkaService.TlsKeyPath = cliConfig.TlsKeyPath
 	}
 }
