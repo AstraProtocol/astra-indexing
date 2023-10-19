@@ -158,9 +158,19 @@ func run(args []string) error {
 				EnvVars: []string{"KAFKA_AUTHEN_TYPE"},
 			},
 			&cli.StringFlag{
-				Name:    "kafkaEnv",
-				Usage:   "Kafka Env",
-				EnvVars: []string{"KAFKA_ENV"},
+				Name:    "caCertPath",
+				Usage:   "Ca Cert Path",
+				EnvVars: []string{"KAFKA_CA_CERT_PATH"},
+			},
+			&cli.StringFlag{
+				Name:    "tlsCertPath",
+				Usage:   "Tls Cert Path",
+				EnvVars: []string{"KAFKA_TLS_CERT_PATH"},
+			},
+			&cli.StringFlag{
+				Name:    "tlsKeyPath",
+				Usage:   "Tls Key Path",
+				EnvVars: []string{"KAFKA_TLS_KEY_PATH"},
 			},
 		},
 		Action: func(ctx *cli.Context) error {
@@ -243,8 +253,14 @@ func run(args []string) error {
 			if ctx.IsSet("kafkaAuthenticationType") {
 				cliConfig.KafkaAuthenticationType = ctx.String("kafkaAuthenticationType")
 			}
-			if ctx.IsSet("kafkaEnv") {
-				cliConfig.KafkaEnv = ctx.String("kafkaEnv")
+			if ctx.IsSet("caCertPath") {
+				cliConfig.CaCertPath = ctx.String("caCertPath")
+			}
+			if ctx.IsSet("tlsCertPath") {
+				cliConfig.TlsCertPath = ctx.String("tlsCertPath")
+			}
+			if ctx.IsSet("tlsKeyPath") {
+				cliConfig.TlsKeyPath = ctx.String("tlsKeyPath")
 			}
 
 			OverrideByCLIConfig(&config, &cliConfig)

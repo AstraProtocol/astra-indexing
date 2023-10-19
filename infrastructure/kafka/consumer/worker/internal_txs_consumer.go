@@ -46,7 +46,9 @@ func RunInternalTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger
 		Password:           config.KafkaService.Password,
 		AuthenticationType: config.KafkaService.AuthenticationType,
 		Sigchan:            sigchan,
-		Env:                config.KafkaService.Env,
+		CaCertPath:         config.KafkaService.CaCertPath,
+		TlsCertPath:        config.KafkaService.TlsCertPath,
+		TlsKeyPath:         config.KafkaService.TlsKeyPath,
 	}
 	errConn := internalTxsConsumer.CreateConnection()
 	if errConn != nil {

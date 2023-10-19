@@ -26,7 +26,9 @@ type Consumer[T any] struct {
 	Password           string
 	AuthenticationType string
 	Sigchan            chan os.Signal
-	Env                string
+	CaCertPath         string
+	TlsCertPath        string
+	TlsKeyPath         string
 }
 
 func (c *Consumer[T]) CreateConnection() error {
@@ -147,14 +149,19 @@ func (c *Consumer[T]) getDialer() (*kafka.Dialer, error) {
 		}
 		return dialer, nil
 	case "SSL":
-		tlsCertPath := utils.TLS_CERT_PATH
-		tlsKeyPath := utils.TLS_KEY_PATH
 		caCertPath := utils.CA_CERT_PATH
+		if c.CaCertPath != "" {
+			caCertPath = c.CaCertPath
+		}
 
-		if c.Env == "dev" {
-			tlsCertPath = utils.TLS_CERT_PATH_DEV
-			tlsKeyPath = utils.TLS_KEY_PATH_DEV
-			caCertPath = utils.CA_CERT_PATH_DEV
+		tlsCertPath := utils.TLS_CERT_PATH
+		if c.TlsCertPath != "" {
+			tlsCertPath = c.TlsCertPath
+		}
+
+		tlsKeyPath := utils.TLS_KEY_PATH
+		if c.TlsKeyPath != "" {
+			tlsKeyPath = c.TlsKeyPath
 		}
 
 		keypair, err := tls.LoadX509KeyPair(

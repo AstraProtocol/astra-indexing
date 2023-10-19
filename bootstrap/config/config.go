@@ -48,7 +48,9 @@ type KafkaService struct {
 	User               string   `yaml:"user" toml:"user" xml:"user" json:"user,omitempty"`
 	Password           string   `yaml:"password" toml:"password" xml:"password" json:"password,omitempty"`
 	AuthenticationType string   `yaml:"authentication_type" toml:"authentication_type" xml:"authentication_type" json:"authentication_type,omitempty"`
-	Env                string   `yaml:"env" toml:"env" xml:"env" json:"env,omitempty"`
+	CaCertPath         string   `yaml:"ca_cert_path" toml:"ca_cert_path" xml:"ca_cert_path" json:"ca_cert_path,omitempty"`
+	TlsCertPath        string   `yaml:"tls_cert_path" toml:"tls_cert_path" xml:"tls_cert_path" json:"tls_cert_path,omitempty"`
+	TlsKeyPath         string   `yaml:"tls_key_path" toml:"tls_key_path" xml:"tls_key_path" json:"tls_key_path,omitempty"`
 }
 
 type Blockchain struct {
