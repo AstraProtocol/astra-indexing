@@ -160,17 +160,17 @@ func run(args []string) error {
 			&cli.StringFlag{
 				Name:    "caCertPath",
 				Usage:   "Ca Cert Path",
-				EnvVars: []string{"CA_CERT_PATH"},
+				EnvVars: []string{"KAFKA_CA_CERT_PATH"},
 			},
 			&cli.StringFlag{
 				Name:    "tlsCertPath",
 				Usage:   "Tls Cert Path",
-				EnvVars: []string{"TLS_CERT_PATH"},
+				EnvVars: []string{"KAFKA_TLS_CERT_PATH"},
 			},
 			&cli.StringFlag{
 				Name:    "tlsKeyPath",
 				Usage:   "Tls Key Path",
-				EnvVars: []string{"TLS_KEY_PATH"},
+				EnvVars: []string{"KAFKA_TLS_KEY_PATH"},
 			},
 		},
 		Action: func(ctx *cli.Context) error {
