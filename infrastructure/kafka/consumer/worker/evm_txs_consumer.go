@@ -29,6 +29,7 @@ func RunEvmTxsConsumer(rdbHandle *rdb.Handle, config *config.Config, logger appl
 		Password:           config.KafkaService.Password,
 		AuthenticationType: config.KafkaService.AuthenticationType,
 		Sigchan:            sigchan,
+		Env:                config.KafkaService.Env,
 	}
 	errConn := evmTxsConsumer.CreateConnection()
 	if errConn != nil {
