@@ -138,6 +138,8 @@ func (client *HTTPClient) request(endpoint string, queryParams []string, mapping
 		}
 	}
 
+	client.logger.Infof("request to blockscout endpoint: %v", queryUrl)
+
 	req, err := retryablehttp.NewRequestWithContext(context.Background(), http.MethodGet, queryUrl, nil)
 	if err != nil {
 		prometheus.RecordApiExecTime(queryUrl, strconv.Itoa(408), "http", time.Since(startTime).Milliseconds())
