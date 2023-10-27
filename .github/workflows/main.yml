@@ -19,6 +19,7 @@ jobs:
       ingressEnabled: "yes"
       ingressHost: "chainindexing-worker.prod.astranet.services"
       replicas: "1"
+      servicePort: "8080"
       kafkaCert: "true"
       kafkaEnv: "prod"
     secrets: inherit
