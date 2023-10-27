@@ -155,7 +155,7 @@ func (client *HTTPClient) request(endpoint string, queryParams []string, mapping
 
 	if rawResp.StatusCode != 200 {
 		rawResp.Body.Close()
-		return nil, fmt.Errorf("error requesting blockscout %s endpoint: %s", queryUrl, rawResp.Status)
+		return nil, fmt.Errorf("error requesting blockscout %s endpoint: %d", queryUrl, rawResp.StatusCode)
 	}
 
 	return rawResp.Body, nil
