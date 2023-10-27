@@ -70,6 +70,7 @@ type HTTPClient struct {
 	logger     applogger.Logger
 	httpClient *retryablehttp.Client
 	url        string
+	workerUrl  string
 	httpCache  *cache.AstraCache
 }
 
@@ -119,6 +120,10 @@ func baseRetryPolicy(resp *http.Response, err error) (bool, error) {
 
 func (client *HTTPClient) getUrl(action string, param string) string {
 	return fmt.Sprintf("%s%s%s", client.url, action, param)
+}
+
+func (client *HTTPClient) getWorkerUrl(action string, param string) string {
+	return fmt.Sprintf("%s%s%s", client.workerUrl, action, param)
 }
 
 func (client *HTTPClient) request(endpoint string, queryParams []string, mappingParams map[string]string) (io.ReadCloser, error) {
@@ -176,7 +181,7 @@ func (client *HTTPClient) requestPost(endpoint string, rawBody interface{}) (io.
 	return rawResp.Body, nil
 }
 
-func NewHTTPClient(logger applogger.Logger, url string) *HTTPClient {
+func NewHTTPClient(logger applogger.Logger, url string, workerUrl string) *HTTPClient {
 	httpClient := retryablehttp.NewClient()
 	httpClient.Logger = nil
 	httpClient.CheckRetry = defaultRetryPolicy
@@ -188,6 +193,7 @@ func NewHTTPClient(logger applogger.Logger, url string) *HTTPClient {
 		}),
 		httpClient,
 		strings.TrimSuffix(url, "/"),
+		strings.TrimSuffix(workerUrl, "/"),
 		cache.NewCache(),
 	}
 }
@@ -422,10 +428,10 @@ func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string,
 	}()
 
 	rawRespBody, err := client.request(
-		client.getUrl(GET_DETAIL_ADDRESS_BY_ADDRESS_HASH, addressHash), nil, nil,
+		client.getWorkerUrl(GET_DETAIL_ADDRESS_BY_ADDRESS_HASH, addressHash), nil, nil,
 	)
 	if err != nil {
-		client.logger.Errorf("error getting address detail from blockscout: %v", err)
+		client.logger.Errorf("error getting address detail from blockscout worker: %v", err)
 		addressChan <- AddressResp{}
 		return
 	}
@@ -436,7 +442,7 @@ func (client *HTTPClient) GetDetailAddressByAddressHashAsync(addressHash string,
 
 	var addressResp AddressResp
 	if err := json.Unmarshal(respBody.Bytes(), &addressResp); err != nil {
-		client.logger.Errorf("error parsing address detail from blockscout: %v", err)
+		client.logger.Errorf("error parsing address detail from blockscout worker: %v", err)
 	}
 
 	client.httpCache.Set(cacheKey, addressResp, utils.TIME_CACHE_FAST)
@@ -1330,7 +1336,7 @@ func (client *HTTPClient) UpdateAddressBalance(addressHash string, blockHeight s
 	url := strings.ReplaceAll(UPDATE_ADDRESS_BALANCE, "{addresshash}", addressHash)
 	url = strings.ReplaceAll(url, "{blockheight}", blockHeight)
 	rawRespBody, err := client.request(
-		client.getUrl(strings.ReplaceAll(url, "{balance}", balance), ""), nil, nil,
+		client.getWorkerUrl(strings.ReplaceAll(url, "{balance}", balance), ""), nil, nil,
 	)
 
 	if err != nil {

@@ -26,10 +26,11 @@ type CLIConfig struct {
 	DatabaseName     string
 	DatabaseSchema   string
 
-	TendermintHTTPRPCUrl string
-	CosmosHTTPRPCUrl     string
-	BlockscoutHTTPRPCUrl string
-	JsonHTTPRPCUrl       string
+	TendermintHTTPRPCUrl       string
+	CosmosHTTPRPCUrl           string
+	BlockscoutHTTPRPCUrl       string
+	BlockscoutWorkerHTTPRPCUrl string
+	JsonHTTPRPCUrl             string
 
 	GithubAPIUsername string
 	GithubAPIToken    string
@@ -91,6 +92,10 @@ func OverrideByCLIConfig(config *config.Config, cliConfig *CLIConfig) {
 	}
 	if cliConfig.BlockscoutHTTPRPCUrl != "" {
 		config.BlockscoutApp.HTTPRPCUrl = cliConfig.BlockscoutHTTPRPCUrl
+		config.BlockscoutWorkerApp.HTTPRPCUrl = cliConfig.BlockscoutHTTPRPCUrl
+	}
+	if cliConfig.BlockscoutWorkerHTTPRPCUrl != "" {
+		config.BlockscoutWorkerApp.HTTPRPCUrl = cliConfig.BlockscoutWorkerHTTPRPCUrl
 	}
 	if cliConfig.JsonHTTPRPCUrl != "" {
 		config.JsonrpcApp.HTTPJSONRPCUrl = cliConfig.JsonHTTPRPCUrl

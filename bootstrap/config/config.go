@@ -10,6 +10,7 @@ type Config struct {
 	TendermintApp          TendermintApp          `yaml:"tendermint_app" toml:"tendermint_app" xml:"tendermint_app" json:"tendermint_app"`
 	CosmosApp              CosmosApp              `yaml:"cosmos_app" toml:"cosmos_app" xml:"cosmos_app" json:"cosmos_app"`
 	BlockscoutApp          BlockscoutApp          `yaml:"blockscout_app" toml:"blockscout_app" xml:"blockscout_app" json:"blockscout_app"`
+	BlockscoutWorkerApp    BlockscoutWorkerApp    `yaml:"blockscout_worker_app" toml:"blockscout_worker_app" xml:"blockscout_worker_app" json:"blockscout_worker_app"`
 	JsonrpcApp             JsonrpcApp             `yaml:"jsonrpc_app" toml:"jsonrpc_app" xml:"jsonrpc_app" json:"jsonrpc_app"`
 	Debug                  Debug                  `yaml:"debug" toml:"debug" xml:"debug" json:"debug"`
 	Postgres               Postgres               `yaml:"postgres" toml:"postgres" xml:"postgres" json:"postgres"`
@@ -80,6 +81,11 @@ type CosmosApp struct {
 }
 
 type BlockscoutApp struct {
+	HTTPRPCUrl string `yaml:"http_rpc_url" toml:"http_rpc_url" xml:"http_rpc_url" json:"http_rpc_url,omitempty"`
+	Insecure   bool   `yaml:"insecure" toml:"insecure" xml:"insecure" json:"insecure,omitempty"`
+}
+
+type BlockscoutWorkerApp struct {
 	HTTPRPCUrl string `yaml:"http_rpc_url" toml:"http_rpc_url" xml:"http_rpc_url" json:"http_rpc_url,omitempty"`
 	Insecure   bool   `yaml:"insecure" toml:"insecure" xml:"insecure" json:"insecure,omitempty"`
 }
