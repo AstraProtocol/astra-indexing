@@ -32,6 +32,7 @@ func InitRouteRegistry(
 	blockscoutClient := blockscout_infrastructure.NewHTTPClient(
 		logger,
 		config.BlockscoutApp.HTTPRPCUrl,
+		config.BlockscoutWorkerApp.HTTPRPCUrl,
 	)
 
 	jsonrpcClient := jsonrpc_infrastructure.NewHTTPClient(

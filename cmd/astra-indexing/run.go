@@ -93,6 +93,11 @@ func run(args []string) error {
 				EnvVars: []string{"BLOCKSCOUT_URL"},
 			},
 			&cli.StringFlag{
+				Name:    "blockscoutWorkerURL",
+				Usage:   "Blockscout Worker HTTP RPC URL",
+				EnvVars: []string{"BLOCKSCOUT_WORKER_URL"},
+			},
+			&cli.StringFlag{
 				Name:    "JsonRpcURL",
 				Usage:   "Json HTTP RPC URL",
 				EnvVars: []string{"JSONRPC_URL"},
@@ -201,10 +206,11 @@ func run(args []string) error {
 				DatabaseName:     ctx.String("dbName"),
 				DatabaseSchema:   ctx.String("dbSchema"),
 
-				TendermintHTTPRPCUrl: ctx.String("tendermintURL"),
-				CosmosHTTPRPCUrl:     ctx.String("cosmosAppURL"),
-				BlockscoutHTTPRPCUrl: ctx.String("blockscoutURL"),
-				JsonHTTPRPCUrl:       ctx.String("JsonRpcURL"),
+				TendermintHTTPRPCUrl:       ctx.String("tendermintURL"),
+				CosmosHTTPRPCUrl:           ctx.String("cosmosAppURL"),
+				BlockscoutHTTPRPCUrl:       ctx.String("blockscoutURL"),
+				BlockscoutWorkerHTTPRPCUrl: ctx.String("blockscoutWorkerURL"),
+				JsonHTTPRPCUrl:             ctx.String("JsonRpcURL"),
 
 				GithubAPIUsername: ctx.String("githubAPIUsername"),
 				GithubAPIToken:    ctx.String("githubAPIToken"),
