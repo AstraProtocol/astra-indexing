@@ -169,8 +169,7 @@ func (handler *ContractVerifiers) VerifyFlattened(ctx *fasthttp.RequestCtx) {
 	httpapi.SuccessNotWrappedResult(ctx, resp)
 }
 
-//checkverifystatus
-
+// checkverifystatus
 func (handler *ContractVerifiers) ContractActions(ctx *fasthttp.RequestCtx) {
 	startTime := time.Now()
 	recordMethod := "CheckVerifyStatus"
