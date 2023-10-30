@@ -155,7 +155,7 @@ func (client *HTTPClient) request(endpoint string, queryParams []string, mapping
 
 	if rawResp.StatusCode != 200 {
 		rawResp.Body.Close()
-		return nil, fmt.Errorf("error requesting blockscout %s endpoint: %s", queryUrl, rawResp.Status)
+		return nil, fmt.Errorf("error requesting blockscout %s endpoint: %d", queryUrl, rawResp.StatusCode)
 	}
 
 	return rawResp.Body, nil
@@ -1383,7 +1383,7 @@ func (client *HTTPClient) Verify(bodyParams interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	rawRespBody, err := client.requestPost(client.getUrl(HARD_HAT_POST_INTERFACE, ""), postBody)
+	rawRespBody, err := client.requestPost(client.getWorkerUrl(HARD_HAT_POST_INTERFACE, ""), postBody)
 	if err != nil {
 		return nil, err
 	}
@@ -1423,7 +1423,7 @@ func (client *HTTPClient) VerifyFlattened(bodyParams interface{}) (interface{}, 
 		return nil, err
 	}
 
-	rawRespBody, err := client.requestPost(client.getUrl(VERIFY_FLATTENED, ""), postBody)
+	rawRespBody, err := client.requestPost(client.getWorkerUrl(VERIFY_FLATTENED, ""), postBody)
 	if err != nil {
 		return nil, err
 	}
@@ -1526,7 +1526,7 @@ func (client *HTTPClient) Logs(bodyParams interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	rawRespBody, err := client.requestPost(client.getUrl(HARD_HAT_POST_INTERFACE, ""), postBody)
+	rawRespBody, err := client.requestPost(client.getWorkerUrl(HARD_HAT_POST_INTERFACE, ""), postBody)
 	if err != nil {
 		return nil, err
 	}
