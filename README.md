@@ -1,7 +1,5 @@
 # chain-indexing-example-app
 
-Example implementation for [crypto.com/chain-indexing](https://github.com/crypto-com/chain-indexing)
-
 ## How to Run
 
 ### 1. Prerequisite
