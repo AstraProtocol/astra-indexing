@@ -22,4 +22,11 @@ CREATE TABLE report_dashboard (
     --
     total_asa_withdrawn_from_tiki VARCHAR DEFAULT '' NOT NULL,
     total_asa_on_chain_rewards VARCHAR DEFAULT '' NOT NULL
+    -- Group by
+    total_active_addresses_weekly INT DEFAULT 0 NOT NULL,
+    total_active_addresses_monthly INT DEFAULT 0 NOT NULL,
+	total_staking_addresses_weekly INT DEFAULT 0 NOT NULL,
+    total_staking_addresses_monthly INT DEFAULT 0 NOT NULL,
+	total_redeemed_coupons_addresses_weekly INT DEFAULT 0 NOT NULL,
+    total_redeemed_coupons_addresses_monthly INT DEFAULT 0 NOT NULL;
 );
